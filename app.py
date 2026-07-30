@@ -632,7 +632,18 @@ def pagina_registrazione():
             st.subheader(get_testo("dati_anagrafici", st.session_state.lingua))
             cognome = st.text_input(get_testo("cognome", st.session_state.lingua), key="f_cognome")
             nome = st.text_input(get_testo("nome", st.session_state.lingua), key="f_nome")
-            data_nascita = st.date_input(get_testo("data_nascita", st.session_state.lingua), key="f_data_nascita")
+            
+            # Data di nascita con 3 selectbox (GG/MM/AAAA)
+            st.markdown(f"**{get_testo('data_nascita', st.session_state.lingua)}**")
+            col_g, col_m, col_a = st.columns(3)
+            with col_g:
+                giorno_n = st.selectbox("Jour", range(1, 32), index=0, key="f_giorno_n")
+            with col_m:
+                mese_n = st.selectbox("Mois", range(1, 13), index=0, key="f_mese_n")
+            with col_a:
+                anno_n = st.selectbox("Année", range(1950, 2010), index=30, key="f_anno_n")
+            data_nascita_str = f"{giorno_n:02d}/{mese_n:02d}/{anno_n}"
+            
             luogo_nascita = st.text_input(get_testo("luogo_nascita", st.session_state.lingua), key="f_luogo_nascita")
             nazionalita = st.text_input(get_testo("nazionalita", st.session_state.lingua), value="Sénégalaise", key="f_nazionalita")
             sesso = st.selectbox(get_testo("sesso", st.session_state.lingua), 
@@ -645,7 +656,6 @@ def pagina_registrazione():
                 get_testo("vedovo", st.session_state.lingua)
             ], key="f_stato_civile")
             
-            # Numero di mogli (solo se coniugato)
             numero_mogli = 0
             if stato_civile == get_testo("coniugato", st.session_state.lingua):
                 numero_mogli = st.number_input(get_testo("numero_mogli", st.session_state.lingua), 
@@ -660,23 +670,24 @@ def pagina_registrazione():
             comune = st.text_input(get_testo("comune", st.session_state.lingua), key="f_comune")
             
             paese = st.selectbox(get_testo("paese", st.session_state.lingua), 
-                ["Sénégal", "Sierra Leone", "Guinea", "Mali", "Gambia", get_testo("altro", st.session_state.lingua)],
+                ["Sénégal", "Sierra Leone", "Guinea", "Mali", "Gambia", "Autre / Other"],
                 index=0, key="f_paese")
             
+            # LOGICA CORRETTA PER PAESI
             if paese == "Sénégal":
                 dipartimento = st.selectbox(get_testo("dipartimento", st.session_state.lingua), [
-                    get_testo("thies", st.session_state.lingua),
-                    get_testo("tivaouane", st.session_state.lingua),
-                    get_testo("mbour", st.session_state.lingua),
+                    "Thiès", "Tivaouane", "Mbour",
                     "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda",
                     "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam",
-                    get_testo("altro", st.session_state.lingua)
+                    "Autre"
                 ], key="f_dipartimento")
-            elif paese == get_testo("altro", st.session_state.lingua):
-                paese_altro = st.text_input(get_testo("paese_altro", st.session_state.lingua), key="f_paese_altro")
-                dipartimento = paese_altro if paese_altro else "Autre"
+            elif paese == "Autre / Other":
+                paese_altro = st.text_input("Nom du pays / Country name", key="f_paese_altro")
+                regione_altro = st.text_input("Région / Region", key="f_regione_altro")
+                dipartimento = f"{paese_altro} - {regione_altro}" if paese_altro and regione_altro else (paese_altro if paese_altro else "Autre")
             else:
-                regione_straniera = st.text_input(get_testo("regione", st.session_state.lingua), key="f_regione")
+                # Sierra Leone, Guinea, Mali, Gambia
+                regione_straniera = st.text_input(f"Région de {paese} / Region of {paese}", key="f_regione_straniera")
                 dipartimento = f"{paese} - {regione_straniera}" if regione_straniera else paese
             
             telefono = st.text_input(get_testo("telefono", st.session_state.lingua), key="f_telefono")
@@ -693,7 +704,17 @@ def pagina_registrazione():
             reparto = st.text_input(get_testo("reparto", st.session_state.lingua), key="f_reparto")
             supervisore = st.text_input(get_testo("supervisore", st.session_state.lingua), key="f_supervisore")
         with col2:
-            data_inizio = st.date_input(get_testo("data_inizio", st.session_state.lingua), key="f_data_inizio")
+            # Data inizio lavoro con 3 selectbox
+            st.markdown(f"**{get_testo('data_inizio', st.session_state.lingua)}**")
+            col_g2, col_m2, col_a2 = st.columns(3)
+            with col_g2:
+                giorno_i = st.selectbox("Jour", range(1, 32), index=29, key="f_giorno_i")
+            with col_m2:
+                mese_i = st.selectbox("Mois", range(1, 13), index=6, key="f_mese_i")
+            with col_a2:
+                anno_i = st.selectbox("Année", range(2020, 2035), index=6, key="f_anno_i")
+            data_inizio_str = f"{giorno_i:02d}/{mese_i:02d}/{anno_i}"
+            
             salario = st.number_input(get_testo("salario", st.session_state.lingua), min_value=0, value=5000, key="f_salario")
             ore_giorno = st.number_input(get_testo("ore_giorno", st.session_state.lingua), min_value=1, max_value=24, value=8, key="f_ore_giorno")
             giorni_settimana = st.text_input(get_testo("giorni_settimana", st.session_state.lingua), value="Lun-Ven", key="f_giorni_settimana")
@@ -735,7 +756,17 @@ def pagina_registrazione():
                 get_testo("restriction", st.session_state.lingua),
                 get_testo("inapte", st.session_state.lingua)
             ], key="f_idoneita")
-            data_visita = st.date_input(get_testo("data_visita", st.session_state.lingua), key="f_data_visita")
+            
+            # Data visita medica con 3 selectbox
+            st.markdown(f"**{get_testo('data_visita', st.session_state.lingua)}**")
+            col_g3, col_m3, col_a3 = st.columns(3)
+            with col_g3:
+                giorno_v = st.selectbox("Jour", range(1, 32), index=29, key="f_giorno_v")
+            with col_m3:
+                mese_v = st.selectbox("Mois", range(1, 13), index=6, key="f_mese_v")
+            with col_a3:
+                anno_v = st.selectbox("Année", range(2020, 2035), index=6, key="f_anno_v")
+            data_visita_str = f"{giorno_v:02d}/{mese_v:02d}/{anno_v}"
         
         st.subheader(get_testo("emergenza", st.session_state.lingua))
         col1, col2 = st.columns(2)
@@ -763,7 +794,7 @@ def pagina_registrazione():
                 "data_registrazione": datetime.now().strftime("%d/%m/%Y %H:%M"),
                 "cognome": cognome,
                 "nome": nome,
-                "data_nascita": data_nascita.strftime("%d/%m/%Y"),
+                "data_nascita": data_nascita_str,
                 "luogo_nascita": luogo_nascita,
                 "nazionalita": nazionalita,
                 "sesso": sesso,
@@ -783,7 +814,7 @@ def pagina_registrazione():
                 "luogo_lavoro": luogo_lavoro,
                 "reparto": reparto,
                 "supervisore": supervisore,
-                "data_inizio": data_inizio.strftime("%d/%m/%Y"),
+                "data_inizio": data_inizio_str,
                 "salario": salario,
                 "ore_giorno": ore_giorno,
                 "giorni_settimana": giorni_settimana,
@@ -799,7 +830,7 @@ def pagina_registrazione():
                 "allergie": allergie,
                 "malattie": malattie,
                 "idoneita": idoneita,
-                "data_visita": data_visita.strftime("%d/%m/%Y"),
+                "data_visita": data_visita_str,
                 "emergenza_nome": emergenza_nome,
                 "emergenza_parentela": emergenza_parentela,
                 "emergenza_tel": emergenza_tel,
