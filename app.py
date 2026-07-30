@@ -665,7 +665,7 @@ def pagina_registrazione():
         
         with col2:
             st.subheader(get_testo("documenti", st.session_state.lingua))
-                        indirizzo = st.text_input(get_testo("indirizzo", st.session_state.lingua), key="f_indirizzo")
+            indirizzo = st.text_input(get_testo("indirizzo", st.session_state.lingua), key="f_indirizzo")
             quartiere = st.text_input(get_testo("quartiere", st.session_state.lingua), key="f_quartiere")
             comune = st.text_input(get_testo("comune", st.session_state.lingua), key="f_comune")
             
