@@ -341,10 +341,15 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(0, 6, 'Signature:', 0, 1)
     pdf.cell(0, 20, '', 1, 1)
     
+    # Genera PDF in formato bytes
     pdf_bytes = pdf.output(dest='S')
+    
+    # Converti in bytes se è stringa
     if isinstance(pdf_bytes, str):
-        return pdf_bytes.encode('utf-8', errors='ignore')
-    return pdf_bytes
+        pdf_bytes = pdf_bytes.encode('latin-1', errors='replace')
+    
+    # Se è già bytes, restituisci direttamente
+    return bytes(pdf_bytes)
 
 # ============================================
 # STEP DEL FORMULARIO (ASSUNZIONI)
