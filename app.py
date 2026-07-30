@@ -538,31 +538,38 @@ def main():
     
     lingua = st.session_state.lingua
     
-    with st.sidebar:
-    # Logo Proacier con fallback
-    try:
+        with st.sidebar:
         st.image(LOGO_URL, use_column_width=True)
-    except:
-        st.image("https://cdn-icons-png.flaticon.com/512/2936/2936886.png", width=80)
-    st.markdown("---")
-    
-    st.title(get_testo("titolo", lingua))
-    st.markdown(get_testo("sottotitolo", lingua))
-    st.markdown("---")
+        st.markdown("---")
+        st.title(get_testo("titolo", lingua))
+        st.markdown(get_testo("sottotitolo", lingua))
+        st.markdown("---")
+        
+        lingua_sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"], index=0 if lingua == 'fr' else (1 if lingua == 'it' else 2), key="sel_lingua_sidebar")
+        st.session_state.lingua = 'fr' if lingua_sel == "Français" else ('it' if lingua_sel == "Italiano" else 'en')
+        lingua = st.session_state.lingua
+        st.markdown("---")
         
         if st.session_state.logged_in:
             st.success(f"{get_testo('benvenuto', lingua)}")
-            if st.session_state.user_type == 'admin' and st.button(get_testo("dashboard", lingua), key="btn_dash"): st.session_state.pagina = 'dashboard'
-            if st.session_state.user_type == 'lavoratore' and st.button(get_testo("i_miei_dati", lingua), key="btn_miei"): st.session_state.pagina = 'area_lavoratore'
+            if st.session_state.user_type == 'admin' and st.button(get_testo("dashboard", lingua), key="btn_dash"): 
+                st.session_state.pagina = 'dashboard'
+            if st.session_state.user_type == 'lavoratore' and st.button(get_testo("i_miei_dati", lingua), key="btn_miei"): 
+                st.session_state.pagina = 'area_lavoratore'
             if st.button(get_testo("logout", lingua), key="btn_logout"): 
-                st.session_state.logged_in = False; st.session_state.pagina = 'home'
+                st.session_state.logged_in = False
+                st.session_state.pagina = 'home'
         else:
             if st.button(get_testo("nuova_assunzione", lingua), key="btn_reg"): 
-                st.session_state.pagina = 'registrazione'; st.session_state.step = 1; st.session_state.dati_form = {}
+                st.session_state.pagina = 'registrazione'
+                st.session_state.step = 1
+                st.session_state.dati_form = {}
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"): 
                 st.session_state.pagina = 'candidatura'
-            if st.button(get_testo("area_lavoratore", lingua), key="btn_area"): st.session_state.pagina = 'login_lavoratore'
-            if st.button(get_testo("dashboard", lingua), key="btn_dash_login"): st.session_state.pagina = 'login_admin'
+            if st.button(get_testo("area_lavoratore", lingua), key="btn_area"): 
+                st.session_state.pagina = 'login_lavoratore'
+            if st.button(get_testo("dashboard", lingua), key="btn_dash_login"): 
+                st.session_state.pagina = 'login_admin'
 
     if st.session_state.pagina == 'home':
         st.title("🏭 PROACIER SN"); st.markdown("### Système de Gestion des Ressources Humaines"); st.info("Utilisez le menu à gauche")
