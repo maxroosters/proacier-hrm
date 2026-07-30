@@ -331,6 +331,21 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(95, 6, 'EMPLOYEUR', 1, 1, 'C')
     pdf.cell(95, 15, '', 1, 0)
     pdf.cell(95, 15, '', 1, 1)
+        
+    # CODICI DI ACCESSO
+    pdf.ln(5)
+    pdf.set_fill_color(255, 243, 205)
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(0, 8, 'IDENTIFIANTS DE CONNEXION - CONSERVEZ CE DOCUMENT', 0, 1, 'C', True)
+    pdf.ln(2)
+    pdf.set_font('Helvetica', '', 9)
+    pdf.cell(0, 6, f"Code d'acces: {dati.get('codice', '___________')}", 0, 1)
+    pdf.cell(0, 6, f"PIN: {dati.get('pin', '___________')}", 0, 1)
+    pdf.ln(2)
+    pdf.set_font('Helvetica', 'I', 8)
+    pdf.set_text_color(150, 0, 0)
+    pdf.multi_cell(0, 4, "Ces identifiants sont personnels et confidentiels.")
+    pdf.set_text_color(0, 0, 0)
     
     pdf.add_page()
     pdf.set_font('Helvetica', 'B', 12)
