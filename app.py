@@ -539,16 +539,16 @@ def main():
     lingua = st.session_state.lingua
     
     with st.sidebar:
+    # Logo Proacier con fallback
+    try:
         st.image(LOGO_URL, use_column_width=True)
-        st.markdown("---")
-        st.title(get_testo("titolo", lingua))
-        st.markdown(get_testo("sottotitolo", lingua))
-        st.markdown("---")
-        
-        lingua_sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"], index=0 if lingua == 'fr' else (1 if lingua == 'it' else 2), key="sel_lingua_sidebar")
-        st.session_state.lingua = 'fr' if lingua_sel == "Français" else ('it' if lingua_sel == "Italiano" else 'en')
-        lingua = st.session_state.lingua
-        st.markdown("---")
+    except:
+        st.image("https://cdn-icons-png.flaticon.com/512/2936/2936886.png", width=80)
+    st.markdown("---")
+    
+    st.title(get_testo("titolo", lingua))
+    st.markdown(get_testo("sottotitolo", lingua))
+    st.markdown("---")
         
         if st.session_state.logged_in:
             st.success(f"{get_testo('benvenuto', lingua)}")
