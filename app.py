@@ -41,7 +41,7 @@ TRADUZIONI = {
         "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
-        "nuova_assunzione": "📝 Nouvelle Assunzione (Complet)",
+        "nuova_assunzione": "📝 Nouvelle Embauche (Complet)",
         "candidatura_spontanea": "📄 Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Ouvrier",
