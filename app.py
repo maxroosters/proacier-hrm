@@ -342,9 +342,9 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(0, 20, '', 1, 1)
     
 try:
-    return pdf.output(dest='S').encode('latin-1', errors='ignore')
+return pdf.output(dest='S').encode('latin-1', errors='ignore')
 except:
-    return pdf.output(dest='S').encode('utf-8', errors='ignore')
+return pdf.output(dest='S').encode('utf-8', errors='ignore')
 
 # ============================================
 # STEP DEL FORMULARIO (ASSUNZIONI)
