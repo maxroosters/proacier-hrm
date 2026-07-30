@@ -538,7 +538,7 @@ def main():
     
     lingua = st.session_state.lingua
     
-        with st.sidebar:
+    with st.sidebar:
         st.image(LOGO_URL, use_column_width=True)
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
