@@ -341,9 +341,9 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(0, 6, 'Signature:', 0, 1)
     pdf.cell(0, 20, '', 1, 1)
     
-try:
+    try:
 return pdf.output(dest='S').encode('latin-1', errors='ignore')
-except:
+    except:
 return pdf.output(dest='S').encode('utf-8', errors='ignore')
 
 # ============================================
