@@ -28,7 +28,7 @@ LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2936/2936886.png"
 GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
 
 # URL Google Apps Script 2: Candidature Spontanee (questo lascialo così com'è)
-GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycby1isMOz1fKTptR83six7_3OMaDgcx8_LRn3rLkD9_wCRHdxu1GCgQr3aR9FxaSr3Q-/exec"
+GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycbzlc2iOHSiNSWNvU21g4GqsGwMA4QQDJXTG_J3hkfe5Za8nyeTWb1amhuR2ULFI5b9k/exec"
 
 PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 URL_CONDIZIONI = "https://www.proacier.sn/condizioni"
