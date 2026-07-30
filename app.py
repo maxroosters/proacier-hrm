@@ -665,30 +665,31 @@ def pagina_registrazione():
         
         with col2:
             st.subheader(get_testo("documenti", st.session_state.lingua))
-            indirizzo = st.text_input(get_testo("indirizzo", st.session_state.lingua), key="f_indirizzo")
+                        indirizzo = st.text_input(get_testo("indirizzo", st.session_state.lingua), key="f_indirizzo")
             quartiere = st.text_input(get_testo("quartiere", st.session_state.lingua), key="f_quartiere")
             comune = st.text_input(get_testo("comune", st.session_state.lingua), key="f_comune")
             
-            paese = st.selectbox(get_testo("paese", st.session_state.lingua), 
+            # PAESE DI RESIDENZA (indipendente dalla nazionalità)
+            paese_residenza = st.selectbox(get_testo("paese", st.session_state.lingua), 
                 ["Sénégal", "Sierra Leone", "Guinea", "Mali", "Gambia", "Autre / Other"],
-                index=0, key="f_paese")
+                index=0, key="f_paese_residenza")
             
-            # LOGICA CORRETTA PER PAESI
-            if paese == "Sénégal":
+            # Regioni basate sul PAESE DI RESIDENZA
+            if paese_residenza == "Sénégal":
                 dipartimento = st.selectbox(get_testo("dipartimento", st.session_state.lingua), [
                     "Thiès", "Tivaouane", "Mbour",
                     "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda",
                     "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam",
-                    "Autre"
-                ], key="f_dipartimento")
-            elif paese == "Autre / Other":
-                paese_altro = st.text_input("Nom du pays / Country name", key="f_paese_altro")
-                regione_altro = st.text_input("Région / Region", key="f_regione_altro")
+                    "Autre région"
+                ], key="f_dipartimento_senegal")
+            elif paese_residenza == "Autre / Other":
+                paese_altro = st.text_input("Nom du pays / Country name", key="f_paese_altro_residenza")
+                regione_altro = st.text_input("Région / Region", key="f_regione_altro_residenza")
                 dipartimento = f"{paese_altro} - {regione_altro}" if paese_altro and regione_altro else (paese_altro if paese_altro else "Autre")
             else:
-                # Sierra Leone, Guinea, Mali, Gambia
-                regione_straniera = st.text_input(f"Région de {paese} / Region of {paese}", key="f_regione_straniera")
-                dipartimento = f"{paese} - {regione_straniera}" if regione_straniera else paese
+                regione_straniera = st.text_input(f"Région de {paese_residenza} / Region of {paese_residenza}", 
+                    key=f"f_regione_{paese_residenza.lower().replace(' ', '_')}")
+                dipartimento = f"{paese_residenza} - {regione_straniera}" if regione_straniera else paese_residenza
             
             telefono = st.text_input(get_testo("telefono", st.session_state.lingua), key="f_telefono")
             telefono2 = st.text_input(get_testo("telefono2", st.session_state.lingua), key="f_telefono2")
