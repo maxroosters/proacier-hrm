@@ -25,7 +25,7 @@ st.set_page_config(
 LOGO_URL = "https://proacier.sn/wp-content/uploads/2025/03/logo-proacier1-1024x386.png"
 
 # URL Google Apps Script 1: Assunzioni Complete (Operai/Dipendenti)
-GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbxt39icOxVevvtes1ne1tK2ZTrw-uXldRIppSDgJj8YPwb13hOMRN6tOTOKJjB9vYF6MQ/exec"
+GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
 
 # URL Google Apps Script 2: Candidature Spontanee (questo lascialo così com'è)
 GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycby1isMOz1fKTptR83six7_3OMaDgcx8_LRn3rLkD9_wCRHdxu1GCgQr3aR9FxaSr3Q-/exec"
