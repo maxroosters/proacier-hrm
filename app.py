@@ -16,16 +16,14 @@ from fpdf import FPDF
 # ============================================
 st.set_page_config(
     # Sidebar grigio chiaro
-st.markdown("""
+st.markdown('''
 <style>
 [data-testid="stSidebar"] {
     background-color: #e8e8e8;
 }
-[data-testid="stSidebar"] .block-container {
-    padding-top: 2rem;
-}
 </style>
-""", unsafe_allow_html=True)page_title="Proacier - Ressources Humaines",
+''', unsafe_allow_html=True)
+    page_title="Proacier - Ressources Humaines",
     page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
