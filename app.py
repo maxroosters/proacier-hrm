@@ -15,11 +15,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS per sidebar grigio chiaro
+# CSS per sidebar verde Proacier
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
     background-color: #5EA529;
+}
+[data-testid="stSidebar"] .block-container {
+    padding-top: 2rem;
+}
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] div {
+    color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -27,10 +34,8 @@ st.markdown("""
 # URL del logo Proacier
 LOGO_URL = "https://proacier.sn/wp-content/uploads/2025/03/logo-proacier1-1024x386.png"
 
-# URL Google Apps Script 1: Assunzioni Complete
+# URL Google Apps Script
 GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
-
-# URL Google Apps Script 2: Candidature Spontanee
 GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycbzlc2iOHSiNSWNvU21g4GqsGwMA4QQDJXTG_J3hkfe5Za8nyeTWb1amhuR2ULFI5b9k/exec"
 
 PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
@@ -40,20 +45,20 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": " PROACIER - GESTION RH",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
-        "nuova_assunzione": "➕ Nouvelle Embauche",
+        "nuova_assunzione": " Nouvelle Embauche",
         "candidatura_spontanea": "📩 Candidature Spontanée",
-        "area_lavoratore": "👤 Espace Travailleur",
-        "dashboard": " Tableau de Bord",
+        "area_lavoratore": "👷 Espace Travailleur",
+        "dashboard": "📊 Tableau de Bord",
         "accedi": "Connexion",
         "password": "Mot de passe",
-        "indietro": " Retour",
+        "indietro": "⬅ Retour",
         "continua": "Continuer ➡",
         "genera_pdf": "✅ Générer le PDF",
         "pdf_generato": "Document enregistré avec succès!",
-        "conserva_credenziali": "⚠️ Conservez précieusement ces informations",
+        "conserva_credenziali": "️ Conservez précieusement ces informations",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN personnel",
         "scarica": "Télécharger le",
@@ -66,18 +71,47 @@ TRADUZIONI = {
         "step_5": "Étape 5: Informations Médicales",
         "step_6": "Étape 6: Contact d'Urgence et Validation",
         "errore_obbligatori": "Veuillez remplir tous les champs obligatoires",
-        "titolo_candidatura": " CANDIDATURE SPONTANÉE",
+        "titolo_candidatura": "📩 CANDIDATURE SPONTANÉE",
         "sottotitolo_candidatura": "Transmettez vos données pour une future embauche",
         "invia_candidatura": "Envoyer ma candidature",
-        "i_miei_dati": "👤 Mes Données Personnelles"
+        "i_miei_dati": "👤 Mes Données Personnelles",
+        "spazio_lavoratore_titolo": "👷 Espace Travailleur",
+        "spazio_lavoratore_sottotitolo": "Choisissez une option:",
+        "gia_assunto": "Déjà embauché?",
+        "gia_assunto_desc": "Accédez à votre espace personnel pour consulter vos données, vos fiches de paie et modifier vos informations familiales.",
+        "btn_login_operaio": " Connexion à mon espace",
+        "nuovo_giornaliero": "Nouveau / Journalier?",
+        "nuovo_giornaliero_desc": "Transmettez vos données personnelles à l'administration pour une éventuelle future embauche ou pour le paiement des salaires des journaliers.",
+        "btn_trasmetti_operaio": "📤 Transmettre mes données",
+        "login_operaio_titolo": "🔐 Connexion à mon espace personnel",
+        "login_operaio_codice": "Code d'accès (ex: THS-2026-XXXX)",
+        "login_operaio_pin": "PIN personnel",
+        "btn_connetti": "Se connecter",
+        "dashboard_operaio_titolo": " Mon Espace Personnel",
+        "dashboard_operaio_sottotitolo": "Bienvenue dans votre espace personnel PROACIER",
+        "dati_personali": " Mes Informations Personnelles",
+        "dati_familiari": "‍👩‍👧👦 Ma Famille",
+        "dati_lavoro": "💼 Mes Informations de Travail",
+        "aggiorna": "💾 Mettre à jour",
+        "aggiornato": "✅ Données mises à jour avec succès!",
+        "errore_aggiornamento": "❌ Erreur lors de la mise à jour",
+        "dati_bloccati": "🔒 Ces informations ne peuvent pas être modifiées",
+        "dati_modificabili": "✏️ Ces informations peuvent être modifiées",
+        "disclaimer_trasmetti": "⚠️ **IMPORTANT:** Ceci n'est PAS un contrat de travail, ni un document d'embauche. Il s'agit uniquement de la transmission de vos données à l'administration de PROACIER pour une éventuelle future embauche et pour le paiement des salaires des journaliers.",
+        "trasmetti_titolo": "📝 Transmission de données personnelles",
+        "btn_envia_trasmetti": " Envoyer mes données",
+        "trasmetti_successo": "✅ Données transmises avec succès à l'administration PROACIER!",
+        "trasmetti_contatto": "Vous serez contacté en cas de besoin.",
+        "logout": "🚪 Déconnexion",
+        "benv": "Bienvenue"
     },
     "it": {
-        "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
+        "titolo": "🏭 PROACIER - GESTIONE RH",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "➕ Nuova Assunzione",
-        "candidatura_spontanea": "📩 Candidatura Spontanea",
-        "area_lavoratore": "👤 Area Lavoratore",
+        "candidatura_spontanea": " Candidatura Spontanea",
+        "area_lavoratore": "👷 Spazio Lavoratore",
         "dashboard": "📊 Dashboard",
         "accedi": "Accedi",
         "password": "Password",
@@ -98,18 +132,47 @@ TRADUZIONI = {
         "step_5": "Passaggio 5: Informazioni Mediche",
         "step_6": "Passaggio 6: Contatto di Emergenza e Validazione",
         "errore_obbligatori": "Compila tutti i campi obbligatori",
-        "titolo_candidatura": " CANDIDATURA SPONTANEA",
+        "titolo_candidatura": "📩 CANDIDATURA SPONTANEA",
         "sottotitolo_candidatura": "Trasmetti i tuoi dati per una futura assunzione",
         "invia_candidatura": "Invia candidatura",
-        "i_miei_dati": "👤 I Miei Dati Personali"
+        "i_miei_dati": "👤 I Miei Dati Personali",
+        "spazio_lavoratore_titolo": "👷 Spazio Lavoratore",
+        "spazio_lavoratore_sottotitolo": "Scegli un'opzione:",
+        "gia_assunto": "Già assunto?",
+        "gia_assunto_desc": "Accedi al tuo spazio personale per consultare i tuoi dati, le buste paga e modificare le informazioni familiari.",
+        "btn_login_operaio": "🔓 Accedi al mio spazio",
+        "nuovo_giornaliero": "Nuovo / Giornaliero?",
+        "nuovo_giornaliero_desc": "Trasmetti i tuoi dati personali all'amministrazione per una possibile futura assunzione o per il pagamento dei salari dei giornalieri.",
+        "btn_trasmetti_operaio": "📤 Trasmetti i miei dati",
+        "login_operaio_titolo": "🔐 Accesso al mio spazio personale",
+        "login_operaio_codice": "Codice di accesso (es: THS-2026-XXXX)",
+        "login_operaio_pin": "PIN personale",
+        "btn_connetti": "Accedi",
+        "dashboard_operaio_titolo": "👤 Il Mio Spazio Personale",
+        "dashboard_operaio_sottotitolo": "Benvenuto nel tuo spazio personale PROACIER",
+        "dati_personali": "📋 Le Mie Informazioni Personali",
+        "dati_familiari": "‍👩‍👧👦 La Mia Famiglia",
+        "dati_lavoro": "💼 Le Mie Informazioni di Lavoro",
+        "aggiorna": "💾 Aggiorna",
+        "aggiornato": "✅ Dati aggiornati con successo!",
+        "errore_aggiornamento": "❌ Errore durante l'aggiornamento",
+        "dati_bloccati": "🔒 Queste informazioni non possono essere modificate",
+        "dati_modificabili": "✏️ Queste informazioni possono essere modificate",
+        "disclaimer_trasmetti": "⚠️ **IMPORTANTE:** Questo NON è un contratto di lavoro, né un documento di assunzione. Si tratta solo della trasmissione dei tuoi dati all'amministrazione PROACIER per una possibile futura assunzione e per il pagamento dei salari dei giornalieri.",
+        "trasmetti_titolo": " Trasmissione dati personali",
+        "btn_envia_trasmetti": "📤 Invia i miei dati",
+        "trasmetti_successo": "✅ Dati trasmessi con successo all'amministrazione PROACIER!",
+        "trasmetti_contatto": "Sarai contattato in caso di necessità.",
+        "logout": "🚪 Esci",
+        "benv": "Benvenuto"
     },
     "en": {
-        "titolo": "🏭 PROACIER - HUMAN RESOURCES MANAGEMENT",
+        "titolo": " PROACIER - HR MANAGEMENT",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "➕ New Hiring",
         "candidatura_spontanea": "📩 Spontaneous Application",
-        "area_lavoratore": "👤 Worker Area",
+        "area_lavoratore": "👷 Worker Area",
         "dashboard": "📊 Dashboard",
         "accedi": "Login",
         "password": "Password",
@@ -133,7 +196,36 @@ TRADUZIONI = {
         "titolo_candidatura": "📩 SPONTANEOUS APPLICATION",
         "sottotitolo_candidatura": "Submit your data for future hiring",
         "invia_candidatura": "Submit application",
-        "i_miei_dati": "👤 My Personal Data"
+        "i_miei_dati": "👤 My Personal Data",
+        "spazio_lavoratore_titolo": "👷 Worker Area",
+        "spazio_lavoratore_sottotitolo": "Choose an option:",
+        "gia_assunto": "Already hired?",
+        "gia_assunto_desc": "Access your personal space to view your data, pay slips and modify family information.",
+        "btn_login_operaio": "🔓 Login to my space",
+        "nuovo_giornaliero": "New / Day worker?",
+        "nuovo_giornaliero_desc": "Submit your personal data to the administration for a possible future hiring or for day worker salary payments.",
+        "btn_trasmetti_operaio": "📤 Submit my data",
+        "login_operaio_titolo": "🔐 Login to my personal space",
+        "login_operaio_codice": "Access code (ex: THS-2026-XXXX)",
+        "login_operaio_pin": "Personal PIN",
+        "btn_connetti": "Login",
+        "dashboard_operaio_titolo": "👤 My Personal Space",
+        "dashboard_operaio_sottotitolo": "Welcome to your PROACIER personal space",
+        "dati_personali": "📋 My Personal Information",
+        "dati_familiari": "👨‍👩👧‍👦 My Family",
+        "dati_lavoro": "💼 My Work Information",
+        "aggiorna": "💾 Update",
+        "aggiornato": "✅ Data updated successfully!",
+        "errore_aggiornamento": "❌ Error during update",
+        "dati_bloccati": "🔒 This information cannot be modified",
+        "dati_modificabili": "✏️ This information can be modified",
+        "disclaimer_trasmetti": "⚠️ **IMPORTANT:** This is NOT an employment contract, nor a hiring document. It is only the transmission of your data to PROACIER administration for a possible future hiring and for day worker salary payments.",
+        "trasmetti_titolo": "📝 Personal data transmission",
+        "btn_envia_trasmetti": "📤 Submit my data",
+        "trasmetti_successo": "✅ Data successfully transmitted to PROACIER administration!",
+        "trasmetti_contatto": "You will be contacted if needed.",
+        "logout": "🚪 Logout",
+        "benv": "Welcome"
     }
 }
 
@@ -174,7 +266,7 @@ class PDFProacier(FPDF):
         self.set_font('Helvetica', 'B', 14)
         self.set_fill_color(68, 114, 196)
         self.set_text_color(255, 255, 255)
-        self.cell(0, 10, 'FICHE D\'ENREGISTREMENT - RESSOURCES HUMAINES', 0, 1, 'C', True)
+        self.cell(0, 10, "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES", 0, 1, 'C', True)
         self.set_text_color(0, 0, 0)
         self.ln(2)
 
@@ -206,7 +298,7 @@ def genera_pdf_lavoratore(dati):
     return pdf.output(dest='S').encode('latin-1')
 
 # ============================================
-# STEP DEL FORMULARIO
+# STEP DEL FORMULARIO ASSUNZIONE
 # ============================================
 def step_1_personale_famiglia(lingua):
     st.subheader(get_testo("step_1", lingua))
@@ -217,7 +309,7 @@ def step_1_personale_famiglia(lingua):
     sesso = st.selectbox("Sexe", ["M", "F"], key="s1_sesso")
     stato_civile = st.selectbox("État civil", ["Célibataire", "Marié", "Divorcé", "Veuf"], key="s1_stato")
     num_figli = st.number_input("Nombre d'enfants", min_value=0, key="s1_figli")
-    return {"cognome": cognome, "nome": nome, "data_nascita": data_nascita, "luogo_nascita": luogo_nascita, "sesso": sesso, "stato_civile": stato_civile, "num_figli": num_figli}
+    return {"cognome": cognome, "nome": nome, "data_nascita": str(data_nascita), "luogo_nascita": luogo_nascita, "sesso": sesso, "stato_civile": stato_civile, "num_figli": num_figli}
 
 def step_2_residenza_documenti(lingua):
     st.subheader(get_testo("step_2", lingua))
@@ -261,7 +353,7 @@ def step_6_emergenza_validazione(lingua):
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
-    st.info("⚠️ Ceci n'est PAS un contrat d'embauche, mais une transmission de données pour une éventuelle future embauche et pour le paiement des salaires des journaliers.")
+    st.info("️ Ceci n'est PAS un contrat d'embauche, mais une transmission de données pour une éventuelle future embauche et pour le paiement des salaires des journaliers.")
     st.markdown("---")
     
     with st.form("form_candidatura", clear_on_submit=True):
@@ -294,6 +386,201 @@ def pagina_candidatura_spontanea(lingua):
                 st.error("Veuillez remplir tous les champs obligatoires")
 
 # ============================================
+# PAGINA SPAZIO LAVORATORE (2 PULSANTI)
+# ============================================
+def pagina_spazio_lavoratore(lingua):
+    st.title(get_testo("spazio_lavoratore_titolo", lingua))
+    st.markdown("---")
+    st.markdown(f"### {get_testo('spazio_lavoratore_sottotitolo', lingua)}")
+    st.markdown("---")
+    
+    col1, col2 = st.columns(2, gap="large")
+    
+    with col1:
+        st.markdown(f"#### 🔐 {get_testo('gia_assunto', lingua)}")
+        st.markdown(get_testo('gia_assunto_desc', lingua))
+        st.markdown("---")
+        if st.button(get_testo("btn_login_operaio", lingua), type="primary", use_container_width=True, key="btn_login_operaio_main"):
+            st.session_state.pagina = 'login_operaio'
+            st.rerun()
+    
+    with col2:
+        st.markdown(f"#### 📝 {get_testo('nuovo_giornaliero', lingua)}")
+        st.markdown(get_testo('nuovo_giornaliero_desc', lingua))
+        st.markdown("---")
+        if st.button(get_testo("btn_trasmetti_operaio", lingua), type="primary", use_container_width=True, key="btn_trasmetti_operaio_main"):
+            st.session_state.pagina = 'trasmetti_dati'
+            st.rerun()
+
+# ============================================
+# PAGINA LOGIN OPERAIO
+# ============================================
+def pagina_login_operaio(lingua):
+    st.title(get_testo("login_operaio_titolo", lingua))
+    st.markdown("---")
+    
+    codice = st.text_input(get_testo("login_operaio_codice", lingua), key="login_op_codice")
+    pin = st.text_input(get_testo("login_operaio_pin", lingua), type="password", key="login_op_pin")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(get_testo("btn_connetti", lingua), type="primary", use_container_width=True):
+            if codice and pin:
+                # Qui ci sarà la verifica reale con Google Sheets al passo successivo
+                st.session_state.logged_in_operaio = True
+                st.session_state.codice_operaio = codice
+                st.session_state.pagina = 'dashboard_operaio'
+                st.rerun()
+            else:
+                st.error("Veuillez remplir tous les champs")
+    with col2:
+        if st.button(get_testo("indietro", lingua), use_container_width=True):
+            st.session_state.pagina = 'login_lavoratore'
+            st.rerun()
+
+# ============================================
+# PAGINA DASHBOARD OPERAIO (PASSO 3)
+# ============================================
+def pagina_dashboard_operaio(lingua):
+    st.title(get_testo("dashboard_operaio_titolo", lingua))
+    st.markdown(f"**{get_testo('benv', lingua)}** {st.session_state.get('codice_operaio', '')}")
+    st.markdown("---")
+    
+    # Dati di esempio (da sostituire con lettura reale da Google Sheets)
+    dati_operaio = {
+        "cognome": "DIALLO",
+        "nome": "Mamadou",
+        "data_nascita": "15/03/1990",
+        "luogo_nascita": "Thiès",
+        "cni": "1234567890123",  # BLOCCATO
+        "telefono_1": "+221 77 123 45 67",
+        "email": "mamadou.diallo@email.com",
+        "stato_civile": "Marié",
+        "num_figli": 3,
+        "nome_coniuge": "Fatima DIALLO",  # MODIFICABILE
+        "patente": "B",
+        "mansione": "Soudeur",
+        "data_assunzione": "01/01/2024"
+    }
+    
+    # SEZIONE 1: DATI PERSONALI (CNI BLOCCATO)
+    st.subheader(get_testo("dati_personali", lingua))
+    st.info(get_testo("dati_bloccati", lingua))
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Nom de famille", value=dati_operaio["cognome"], disabled=True, key="op_cognome")
+        st.text_input("Prénom", value=dati_operaio["nome"], disabled=True, key="op_nome")
+        st.text_input("Date de naissance", value=dati_operaio["data_nascita"], disabled=True, key="op_data")
+    with col2:
+        st.text_input("Lieu de naissance", value=dati_operaio["luogo_nascita"], disabled=True, key="op_luogo")
+        st.text_input("Numéro CNI 🔒", value=dati_operaio["cni"], disabled=True, key="op_cni")
+        st.text_input("Téléphone", value=dati_operaio["telefono_1"], disabled=False, key="op_tel")
+    
+    st.markdown("---")
+    
+    # SEZIONE 2: DATI FAMILIARI (MODIFICABILI)
+    st.subheader(get_testo("dati_familiari", lingua))
+    st.success(get_testo("dati_modificabili", lingua))
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        stato_civile = st.selectbox("État civil", ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve"], 
+                                    index=["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve"].index(dati_operaio["stato_civile"]) if dati_operaio["stato_civile"] in ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve"] else 0, 
+                                    key="op_stato")
+        num_figli = st.number_input("Nombre d'enfants", min_value=0, value=dati_operaio["num_figli"], key="op_figli")
+    with col2:
+        nome_coniuge = st.text_input("Nom du conjoint", value=dati_operaio["nome_coniuge"], key="op_coniuge")
+    
+    st.markdown("---")
+    
+    # SEZIONE 3: DATI LAVORO
+    st.subheader(get_testo("dati_lavoro", lingua))
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text_input("Poste", value=dati_operaio["mansione"], disabled=True, key="op_mansione")
+        st.text_input("Date d'embauche", value=dati_operaio["data_assunzione"], disabled=True, key="op_data_ass")
+    with col2:
+        st.text_input("Permis de conduire", value=dati_operaio["patente"], disabled=True, key="op_patente")
+    
+    st.markdown("---")
+    
+    # BOTTONI
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(get_testo("aggiorna", lingua), type="primary", use_container_width=True):
+            # Qui ci sarà il salvataggio reale su Google Sheets
+            st.success(get_testo("aggiornato", lingua))
+    with col2:
+        if st.button(get_testo("logout", lingua), use_container_width=True):
+            st.session_state.logged_in_operaio = False
+            st.session_state.codice_operaio = None
+            st.session_state.pagina = 'login_lavoratore'
+            st.rerun()
+
+# ============================================
+# PAGINA TRASMETTI DATI (FORM GIORNALIERI)
+# ============================================
+def pagina_trasmetti_dati(lingua):
+    st.title(get_testo("trasmetti_titolo", lingua))
+    st.markdown("---")
+    st.warning(get_testo("disclaimer_trasmetti", lingua))
+    st.markdown("---")
+    
+    with st.form("form_trasmetti", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            cognome = st.text_input("Nom de famille *", key="td_cognome")
+            nome = st.text_input("Prénom *", key="td_nome")
+            data_nascita = st.date_input("Date de naissance", key="td_data")
+            cni = st.text_input("Numéro CNI *", key="td_cni")
+            telefono = st.text_input("Téléphone *", key="td_tel")
+        with col2:
+            email = st.text_input("Email", key="td_email")
+            indirizzo = st.text_input("Adresse / Quartier", key="td_indirizzo")
+            citta = st.text_input("Ville", value="Thiès", key="td_citta")
+            stato_civile = st.selectbox("État civil", ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve"], key="td_stato")
+            num_figli = st.number_input("Nombre d'enfants", min_value=0, value=0, key="td_figli")
+        
+        nome_coniuge = st.text_input("Nom du conjoint (si applicable)", key="td_coniuge")
+        mansione = st.text_input("Poste souhaité / Compétences", key="td_mansione")
+        
+        conferma = st.checkbox("Je confirme que les informations fournies sont exactes *", key="td_conferma")
+        
+        submitted = st.form_submit_button(get_testo("btn_envia_trasmetti", lingua), type="primary", use_container_width=True)
+        
+        if submitted:
+            if cognome and nome and cni and telefono and conferma:
+                dati = {
+                    "id": genera_codice(),
+                    "cognome": cognome,
+                    "nome": nome,
+                    "data_nascita": str(data_nascita),
+                    "cni": cni,
+                    "telefono": telefono,
+                    "email": email,
+                    "indirizzo": indirizzo,
+                    "citta": citta,
+                    "stato_civile": stato_civile,
+                    "num_figli": num_figli,
+                    "nome_coniuge": nome_coniuge,
+                    "mansione": mansione,
+                    "data_invio": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "tipo": "trasmissione_dati"
+                }
+                if salva_su_google_sheet(dati, GOOGLE_SCRIPT_URL_CANDIDATURE, "append"):
+                    st.success(get_testo("trasmetti_successo", lingua))
+                    st.info(get_testo("trasmetti_contatto", lingua))
+                else:
+                    st.error("❌ Erreur de connexion. Réessayez.")
+            else:
+                st.error("Veuillez remplir tous les champs obligatoires (*) et confirmer.")
+    
+    if st.button(get_testo("indietro", lingua), use_container_width=True):
+        st.session_state.pagina = 'login_lavoratore'
+        st.rerun()
+
+# ============================================
 # MAIN APP
 # ============================================
 def main():
@@ -303,6 +590,8 @@ def main():
         st.session_state.pagina = 'home'
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    if 'logged_in_operaio' not in st.session_state:
+        st.session_state.logged_in_operaio = False
     if 'step' not in st.session_state:
         st.session_state.step = 1
     if 'dati_form' not in st.session_state:
@@ -311,7 +600,7 @@ def main():
     lingua = st.session_state.lingua
 
     with st.sidebar:
-        st.image(LOGO_URL, use_column_width=True)
+        st.image(LOGO_URL, use_container_width=True)
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
@@ -330,7 +619,7 @@ def main():
         if st.session_state.logged_in:
             if st.button("📊 Dashboard", key="btn_dash"):
                 st.session_state.pagina = 'dashboard'
-            if st.button("🚪 Déconnexion", key="btn_logout"):
+            if st.button(get_testo("logout", lingua), key="btn_logout"):
                 st.session_state.logged_in = False
                 st.session_state.user_type = None
                 st.session_state.pagina = 'home'
@@ -349,7 +638,7 @@ def main():
 
     # ROUTING PAGINE
     if st.session_state.pagina == 'home':
-        st.title(" PROACIER SN")
+        st.title("🏭 PROACIER SN")
         st.markdown("### Système de Gestion des Ressources Humaines")
         st.info("Utilisez le menu à gauche pour naviguer")
 
@@ -360,15 +649,16 @@ def main():
         pagina_candidatura_spontanea(lingua)
 
     elif st.session_state.pagina == 'login_lavoratore':
-        st.title(get_testo("area_lavoratore", lingua))
-        codice = st.text_input("Code d'accès", key="login_codice")
-        pin = st.text_input("PIN", type="password", key="login_pin")
-        if st.button("Connexion", type="primary"):
-            st.warning("Fonctionnalité en cours de développement")
+        pagina_spazio_lavoratore(lingua)
 
-    elif st.session_state.pagina == 'area_lavoratore':
-        st.title(get_testo("i_miei_dati", lingua))
-        st.warning("Pour toute modification, contactez l'administration")
+    elif st.session_state.pagina == 'login_operaio':
+        pagina_login_operaio(lingua)
+
+    elif st.session_state.pagina == 'dashboard_operaio':
+        pagina_dashboard_operaio(lingua)
+
+    elif st.session_state.pagina == 'trasmetti_dati':
+        pagina_trasmetti_dati(lingua)
 
     elif st.session_state.pagina == 'login_admin':
         pwd = st.text_input(get_testo("password", lingua), type="password", key="login_pwd")
