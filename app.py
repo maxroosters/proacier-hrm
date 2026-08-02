@@ -45,11 +45,10 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": " PROACIER - GESTION RH",
+        "titolo": "🏭 PROACIER - GESTION RH",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
-        "nuova_assunzione": " Nouvelle Embauche",
-        "candidatura_spontanea": "📩 Candidature Spontanée",
+        "candidatura_spontanea": " Candidature Spontanée",
         "area_lavoratore": "👷 Espace Travailleur",
         "dashboard": "📊 Tableau de Bord",
         "accedi": "Connexion",
@@ -58,7 +57,7 @@ TRADUZIONI = {
         "continua": "Continuer ➡",
         "genera_pdf": "✅ Générer le PDF",
         "pdf_generato": "Document enregistré avec succès!",
-        "conserva_credenziali": "️ Conservez précieusement ces informations",
+        "conserva_credenziali": "⚠️ Conservez précieusement ces informations",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN personnel",
         "scarica": "Télécharger le",
@@ -71,15 +70,15 @@ TRADUZIONI = {
         "step_5": "Étape 5: Informations Médicales",
         "step_6": "Étape 6: Contact d'Urgence et Validation",
         "errore_obbligatori": "Veuillez remplir tous les champs obligatoires",
-        "titolo_candidatura": "📩 CANDIDATURE SPONTANÉE",
+        "titolo_candidatura": " CANDIDATURE SPONTANÉE",
         "sottotitolo_candidatura": "Transmettez vos données pour une future embauche",
         "invia_candidatura": "Envoyer ma candidature",
-        "i_miei_dati": "👤 Mes Données Personnelles",
+        "i_miei_dati": " Mes Données Personnelles",
         "spazio_lavoratore_titolo": "👷 Espace Travailleur",
         "spazio_lavoratore_sottotitolo": "Choisissez une option:",
         "gia_assunto": "Déjà embauché?",
         "gia_assunto_desc": "Accédez à votre espace personnel pour consulter vos données, vos fiches de paie et modifier vos informations familiales.",
-        "btn_login_operaio": " Connexion à mon espace",
+        "btn_login_operaio": "🔓 Connexion à mon espace",
         "nuovo_giornaliero": "Nouveau / Journalier?",
         "nuovo_giornaliero_desc": "Transmettez vos données personnelles à l'administration pour une éventuelle future embauche ou pour le paiement des salaires des journaliers.",
         "btn_trasmetti_operaio": "📤 Transmettre mes données",
@@ -87,29 +86,42 @@ TRADUZIONI = {
         "login_operaio_codice": "Code d'accès (ex: THS-2026-XXXX)",
         "login_operaio_pin": "PIN personnel",
         "btn_connetti": "Se connecter",
-        "dashboard_operaio_titolo": " Mon Espace Personnel",
+        "dashboard_operaio_titolo": "👤 Mon Espace Personnel",
         "dashboard_operaio_sottotitolo": "Bienvenue dans votre espace personnel PROACIER",
-        "dati_personali": " Mes Informations Personnelles",
-        "dati_familiari": "‍👩‍👧👦 Ma Famille",
+        "dati_personali": "📋 Mes Informations Personnelles",
+        "dati_familiari": "👨‍👩‍👧‍👦 Ma Famille",
         "dati_lavoro": "💼 Mes Informations de Travail",
         "aggiorna": "💾 Mettre à jour",
         "aggiornato": "✅ Données mises à jour avec succès!",
         "errore_aggiornamento": "❌ Erreur lors de la mise à jour",
         "dati_bloccati": "🔒 Ces informations ne peuvent pas être modifiées",
-        "dati_modificabili": "✏️ Ces informations peuvent être modifiées",
-        "disclaimer_trasmetti": "⚠️ **IMPORTANT:** Ceci n'est PAS un contrat de travail, ni un document d'embauche. Il s'agit uniquement de la transmission de vos données à l'administration de PROACIER pour une éventuelle future embauche et pour le paiement des salaires des journaliers.",
-        "trasmetti_titolo": "📝 Transmission de données personnelles",
-        "btn_envia_trasmetti": " Envoyer mes données",
+        "dati_modificabili": "️ Ces informations peuvent être modifiées",
+        "disclaimer_trasmetti": "️ **IMPORTANT:** Ceci n'est PAS un contrat de travail, ni un document d'embauche. Il s'agit uniquement de la transmission de vos données à l'administration de PROACIER pour une éventuelle future embauche et pour le paiement des salaires des journaliers.",
+        "trasmetti_titolo": " Transmission de données personnelles",
+        "btn_envia_trasmetti": "📤 Envoyer mes données",
         "trasmetti_successo": "✅ Données transmises avec succès à l'administration PROACIER!",
         "trasmetti_contatto": "Vous serez contacté en cas de besoin.",
         "logout": "🚪 Déconnexion",
-        "benv": "Bienvenue"
+        "benv": "Bienvenue",
+        "home_titolo": "🏭 Bienvenue sur la plateforme PROACIER",
+        "home_sottotitolo": "Système de Gestion des Ressources Humaines - Thiès, Sénégal",
+        "home_descrizione": "Cette application permet de:",
+        "home_punto_1": "📝 **Transmettre vos données personnelles** à l'administration PROACIER pour une éventuelle future embauche",
+        "home_punto_2": "📩 **Envoyer une candidature spontanée** si vous êtes intéressé par un poste dans notre entreprise",
+        "home_punto_3": "👷 **Accéder à votre espace personnel** si vous êtes déjà embauché, pour consulter vos données et modifier vos informations familiales",
+        "home_punto_4": "💰 **Permettre le paiement des salaires** des journaliers grâce à la transmission sécurisée de vos informations",
+        "home_come_faire": " Comment utiliser cette application?",
+        "home_btn_1": "👷 **Espace Travailleur** (menu à gauche): Pour les employés déjà embauchés ou les nouveaux travailleurs qui souhaitent transmettre leurs données",
+        "home_btn_2": "📩 **Candidature Spontanée** (menu à gauche): Pour envoyer votre candidature à PROACIER",
+        "home_btn_3": "📊 **Tableau de Bord** (menu à gauche): Accès réservé à l'administration",
+        "home_lingua": "🌍 Choisissez votre langue dans le menu à gauche",
+        "home_contatto": " PROACIER - Thiès, Sénégal",
+        "home_footer": "© 2026 PROACIER - Tous droits réservés"
     },
     "it": {
         "titolo": "🏭 PROACIER - GESTIONE RH",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
-        "nuova_assunzione": "➕ Nuova Assunzione",
         "candidatura_spontanea": " Candidatura Spontanea",
         "area_lavoratore": "👷 Spazio Lavoratore",
         "dashboard": "📊 Dashboard",
@@ -135,7 +147,7 @@ TRADUZIONI = {
         "titolo_candidatura": "📩 CANDIDATURA SPONTANEA",
         "sottotitolo_candidatura": "Trasmetti i tuoi dati per una futura assunzione",
         "invia_candidatura": "Invia candidatura",
-        "i_miei_dati": "👤 I Miei Dati Personali",
+        "i_miei_dati": " I Miei Dati Personali",
         "spazio_lavoratore_titolo": "👷 Spazio Lavoratore",
         "spazio_lavoratore_sottotitolo": "Scegli un'opzione:",
         "gia_assunto": "Già assunto?",
@@ -151,7 +163,7 @@ TRADUZIONI = {
         "dashboard_operaio_titolo": "👤 Il Mio Spazio Personale",
         "dashboard_operaio_sottotitolo": "Benvenuto nel tuo spazio personale PROACIER",
         "dati_personali": "📋 Le Mie Informazioni Personali",
-        "dati_familiari": "‍👩‍👧👦 La Mia Famiglia",
+        "dati_familiari": "👨‍👩‍👧‍👦 La Mia Famiglia",
         "dati_lavoro": "💼 Le Mie Informazioni di Lavoro",
         "aggiorna": "💾 Aggiorna",
         "aggiornato": "✅ Dati aggiornati con successo!",
@@ -159,18 +171,31 @@ TRADUZIONI = {
         "dati_bloccati": "🔒 Queste informazioni non possono essere modificate",
         "dati_modificabili": "✏️ Queste informazioni possono essere modificate",
         "disclaimer_trasmetti": "⚠️ **IMPORTANTE:** Questo NON è un contratto di lavoro, né un documento di assunzione. Si tratta solo della trasmissione dei tuoi dati all'amministrazione PROACIER per una possibile futura assunzione e per il pagamento dei salari dei giornalieri.",
-        "trasmetti_titolo": " Trasmissione dati personali",
+        "trasmetti_titolo": "📝 Trasmissione dati personali",
         "btn_envia_trasmetti": "📤 Invia i miei dati",
         "trasmetti_successo": "✅ Dati trasmessi con successo all'amministrazione PROACIER!",
         "trasmetti_contatto": "Sarai contattato in caso di necessità.",
         "logout": "🚪 Esci",
-        "benv": "Benvenuto"
+        "benv": "Benvenuto",
+        "home_titolo": "🏭 Benvenuto sulla piattaforma PROACIER",
+        "home_sottotitolo": "Sistema di Gestione Risorse Umane - Thiès, Senegal",
+        "home_descrizione": "Questa applicazione permette di:",
+        "home_punto_1": "📝 **Trasmettere i tuoi dati personali** all'amministrazione PROACIER per una possibile futura assunzione",
+        "home_punto_2": "📩 **Inviare una candidatura spontanea** se sei interessato a un posto nella nostra azienda",
+        "home_punto_3": "👷 **Accedere al tuo spazio personale** se sei già assunto, per consultare i tuoi dati e modificare le informazioni familiari",
+        "home_punto_4": "💰 **Permettere il pagamento dei salari** dei giornalieri grazie alla trasmissione sicura delle tue informazioni",
+        "home_come_faire": "📌 Come usare questa applicazione?",
+        "home_btn_1": "👷 **Spazio Lavoratore** (menu a sinistra): Per i dipendenti già assunti o i nuovi lavoratori che vogliono trasmettere i propri dati",
+        "home_btn_2": "📩 **Candidatura Spontanea** (menu a sinistra): Per inviare la tua candidatura a PROACIER",
+        "home_btn_3": "📊 **Dashboard** (menu a sinistra): Accesso riservato all'amministrazione",
+        "home_lingua": "🌍 Scegli la tua lingua nel menu a sinistra",
+        "home_contatto": "📍 PROACIER - Thiès, Senegal",
+        "home_footer": "© 2026 PROACIER - Tutti i diritti riservati"
     },
     "en": {
-        "titolo": " PROACIER - HR MANAGEMENT",
+        "titolo": "🏭 PROACIER - HR MANAGEMENT",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
-        "nuova_assunzione": "➕ New Hiring",
         "candidatura_spontanea": "📩 Spontaneous Application",
         "area_lavoratore": "👷 Worker Area",
         "dashboard": "📊 Dashboard",
@@ -193,7 +218,7 @@ TRADUZIONI = {
         "step_5": "Step 5: Medical Information",
         "step_6": "Step 6: Emergency Contact and Validation",
         "errore_obbligatori": "Please fill in all required fields",
-        "titolo_candidatura": "📩 SPONTANEOUS APPLICATION",
+        "titolo_candidatura": " SPONTANEOUS APPLICATION",
         "sottotitolo_candidatura": "Submit your data for future hiring",
         "invia_candidatura": "Submit application",
         "i_miei_dati": "👤 My Personal Data",
@@ -201,10 +226,10 @@ TRADUZIONI = {
         "spazio_lavoratore_sottotitolo": "Choose an option:",
         "gia_assunto": "Already hired?",
         "gia_assunto_desc": "Access your personal space to view your data, pay slips and modify family information.",
-        "btn_login_operaio": "🔓 Login to my space",
+        "btn_login_operaio": " Login to my space",
         "nuovo_giornaliero": "New / Day worker?",
         "nuovo_giornaliero_desc": "Submit your personal data to the administration for a possible future hiring or for day worker salary payments.",
-        "btn_trasmetti_operaio": "📤 Submit my data",
+        "btn_trasmetti_operaio": " Submit my data",
         "login_operaio_titolo": "🔐 Login to my personal space",
         "login_operaio_codice": "Access code (ex: THS-2026-XXXX)",
         "login_operaio_pin": "Personal PIN",
@@ -214,18 +239,32 @@ TRADUZIONI = {
         "dati_personali": "📋 My Personal Information",
         "dati_familiari": "👨‍👩👧‍👦 My Family",
         "dati_lavoro": "💼 My Work Information",
-        "aggiorna": "💾 Update",
+        "aggiorna": " Update",
         "aggiornato": "✅ Data updated successfully!",
         "errore_aggiornamento": "❌ Error during update",
         "dati_bloccati": "🔒 This information cannot be modified",
         "dati_modificabili": "✏️ This information can be modified",
-        "disclaimer_trasmetti": "⚠️ **IMPORTANT:** This is NOT an employment contract, nor a hiring document. It is only the transmission of your data to PROACIER administration for a possible future hiring and for day worker salary payments.",
+        "disclaimer_trasmetti": "️ **IMPORTANT:** This is NOT an employment contract, nor a hiring document. It is only the transmission of your data to PROACIER administration for a possible future hiring and for day worker salary payments.",
         "trasmetti_titolo": "📝 Personal data transmission",
         "btn_envia_trasmetti": "📤 Submit my data",
         "trasmetti_successo": "✅ Data successfully transmitted to PROACIER administration!",
         "trasmetti_contatto": "You will be contacted if needed.",
         "logout": "🚪 Logout",
-        "benv": "Welcome"
+        "benv": "Welcome",
+        "home_titolo": "🏭 Welcome to the PROACIER platform",
+        "home_sottotitolo": "Human Resources Management System - Thiès, Senegal",
+        "home_descrizione": "This application allows you to:",
+        "home_punto_1": "📝 **Submit your personal data** to PROACIER administration for a possible future hiring",
+        "home_punto_2": "📩 **Send a spontaneous application** if you are interested in a position in our company",
+        "home_punto_3": "👷 **Access your personal space** if you are already hired, to view your data and modify family information",
+        "home_punto_4": "💰 **Enable salary payments** for day workers through secure transmission of your information",
+        "home_come_faire": "📌 How to use this application?",
+        "home_btn_1": "👷 **Worker Area** (left menu): For already hired employees or new workers who want to submit their data",
+        "home_btn_2": "📩 **Spontaneous Application** (left menu): To send your application to PROACIER",
+        "home_btn_3": "📊 **Dashboard** (left menu): Access reserved for administration",
+        "home_lingua": "🌍 Choose your language in the left menu",
+        "home_contatto": "📍 PROACIER - Thiès, Senegal",
+        "home_footer": "© 2026 PROACIER - All rights reserved"
     }
 }
 
@@ -353,7 +392,7 @@ def step_6_emergenza_validazione(lingua):
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
-    st.info("️ Ceci n'est PAS un contrat d'embauche, mais une transmission de données pour une éventuelle future embauche et pour le paiement des salaires des journaliers.")
+    st.info("⚠️ Ceci n'est PAS un contrat d'embauche, mais une transmission de données pour une éventuelle future embauche et pour le paiement des salaires des journaliers.")
     st.markdown("---")
     
     with st.form("form_candidatura", clear_on_submit=True):
@@ -426,7 +465,6 @@ def pagina_login_operaio(lingua):
     with col1:
         if st.button(get_testo("btn_connetti", lingua), type="primary", use_container_width=True):
             if codice and pin:
-                # Qui ci sarà la verifica reale con Google Sheets al passo successivo
                 st.session_state.logged_in_operaio = True
                 st.session_state.codice_operaio = codice
                 st.session_state.pagina = 'dashboard_operaio'
@@ -439,31 +477,29 @@ def pagina_login_operaio(lingua):
             st.rerun()
 
 # ============================================
-# PAGINA DASHBOARD OPERAIO (PASSO 3)
+# PAGINA DASHBOARD OPERAIO
 # ============================================
 def pagina_dashboard_operaio(lingua):
     st.title(get_testo("dashboard_operaio_titolo", lingua))
     st.markdown(f"**{get_testo('benv', lingua)}** {st.session_state.get('codice_operaio', '')}")
     st.markdown("---")
     
-    # Dati di esempio (da sostituire con lettura reale da Google Sheets)
     dati_operaio = {
         "cognome": "DIALLO",
         "nome": "Mamadou",
         "data_nascita": "15/03/1990",
         "luogo_nascita": "Thiès",
-        "cni": "1234567890123",  # BLOCCATO
+        "cni": "1234567890123",
         "telefono_1": "+221 77 123 45 67",
         "email": "mamadou.diallo@email.com",
         "stato_civile": "Marié",
         "num_figli": 3,
-        "nome_coniuge": "Fatima DIALLO",  # MODIFICABILE
+        "nome_coniuge": "Fatima DIALLO",
         "patente": "B",
         "mansione": "Soudeur",
         "data_assunzione": "01/01/2024"
     }
     
-    # SEZIONE 1: DATI PERSONALI (CNI BLOCCATO)
     st.subheader(get_testo("dati_personali", lingua))
     st.info(get_testo("dati_bloccati", lingua))
     
@@ -479,7 +515,6 @@ def pagina_dashboard_operaio(lingua):
     
     st.markdown("---")
     
-    # SEZIONE 2: DATI FAMILIARI (MODIFICABILI)
     st.subheader(get_testo("dati_familiari", lingua))
     st.success(get_testo("dati_modificabili", lingua))
     
@@ -494,7 +529,6 @@ def pagina_dashboard_operaio(lingua):
     
     st.markdown("---")
     
-    # SEZIONE 3: DATI LAVORO
     st.subheader(get_testo("dati_lavoro", lingua))
     col1, col2 = st.columns(2)
     with col1:
@@ -505,11 +539,9 @@ def pagina_dashboard_operaio(lingua):
     
     st.markdown("---")
     
-    # BOTTONI
     col1, col2 = st.columns(2)
     with col1:
         if st.button(get_testo("aggiorna", lingua), type="primary", use_container_width=True):
-            # Qui ci sarà il salvataggio reale su Google Sheets
             st.success(get_testo("aggiornato", lingua))
     with col2:
         if st.button(get_testo("logout", lingua), use_container_width=True):
@@ -519,7 +551,7 @@ def pagina_dashboard_operaio(lingua):
             st.rerun()
 
 # ============================================
-# PAGINA TRASMETTI DATI (FORM GIORNALIERI)
+# PAGINA TRASMETTI DATI
 # ============================================
 def pagina_trasmetti_dati(lingua):
     st.title(get_testo("trasmetti_titolo", lingua))
@@ -572,13 +604,38 @@ def pagina_trasmetti_dati(lingua):
                     st.success(get_testo("trasmetti_successo", lingua))
                     st.info(get_testo("trasmetti_contatto", lingua))
                 else:
-                    st.error("❌ Erreur de connexion. Réessayez.")
+                    st.error(" Erreur de connexion. Réessayez.")
             else:
                 st.error("Veuillez remplir tous les champs obligatoires (*) et confirmer.")
     
     if st.button(get_testo("indietro", lingua), use_container_width=True):
         st.session_state.pagina = 'login_lavoratore'
         st.rerun()
+
+# ============================================
+# PAGINA HOME
+# ============================================
+def pagina_home(lingua):
+    st.title(get_testo("home_titolo", lingua))
+    st.markdown(f"### {get_testo('home_sottotitolo', lingua)}")
+    st.markdown("---")
+    
+    st.markdown(f"### {get_testo('home_descrizione', lingua)}")
+    st.markdown(f"- {get_testo('home_punto_1', lingua)}")
+    st.markdown(f"- {get_testo('home_punto_2', lingua)}")
+    st.markdown(f"- {get_testo('home_punto_3', lingua)}")
+    st.markdown(f"- {get_testo('home_punto_4', lingua)}")
+    st.markdown("---")
+    
+    st.markdown(f"### {get_testo('home_come_faire', lingua)}")
+    st.markdown(f"1. {get_testo('home_lingua', lingua)}")
+    st.markdown(f"2. {get_testo('home_btn_1', lingua)}")
+    st.markdown(f"3. {get_testo('home_btn_2', lingua)}")
+    st.markdown(f"4. {get_testo('home_btn_3', lingua)}")
+    st.markdown("---")
+    
+    st.info(get_testo("home_contatto", lingua))
+    st.markdown(f"*{get_testo('home_footer', lingua)}*")
 
 # ============================================
 # MAIN APP
@@ -625,10 +682,6 @@ def main():
                 st.session_state.pagina = 'home'
                 st.rerun()
         else:
-            if st.button(get_testo("nuova_assunzione", lingua), key="btn_reg"):
-                st.session_state.pagina = 'registrazione'
-                st.session_state.step = 1
-                st.session_state.dati_form = {}
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
             if st.button(get_testo("area_lavoratore", lingua), key="btn_area"):
@@ -638,9 +691,7 @@ def main():
 
     # ROUTING PAGINE
     if st.session_state.pagina == 'home':
-        st.title("🏭 PROACIER SN")
-        st.markdown("### Système de Gestion des Ressources Humaines")
-        st.info("Utilisez le menu à gauche pour naviguer")
+        pagina_home(lingua)
 
     elif st.session_state.pagina == 'registrazione':
         pagina_registrazione_multi_step(lingua)
