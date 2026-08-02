@@ -19,7 +19,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
-    background-color: #e8e8e8;
+    background-color: #99A1AF;
 }
 </style>
 """, unsafe_allow_html=True)
