@@ -15,7 +15,17 @@ from fpdf import FPDF
 # CONFIGURAZIONE
 # ============================================
 st.set_page_config(
-    page_title="Proacier - Ressources Humaines",
+    # Sidebar grigio chiaro
+st.markdown("""
+<style>
+[data-testid="stSidebar"] {
+    background-color: #e8e8e8;
+}
+[data-testid="stSidebar"] .block-container {
+    padding-top: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)page_title="Proacier - Ressources Humaines",
     page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -562,7 +572,7 @@ def main():
     lingua = st.session_state.lingua
     
     with st.sidebar:
-        st.image(LOGO_URL, use_column_width=True)
+        # st.image(LOGO_URL, use_column_width=True)
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
