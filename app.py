@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 # URL del logo dal sito Proacier
-LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2936/2936886.png"
+st.sidebar.image("logo.png", use_container_width=True)
 
 # URL Google Apps Script 1: Assunzioni Complete (Operai/Dipendenti)
 GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
