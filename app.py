@@ -44,7 +44,7 @@ st.markdown("""
 # Logo da GitHub (root del repository)
 LOGO_URL = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/logo.png"
 
-# URL Google Apps Script
+# URL Google Apps Script - AGGIORNATI
 GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
 GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycbzlc2iOHSiNSWNvU21g4GqsGwMA4QQDJXTG_J3hkfe5Za8nyeTWb1amhuR2ULFI5b9k/exec"
 
@@ -56,7 +56,7 @@ URL_CONDIZIONI = "https://www.proacier.sn/condizioni"
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
         "nuova_assunzione": "📝 Nouvelle Embauche (Complet)",
@@ -195,7 +195,7 @@ TRADUZIONI = {
         "salaire_desc": "Votre salaire est géré par l'administration",
     },
     "it": {
-        "titolo": " PROACIER - GESTIONE RISORSE UMANE",
+        "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Nuova Assunzione (Completo)",
@@ -314,7 +314,7 @@ TRADUZIONI = {
         "errore_candidatura": "Compila Cognome, Nome, Email e Telefono.",
         "home_punto1": "📋 Trasmissione dati nuovi lavoratori",
         "home_punto2": "📨 Candidature spontanee",
-        "home_punto3": " Spazio personale lavoratore",
+        "home_punto3": "👤 Spazio personale lavoratore",
         "home_punto4": "💰 Pagamento giornalieri",
         "giornalieri_titolo": "Già lavoratore?",
         "giornalieri_desc": "Accedi al tuo spazio",
@@ -338,7 +338,7 @@ TRADUZIONI = {
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 New Hiring (Complete)",
-        "candidatura_spontanea": "📄 Spontaneous Application",
+        "candidatura_spontanea": " Spontaneous Application",
         "dashboard": "Company Dashboard",
         "area_lavoratore": "Worker Area",
         "logout": "Logout",
@@ -416,7 +416,7 @@ TRADUZIONI = {
         "categoria_competenza": "Skill category",
         "dettaglio_competenza": "Details / Acquired knowledge",
         "patente": "Driver's license",
-        "nota_patente": "⚠️ A photocopy of the license will be required.",
+        "nota_patente": "️ A photocopy of the license will be required.",
         "gruppo_sanguigno": "Blood type",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -454,7 +454,7 @@ TRADUZIONI = {
         "home_punto1": "📋 Data transmission new workers",
         "home_punto2": "📨 Spontaneous applications",
         "home_punto3": "👤 Personal worker space",
-        "home_punto4": " Daily workers payment",
+        "home_punto4": "💰 Daily workers payment",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -474,31 +474,32 @@ TRADUZIONI = {
     }
 }
 
-
 # ============================================
 # FUNZIONI DI SUPPORTO
 # ============================================
 def get_testo(chiave, lingua="fr"):
     return TRADUZIONI.get(lingua, TRADUZIONI["fr"]).get(chiave, chiave)
 
-
 def genera_codice():
     return f"THS-{datetime.now().year}-{random.randint(1000, 9999)}"
 
-
 def genera_pin():
     return str(random.randint(1000, 9999))
-
 
 def salva_su_google_sheet(dati, url_script, azione="append"):
     try:
         payload = {"row": dati} if azione == "append" else {"id": dati.get("id"), "updates": dati}
         response = requests.post(url_script, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
-        return response.status_code == 200
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Erreur HTTP: {response.status_code}")
+            st.error(f"Réponse: {response.text}")
+            return False
     except Exception as e:
-        st.error(f"Errore connessione: {e}")
+        st.error(f"Erreur de connexion: {str(e)}")
+        st.error("Vérifiez votre connexion internet et l'URL du script Google")
         return False
-
 
 def leggi_da_google_sheet(url_script):
     try:
@@ -508,9 +509,8 @@ def leggi_da_google_sheet(url_script):
         st.error(f"Errore lettura: {e}")
         return []
 
-
 # ============================================
-# GENERATORE PDF (Assunzioni)
+# GENERATORE PDF
 # ============================================
 class PDFProacier(FPDF):
     def header(self):
@@ -547,7 +547,6 @@ class PDFProacier(FPDF):
         self.cell(50, 5, et2, 0, 0)
         self.set_font('Helvetica', '', 8)
         self.cell(0, 5, str(val2) if val2 else "______", 0, 1)
-
 
 def genera_pdf_lavoratore(dati):
     pdf = PDFProacier()
@@ -614,9 +613,8 @@ def genera_pdf_lavoratore(dati):
         pdf_bytes = pdf_bytes.encode('latin-1', errors='ignore')
     return bytes(pdf_bytes)
 
-
 # ============================================
-# STEP DEL FORMULARIO (ASSUNZIONI)
+# STEP DEL FORMULARIO
 # ============================================
 def step_1_personale_famiglia(lingua):
     st.subheader(get_testo("step_1", lingua))
@@ -640,6 +638,7 @@ def step_1_personale_famiglia(lingua):
         sesso = st.selectbox(get_testo("sesso", lingua), [get_testo("maschile", lingua), get_testo("femminile", lingua)], key="s1_sesso")
         stato_civile = st.selectbox(get_testo("stato_civile", lingua), [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)], key="s1_stato")
         numero_mogli, dettagli_mogli = 0, ""
+        figli_totale = 0
         if stato_civile == get_testo("coniugato", lingua):
             numero_mogli = st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=1, key="s1_mogli")
             dettagli = []
@@ -650,13 +649,13 @@ def step_1_personale_famiglia(lingua):
                     res = st.text_input(get_testo("residenza_moglie", lingua) + f" {i}", key=f"s1_res_{i}")
                 with c_fig:
                     fig = st.number_input(get_testo("figli_moglie", lingua) + f" {i}", min_value=0, value=0, key=f"s1_fig_{i}")
+                    figli_totale += fig
                 dettagli.append(f"Épouse {i}: {res} ({fig} enfants)")
             dettagli_mogli = " | ".join(dettagli)
-        figli_totale = st.number_input(get_testo("figli_totale", lingua), min_value=0, value=0, key="s1_figli_tot")
+        st.info(f"**{get_testo('figli_totale', lingua)}: {figli_totale}**")
     return {"cognome": cognome, "nome": nome, "data_nascita": data_nascita_str, "luogo_nascita": luogo_nascita,
             "nazionalita": nazionalita, "paese_origine": paese_origine, "sesso": sesso, "stato_civile": stato_civile,
             "numero_mogli": numero_mogli, "dettagli_mogli": dettagli_mogli, "figli_totale": figli_totale}
-
 
 def step_2_residenza_documenti(lingua):
     st.subheader(get_testo("step_2", lingua))
@@ -678,7 +677,6 @@ def step_2_residenza_documenti(lingua):
     return {"indirizzo": indirizzo, "quartiere": quartiere, "comune": comune, "regione_senegal": regione_senegal,
             "telefono_1": tel1, "telefono_2": tel2, "telefono_3": tel3, "cni": cni, "nif": nif, "css": css, "cmu": cmu, "ipres": ipres}
 
-
 def step_3_esperienza(lingua):
     st.subheader(get_testo("step_3", lingua))
     st.info(get_testo("nota_lavoro", lingua))
@@ -696,7 +694,6 @@ def step_3_esperienza(lingua):
         st.markdown("---")
     return dati_lavori
 
-
 def step_4_competenze_permesso(lingua):
     st.subheader(get_testo("step_4", lingua))
     st.info(get_testo("nota_competenze", lingua))
@@ -707,7 +704,6 @@ def step_4_competenze_permesso(lingua):
     patente = st.text_input(get_testo("patente", lingua), key="s4_pat")
     st.caption(get_testo("nota_patente", lingua))
     return {"categoria_competenza": categoria, "dettaglio_competenza": dettaglio, "patente": patente}
-
 
 def step_5_medico(lingua):
     st.subheader(get_testo("step_5", lingua))
@@ -721,7 +717,6 @@ def step_5_medico(lingua):
         idoneita = st.selectbox(get_testo("idoneita", lingua), [get_testo("apte", lingua), get_testo("restriction", lingua), get_testo("inapte", lingua)], key="s5_ido")
         data_visita = st.text_input(get_testo("data_visita", lingua) + " (GG/MM/AAAA)", key="s5_data")
     return {"gruppo_sanguigno": gruppo, "rh": rh, "allergie": allergie, "malattie": malattie, "idoneita": idoneita, "data_visita": data_visita}
-
 
 def step_6_emergenza_validazione(lingua):
     st.subheader(get_testo("step_6", lingua))
@@ -738,9 +733,8 @@ def step_6_emergenza_validazione(lingua):
     conferma = st.checkbox(get_testo("checkbox_confirm", lingua), key="s6_conf")
     return {"emergenza_nome": em_nome, "emergenza_parentela": em_parentela, "emergenza_tel": em_tel, "emergenza_indirizzo": em_ind, "conferma": conferma}
 
-
 # ============================================
-# PAGINA CANDIDATURA SPONTANEA (SENZA "Poste recherché")
+# PAGINA CANDIDATURA SPONTANEA (CORRETTA)
 # ============================================
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
@@ -796,86 +790,9 @@ def pagina_candidatura_spontanea(lingua):
             }
             if salva_su_google_sheet(dati_candidatura, GOOGLE_SCRIPT_URL_CANDIDATURE, "append"):
                 st.success(get_testo("candidatura_inviata", lingua))
-                st.ballo()
+                st.balloons()  # CORRETTO: st.balloons() invece di st.ballo()
             else:
                 st.error("Erreur de connexion. Veuillez réessayer.")
-
-
-# ============================================
-# PAGINA ESPACE TRAVAILLEUR (con 2 bottoni)
-# ============================================
-def pagina_espace_travailleur(lingua):
-    st.title(get_testo("area_lavoratore", lingua))
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"### 👤 {get_testo('giornalieri_titolo', lingua)}")
-        st.info(get_testo('giornalieri_desc', lingua))
-        if st.button(get_testo('login_btn', lingua), use_container_width=True, type="primary"):
-            st.session_state.pagina = 'login_lavoratore'
-            st.rerun()
-    with col2:
-        st.markdown(f"### 📝 {get_testo('nuovo_giornaliero_titolo', lingua)}")
-        st.info(get_testo('nuovo_giornaliero_desc', lingua))
-        if st.button(get_testo('trasmissione_btn', lingua), use_container_width=True, type="primary"):
-            st.session_state.pagina = 'registrazione'
-            st.session_state.step = 1
-            st.session_state.dati_form = {}
-            st.rerun()
-
-
-# ============================================
-# PAGINA LOGIN LAVORATORE
-# ============================================
-def pagina_login_lavoratore(lingua):
-    st.title(get_testo("connexion_mon_espace", lingua))
-    with st.form("login_form"):
-        codice = st.text_input(get_testo("code_access_input", lingua))
-        pin = st.text_input(get_testo("pin_input", lingua), type="password")
-        submitted = st.form_submit_button(get_testo("se_connecter", lingua), type="primary")
-        if submitted and codice and pin:
-            dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
-            trovato = any(len(row) >= 3 and str(row[1]) == codice and str(row[2]) == pin for row in dati[1:])
-            if trovato:
-                st.session_state.logged_in = True
-                st.session_state.user_type = 'lavoratore'
-                st.session_state.codice_operatore = codice
-                st.session_state.pin_operatore = pin
-                st.session_state.pagina = 'area_lavoratore'
-                st.success("Connecté!")
-                st.rerun()
-            else:
-                st.error(get_testo("codice_errato", lingua))
-    if st.button(get_testo("retour", lingua)):
-        st.session_state.pagina = 'espace_travailleur'
-        st.rerun()
-
-
-# ============================================
-# PAGINA AREA LAVORATORE
-# ============================================
-def pagina_area_lavoratore(lingua):
-    if not st.session_state.get('logged_in') or st.session_state.get('user_type') != 'lavoratore':
-        st.error("Accès refusé")
-        return
-    st.title(get_testo("i_miei_dati", lingua))
-    st.success(f"Code: {st.session_state.codice_operatore}")
-    st.markdown("---")
-    st.subheader(get_testo("donnees_non_modifiables", lingua))
-    st.info("CNI, Données personnelles: Contactez l'administration pour modifications")
-    st.markdown("---")
-    st.subheader(get_testo("donnees_modifiables", lingua))
-    st.info("Téléphone, Adresse, Enfants - Modifiables ici")
-    st.markdown("---")
-    st.subheader(get_testo("salaire_titolo", lingua))
-    st.info(get_testo("salaire_desc", lingua))
-    st.markdown("---")
-    if st.button(get_testo("logout", lingua)):
-        st.session_state.logged_in = False
-        st.session_state.user_type = None
-        st.session_state.pagina = 'home'
-        st.rerun()
-
 
 # ============================================
 # PAGINA REGISTRAZIONE MULTI-STEP
@@ -922,7 +839,6 @@ def pagina_registrazione_multi_step(lingua):
             else:
                 st.warning("Veuillez cocher la case de confirmation")
 
-
 def genera_e_salva_pdf(dati, lingua):
     codice = genera_codice()
     pin = genera_pin()
@@ -936,13 +852,85 @@ def genera_e_salva_pdf(dati, lingua):
             st.info(f"**{get_testo('codice_accesso', lingua)}:** {codice}")
         with c2:
             st.info(f"**{get_testo('pin_accesso', lingua)}:** {pin}")
-        st.download_button(label=f" {get_testo('scarica', lingua)} PDF", data=pdf_bytes, file_name=f"Proacier_{codice}.pdf", mime="application/pdf", use_container_width=True, key="btn_dl")
-        st.ballo()
+        st.download_button(label=f"📥 {get_testo('scarica', lingua)} PDF", data=pdf_bytes, file_name=f"Proacier_{codice}.pdf", mime="application/pdf", use_container_width=True, key="btn_dl")
+        st.balloons()  # CORRETTO: st.balloons()
         st.session_state.step = 1
         st.session_state.dati_form = {}
     else:
         st.error("Erreur de connexion à Google Sheets.")
 
+# ============================================
+# PAGINA ESPACE TRAVAILLEUR
+# ============================================
+def pagina_espace_travailleur(lingua):
+    st.title(get_testo("area_lavoratore", lingua))
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"###  {get_testo('giornalieri_titolo', lingua)}")
+        st.info(get_testo('giornalieri_desc', lingua))
+        if st.button(get_testo('login_btn', lingua), use_container_width=True, type="primary"):
+            st.session_state.pagina = 'login_lavoratore'
+            st.rerun()
+    with col2:
+        st.markdown(f"###  {get_testo('nuovo_giornaliero_titolo', lingua)}")
+        st.info(get_testo('nuovo_giornaliero_desc', lingua))
+        if st.button(get_testo('trasmissione_btn', lingua), use_container_width=True, type="primary"):
+            st.session_state.pagina = 'registrazione'
+            st.session_state.step = 1
+            st.session_state.dati_form = {}
+            st.rerun()
+
+# ============================================
+# PAGINA LOGIN LAVORATORE
+# ============================================
+def pagina_login_lavoratore(lingua):
+    st.title(get_testo("connexion_mon_espace", lingua))
+    with st.form("login_form"):
+        codice = st.text_input(get_testo("code_access_input", lingua))
+        pin = st.text_input(get_testo("pin_input", lingua), type="password")
+        submitted = st.form_submit_button(get_testo("se_connecter", lingua), type="primary")
+        if submitted and codice and pin:
+            dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
+            trovato = any(len(row) >= 3 and str(row[1]) == codice and str(row[2]) == pin for row in dati[1:])
+            if trovato:
+                st.session_state.logged_in = True
+                st.session_state.user_type = 'lavoratore'
+                st.session_state.codice_operatore = codice
+                st.session_state.pin_operatore = pin
+                st.session_state.pagina = 'area_lavoratore'
+                st.success("Connecté!")
+                st.rerun()
+            else:
+                st.error(get_testo("codice_errato", lingua))
+    if st.button(get_testo("retour", lingua)):
+        st.session_state.pagina = 'espace_travailleur'
+        st.rerun()
+
+# ============================================
+# PAGINA AREA LAVORATORE
+# ============================================
+def pagina_area_lavoratore(lingua):
+    if not st.session_state.get('logged_in') or st.session_state.get('user_type') != 'lavoratore':
+        st.error("Accès refusé")
+        return
+    st.title(get_testo("i_miei_dati", lingua))
+    st.success(f"Code: {st.session_state.codice_operatore}")
+    st.markdown("---")
+    st.subheader(get_testo("donnees_non_modifiables", lingua))
+    st.info("CNI, Données personnelles: Contactez l'administration pour modifications")
+    st.markdown("---")
+    st.subheader(get_testo("donnees_modifiables", lingua))
+    st.info("Téléphone, Adresse, Enfants - Modifiables ici")
+    st.markdown("---")
+    st.subheader(get_testo("salaire_titolo", lingua))
+    st.info(get_testo("salaire_desc", lingua))
+    st.markdown("---")
+    if st.button(get_testo("logout", lingua)):
+        st.session_state.logged_in = False
+        st.session_state.user_type = None
+        st.session_state.pagina = 'home'
+        st.rerun()
 
 # ============================================
 # PAGINA DASHBOARD
@@ -956,7 +944,6 @@ def pagina_dashboard(lingua):
         st.dataframe(df, use_container_width=True)
     else:
         st.warning(get_testo("nessun_risultato", lingua))
-
 
 # ============================================
 # PAGINA HOME
@@ -985,7 +972,6 @@ def pagina_home(lingua):
         if st.button(get_testo("dashboard", lingua), use_container_width=True):
             st.session_state.pagina = 'login_admin'
             st.rerun()
-
 
 # ============================================
 # MAIN APP
@@ -1036,11 +1022,7 @@ def main():
                 st.session_state.logged_in = False
                 st.session_state.pagina = 'home'
         else:
-            if st.button(get_testo("nuova_assunzione", lingua), key="btn_reg"):
-                st.session_state.pagina = 'registrazione'
-                st.session_state.step = 1
-                st.session_state.dati_form = {}
-                st.rerun()
+            # RIMOSSO: pulsante "Nouvelle Embauche"
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
                 st.rerun()
@@ -1076,7 +1058,6 @@ def main():
                 st.error("Password errata")
     elif st.session_state.pagina == 'dashboard':
         pagina_dashboard(lingua)
-
 
 if __name__ == "__main__":
     main()
