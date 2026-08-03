@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PROACIER - HRM - Versione 11.0 FINALE
+========================================
 MODIFICHE APPLICATE:
 1. ✅ PDF con pagina credenziali accesso (codice + PIN ben visibili)
 2. ✅ Email obbligatoria nella candidatura spontanea
@@ -9,6 +10,7 @@ MODIFICHE APPLICATE:
 5. ✅ Email notifica all'amministrazione per modifiche dati
 6. ✅ Traduzioni complete senza spazi extra
 7. ✅ Commenti iniziali per promemoria modifiche future
+8. ✅ Browser può salvare credenziali (autocomplete attributes)
 """
 import streamlit as st
 import requests
@@ -22,7 +24,7 @@ import pandas as pd
 # ============================================
 st.set_page_config(
     page_title="Proacier - Ressources Humaines",
-    page_icon="",
+    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -57,11 +59,11 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
         "nuova_assunzione": "📝 Transmission de Données",
-        "candidatura_spontanea": " Candidature Spontanée",
+        "candidatura_spontanea": "📄 Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Travailleur",
         "logout": "Déconnexion",
@@ -83,9 +85,9 @@ TRADUZIONI = {
         "step_7": "7. Vêtements & EPI",
         "continua": "Continuer →",
         "indietro": "← Retour",
-        "genera_pdf": " J'accepte les conditions",
+        "genera_pdf": "📄 J'accepte les conditions",
         "pdf_generato": "Enregistrement réussi !",
-        "conserva_credenziali": "️ CONSERVEZ CES IDENTIFIANTS",
+        "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN d'accès",
         "scarica": "Télécharger",
@@ -188,10 +190,10 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
-        "home_titolo": " À quoi sert cette application?",
+        "home_titolo": "📋 À quoi sert cette application?",
         "home_punto1_titolo": "Transmission de données pour nouveaux travailleurs",
         "home_punto1_desc1": "Formulaire complet en 7 étapes",
         "home_punto1_desc2": "Génération PDF automatique",
@@ -204,7 +206,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Paiement des journaliers",
         "home_punto4_desc1": "Gestion présences",
         "home_punto4_desc2": "Calcul compensi",
-        "home_navigation": "🚀 Navigation rapide",
+        "home_navigation": " Navigation rapide",
         "giornalieri_titolo": "Déjà travailleur?",
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
@@ -221,7 +223,7 @@ TRADUZIONI = {
         "avviso_non_contratto": "⚠️ Ceci n'est PAS un contrat d'embauche. Il s'agit uniquement d'une transmission de données à l'administration.",
         "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
-        "titolo_vestiario": "👕 Tailles Vêtements",
+        "titolo_vestiario": " Tailles Vêtements",
         "pagina_condizioni": "📄 Lire les conditions complètes",
         "condizioni_titolo": "CONDITIONS GÉNÉRALES ET POLITIQUE DE CONFIDENTIALITÉ",
         "condizioni_testo": "Ces conditions régissent l'utilisation de notre système de recrutement.",
@@ -229,15 +231,15 @@ TRADUZIONI = {
         "pdf_identifiants_desc": "Conservez précieusement ces identifiants:",
         "pdf_identifiants_avviso": "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne. Vous en aurez besoin pour accéder à votre espace personnel.",
         "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
-        "sezione_paga": "💰 Informations Salariales",
-        "sezione_contatti": " Coordonnées (modifiables)",
-        "sezione_famille": "👨‍👩‍👧‍ Famille (modifiable)",
+        "sezione_paga": " Informations Salariales",
+        "sezione_contatti": "📞 Coordonnées (modifiables)",
+        "sezione_famille": "‍👩‍👧‍👦 Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
         "paga_amount": "Montant",
         "paga_desc": "Votre salaire est géré par l'administration. Pour toute modification, contactez-nous.",
-        "salva_modifiche": " Enregistrer les modifications",
+        "salva_modifiche": "💾 Enregistrer les modifications",
         "modifiche_salvate": "✅ Modifications enregistrées avec succès ! Un email de notification a été envoyé à l'administration.",
         "errore_salvataggio": "❌ Erreur lors de l'enregistrement. Veuillez réessayer.",
         "tipo_permesso": "Type de demande",
@@ -252,7 +254,7 @@ TRADUZIONI = {
         "motivo_permesso": "Motif / Détails",
         "invia_richiesta": "📤 Envoyer la demande",
         "richiesta_inviata": "✅ Demande envoyée avec succès ! Vous recevrez une réponse de l'administration.",
-        "lista_richieste": "📋 Mes demandes précédentes",
+        "lista_richieste": " Mes demandes précédentes",
         "stato_richiesta": "Statut",
         "stato_pending": "⏳ En attente",
         "stato_approved": "✅ Approuvée",
@@ -288,9 +290,9 @@ TRADUZIONI = {
         "step_7": "7. Vestiario e DPI",
         "continua": "Continua →",
         "indietro": "← Indietro",
-        "genera_pdf": "📄 Accetto le condizioni",
+        "genera_pdf": " Accetto le condizioni",
         "pdf_generato": "Registrazione riuscita!",
-        "conserva_credenziali": "️ CONSERVA QUESTE CREDENZIALI",
+        "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
@@ -342,7 +344,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -423,7 +425,7 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Altro paese",
-        "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
+        "avviso_non_contratto": "️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
         "titolo_vestiario": "👕 Taglie Abbigliamento",
@@ -433,10 +435,10 @@ TRADUZIONI = {
         "pdf_identifiants_titolo": "CREDENZIALI DI ACCESSO",
         "pdf_identifiants_desc": "Conserva con cura queste credenziali:",
         "pdf_identifiants_avviso": "Queste credenziali sono personali e confidenziali. Non condividerle con nessuno. Ti serviranno per accedere al tuo spazio personale.",
-        "sezione_dati_personali": " Dati Personali (non modificabili)",
+        "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
-        "sezione_contatti": " Contatti (modificabili)",
-        "sezione_famille": "👨‍👩‍👧‍👦 Famiglia (modificabile)",
+        "sezione_contatti": "📞 Contatti (modificabili)",
+        "sezione_famille": "👨‍‍👧‍👦 Famiglia (modificabile)",
         "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
@@ -459,7 +461,7 @@ TRADUZIONI = {
         "richiesta_inviata": "✅ Richiesta inviata con successo! Riceverai una risposta dall'amministrazione.",
         "lista_richieste": "📋 Le mie richieste precedenti",
         "stato_richiesta": "Stato",
-        "stato_pending": " In attesa",
+        "stato_pending": "⏳ In attesa",
         "stato_approved": "✅ Approvata",
         "stato_rejected": "❌ Rifiutata",
         "risposta_admin": "Risposta dell'amministrazione",
@@ -467,10 +469,10 @@ TRADUZIONI = {
         "data_richiesta": "Data della richiesta",
     },
     "en": {
-        "titolo": " PROACIER - HUMAN RESOURCES",
+        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
-        "nuova_assunzione": " Data Transmission",
+        "nuova_assunzione": "📝 Data Transmission",
         "candidatura_spontanea": "📄 Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
@@ -500,7 +502,7 @@ TRADUZIONI = {
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": "📋 Read full conditions",
+        "leggi_condizioni": " Read full conditions",
         "checkbox_confirm": "I have read and accept the general conditions and privacy policy",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -629,27 +631,27 @@ TRADUZIONI = {
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
         "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
-        "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
+        "avviso_regole_aziendali": " By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
-        "pagina_condizioni": "📄 Read full conditions",
+        "pagina_condizioni": " Read full conditions",
         "condizioni_titolo": "GENERAL CONDITIONS AND PRIVACY POLICY",
         "condizioni_testo": "These conditions govern the use of our recruitment system.",
         "pdf_identifiants_titolo": "ACCESS CREDENTIALS",
         "pdf_identifiants_desc": "Keep these credentials safe:",
         "pdf_identifiants_avviso": "These credentials are personal and confidential. Do not share them with anyone. You will need them to access your personal space.",
-        "sezione_dati_personali": " Personal Data (non-modifiable)",
-        "sezione_paga": "💰 Salary Information",
+        "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
+        "sezione_paga": " Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩👧‍👦 Family (modifiable)",
+        "sezione_famille": "👨‍👩‍👧‍ Family (modifiable)",
         "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
         "paga_desc": "Your salary is managed by administration. For changes, contact us.",
-        "salva_modifiche": "💾 Save changes",
+        "salva_modifiche": " Save changes",
         "modifiche_salvate": "✅ Changes saved successfully! A notification email has been sent to administration.",
-        "errore_salvataggio": " Error saving. Please try again.",
+        "errore_salvataggio": "❌ Error saving. Please try again.",
         "tipo_permesso": "Request type",
         "opt_permesso": "Permission (day)",
         "opt_vacanza": "Vacation (multiple days)",
@@ -660,11 +662,11 @@ TRADUZIONI = {
         "data_inizio_permesso": "Start date",
         "data_fine_permesso": "End date",
         "motivo_permesso": "Reason / Details",
-        "invia_richiesta": " Submit request",
+        "invia_richiesta": "📤 Submit request",
         "richiesta_inviata": "✅ Request submitted successfully! You will receive a response from administration.",
         "lista_richieste": "📋 My previous requests",
         "stato_richiesta": "Status",
-        "stato_pending": "⏳ Pending",
+        "stato_pending": " Pending",
         "stato_approved": "✅ Approved",
         "stato_rejected": "❌ Rejected",
         "risposta_admin": "Administration response",
@@ -1016,7 +1018,7 @@ def pagina_condizioni(lingua):
     partagées avec des tiers sans votre consentement.
     """)
     
-    st.subheader("👤 Article 3 - Droits du candidat")
+    st.subheader(" Article 3 - Droits du candidat")
     st.markdown("""
     Conformément à la législation en vigueur, vous disposez d'un droit d'accès, de 
     rectification et de suppression de vos données personnelles. Pour exercer ces droits, 
@@ -1024,7 +1026,7 @@ def pagina_condizioni(lingua):
     """)
     
     st.markdown("---")
-    st.info("️ Questo testo è provvisorio. Le condizioni definitive verranno scritte insieme.")
+    st.info("ℹ️ Questo testo è provvisorio. Le condizioni definitive verranno scritte insieme.")
     
     if st.button("← Retour", use_container_width=True):
         st.session_state.pagina = 'registrazione'
