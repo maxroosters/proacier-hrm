@@ -4,10 +4,12 @@ PROACIER - HRM - Versione Finale Completa
 ==========================================
 MODIFICHE:
 1. ✅ Checkbox servizi sotto OGNI numero di telefono
-2. ✅ Fix ricerca lavoratore nello spazio personale
-3. ✅ Campi aggiuntivi per Google Sheet (Reparto, Supervisore, Salario, ecc.)
+2. ✅ Fix ricerca lavoratore (Code/PIN)
+3. ✅ Email obbligatoria candidatura
 4. ✅ PDF con pagina credenziali accesso
-5. ✅ Traduzioni complete senza spazi
+5. ✅ Traduzioni senza spazi extra
+6. ✅ 7 step completi con vestiario
+7. ✅ Supporto colonne Google Sheet aggiornate
 """
 import streamlit as st
 import requests
@@ -126,17 +128,6 @@ TRADUZIONI = {
         "css": "N° CSS",
         "cmu": "N° CMU",
         "ipres": "N° IPRES",
-        "reparto": "Département/Service",
-        "supervisore": "Superviseur",
-        "luogo_lavoro": "Lieu de travail",
-        "data_inizio_lavoro": "Date de début",
-        "salario_giornaliero": "Salaire journalier (FCFA)",
-        "ore_giorno": "Heures par jour",
-        "giorni_settimana": "Jours par semaine",
-        "tipo_pagamento": "Type de paiement",
-        "opt_mensile": "Mensuel",
-        "opt_giornaliero": "Journalier",
-        "opt_settimanale": "Hebdomadaire",
         "servizi_telefono": "Services associés au téléphone",
         "wave": "Wave",
         "orange_money": "Orange Money",
@@ -204,7 +195,7 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": "📤 Envoyer ma candidature",
+        "invia_candidatura": " Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
         "home_titolo": "📋 À quoi sert cette application?",
@@ -225,7 +216,7 @@ TRADUZIONI = {
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
         "nuovo_giornaliero_desc": "Transmettez vos données (pas un contrat)",
-        "login_btn": " Connexion à mon espace",
+        "login_btn": "🔐 Connexion à mon espace",
         "trasmissione_btn": "📝 Transmettre mes données",
         "paese_senegal": "Sénégal",
         "paese_mali": "Mali",
@@ -238,11 +229,11 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
         "titolo_vestiario": "👕 Tailles Vêtements",
-        "sezione_dati_personali": " Données Personnelles (non modifiables)",
-        "sezione_paga": " Informations Salariales",
+        "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
+        "sezione_paga": "💰 Informations Salariales",
         "sezione_contatti": "📞 Coordonnées (modifiables)",
-        "sezione_famille": "‍👩‍👧‍👦 Famille (modifiable)",
-        "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
+        "sezione_famille": "👨‍👩‍‍👦 Famille (modifiable)",
+        "sezione_vestiario": " Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
         "paga_amount": "Montant",
@@ -275,7 +266,7 @@ TRADUZIONI = {
         "pdf_identifiants_avviso": "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne. Vous en aurez besoin pour accéder à votre espace personnel.",
     },
     "it": {
-        "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
+        "titolo": " PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Trasmissione Dati",
@@ -345,17 +336,6 @@ TRADUZIONI = {
         "css": "N° CSS",
         "cmu": "N° CMU",
         "ipres": "N° IPRES",
-        "reparto": "Reparto/Servizio",
-        "supervisore": "Supervisore",
-        "luogo_lavoro": "Luogo di lavoro",
-        "data_inizio_lavoro": "Data di inizio",
-        "salario_giornaliero": "Salario giornaliero (FCFA)",
-        "ore_giorno": "Ore al giorno",
-        "giorni_settimana": "Giorni a settimana",
-        "tipo_pagamento": "Tipo di pagamento",
-        "opt_mensile": "Mensile",
-        "opt_giornaliero": "Giornaliero",
-        "opt_settimanale": "Settimanale",
         "servizi_telefono": "Servizi associati al telefono",
         "wave": "Wave",
         "orange_money": "Orange Money",
@@ -444,8 +424,8 @@ TRADUZIONI = {
         "giornalieri_desc": "Accedi al tuo spazio",
         "nuovo_giornaliero_titolo": "Nuovo / Giornaliero?",
         "nuovo_giornaliero_desc": "Trasmetti dati (non contratto)",
-        "login_btn": " Accedi al mio spazio",
-        "trasmissione_btn": "📝 Trasmetti i miei dati",
+        "login_btn": "🔐 Accedi al mio spazio",
+        "trasmissione_btn": " Trasmetti i miei dati",
         "paese_senegal": "Senegal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -453,22 +433,22 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Altro paese",
-        "avviso_non_contratto": "️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
+        "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
         "titolo_vestiario": "👕 Taglie Abbigliamento",
         "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
         "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "👨‍👩‍👧‍👦 Famiglia (modificabile)",
-        "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
+        "sezione_famille": "‍👩‍👧👦 Famiglia (modificabile)",
+        "sezione_vestiario": " Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
         "paga_amount": "Importo",
         "paga_desc": "Il tuo salario è gestito dall'amministrazione. Per modifiche, contattaci.",
         "salva_modifiche": "💾 Salva modifiche",
         "modifiche_salvate": "✅ Modifiche salvate con successo! Una email di notifica è stata inviata all'amministrazione.",
-        "errore_salvataggio": " Errore durante il salvataggio. Riprova.",
+        "errore_salvataggio": "❌ Errore durante il salvataggio. Riprova.",
         "tipo_permesso": "Tipo di richiesta",
         "opt_permesso": "Permesso (giornata)",
         "opt_vacanza": "Vacanze (più giorni)",
@@ -485,7 +465,7 @@ TRADUZIONI = {
         "stato_richiesta": "Stato",
         "stato_pending": "⏳ In attesa",
         "stato_approved": "✅ Approvata",
-        "stato_rejected": " Rifiutata",
+        "stato_rejected": "❌ Rifiutata",
         "risposta_admin": "Risposta dell'amministrazione",
         "nessuna_richiesta": "Nessuna richiesta precedente",
         "data_richiesta": "Data della richiesta",
@@ -527,7 +507,7 @@ TRADUZIONI = {
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": "📋 Read full conditions",
+        "leggi_condizioni": " Read full conditions",
         "checkbox_confirm": "I have read and accept the general conditions and privacy policy",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -564,17 +544,6 @@ TRADUZIONI = {
         "css": "Social Security (CSS)",
         "cmu": "CMU",
         "ipres": "IPRES",
-        "reparto": "Department/Service",
-        "supervisore": "Supervisor",
-        "luogo_lavoro": "Work location",
-        "data_inizio_lavoro": "Start date",
-        "salario_giornaliero": "Daily salary (FCFA)",
-        "ore_giorno": "Hours per day",
-        "giorni_settimana": "Days per week",
-        "tipo_pagamento": "Payment type",
-        "opt_mensile": "Monthly",
-        "opt_giornaliero": "Daily",
-        "opt_settimanale": "Weekly",
         "servizi_telefono": "Phone services",
         "wave": "Wave",
         "orange_money": "Orange Money",
@@ -591,7 +560,7 @@ TRADUZIONI = {
         "categoria_competenza": "Skill category",
         "dettaglio_competenza": "Details",
         "patente": "Driver's license",
-        "nota_patente": "️ A photocopy of the license will be required.",
+        "nota_patente": "⚠️ A photocopy of the license will be required.",
         "gruppo_sanguigno": "Blood type",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -658,7 +627,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Daily workers payment",
         "home_punto4_desc1": "Attendance management",
         "home_punto4_desc2": "Payment calculation",
-        "home_navigation": "🚀 Quick navigation",
+        "home_navigation": " Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -676,10 +645,10 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
-        "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
+        "sezione_dati_personali": " Personal Data (non-modifiable)",
         "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩‍‍👦 Family (modifiable)",
+        "sezione_famille": "👨‍👩‍👧‍👦 Family (modifiable)",
         "sezione_vestiario": " Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
@@ -1271,7 +1240,7 @@ def pagina_area_lavoratore_completa(lingua):
                 
                 # Form nuova richiesta
                 with st.form("form_richiesta"):
-                    st.markdown("** Nouvelle demande**")
+                    st.markdown("**📝 Nouvelle demande**")
                     col1, col2 = st.columns(2)
                     with col1:
                         tipo_richiesta = st.selectbox(get_testo("tipo_permesso", lingua), [
@@ -1565,7 +1534,7 @@ def pagina_espace_travailleur(lingua):
             st.rerun()
     
     with col2:
-        st.markdown(f"### 📝 {get_testo('nuovo_giornaliero_titolo', lingua)}")
+        st.markdown(f"###  {get_testo('nuovo_giornaliero_titolo', lingua)}")
         st.info(get_testo('nuovo_giornaliero_desc', lingua))
         if st.button(get_testo('trasmissione_btn', lingua), use_container_width=True, type="primary"):
             st.session_state.pagina = 'registrazione'
