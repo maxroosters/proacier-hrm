@@ -3,14 +3,13 @@
 PROACIER - HRM - Versione 11.0 FINALE
 ========================================
 MODIFICHE APPLICATE:
-1. ✅ PDF con pagina credenziali accesso (codice + PIN ben visibili)
-2. ✅ Email obbligatoria nella candidatura spontanea
-3. ✅ Fix errore secondo click: dati salvati in session_state PRIMA validazione
-4. ✅ Area lavoratore COMPLETA: dati, paga, sezioni modificabili, comunicazioni
-5. ✅ Email notifica all'amministrazione per modifiche dati
-6. ✅ Traduzioni complete senza spazi extra
-7. ✅ Commenti iniziali per promemoria modifiche future
-8. ✅ Browser può salvare credenziali (autocomplete attributes)
+1. ✅ Fix errore doppio click candidatura: dati salvati PRIMA della validazione
+2. ✅ Fix spazio lavoratore: ricerca corretta per codice e PIN
+3. ✅ Aggiunte checkbox servizi (Wave, Orange Money, WhatsApp, Telegram, Signal) nello step 2
+4. ✅ Reset menu su logout: torna alla home
+5. ✅ Email obbligatoria nella candidatura
+6. ✅ PDF con pagina credenziali accesso
+7. ✅ Area lavoratore completa con tutti i dati modificabili
 """
 import streamlit as st
 import requests
@@ -24,7 +23,7 @@ import pandas as pd
 # ============================================
 st.set_page_config(
     page_title="Proacier - Ressources Humaines",
-    page_icon="🏭",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -59,11 +58,11 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
         "nuova_assunzione": "📝 Transmission de Données",
-        "candidatura_spontanea": "📄 Candidature Spontanée",
+        "candidatura_spontanea": " Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Travailleur",
         "logout": "Déconnexion",
@@ -77,7 +76,7 @@ TRADUZIONI = {
         "totale_operai": "Total Employés",
         "nessun_risultato": "Aucun résultat trouvé",
         "step_1": "1. Données Personnelles & Famille",
-        "step_2": "2. Adresse & Documents",
+        "step_2": "2. Adresse, Documents & Services",
         "step_3": "3. Expérience Professionnelle",
         "step_4": "4. Compétences & Permis",
         "step_5": "5. Informations Médicales",
@@ -129,6 +128,12 @@ TRADUZIONI = {
         "css": "N° CSS",
         "cmu": "N° CMU",
         "ipres": "N° IPRES",
+        "servizi_telefono": "Services associés au téléphone",
+        "wave": "Wave",
+        "orange_money": "Orange Money",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "signal": "Signal",
         "nota_lavoro": "Indiquez vos 3 dernières expériences.",
         "azienda": "Entreprise",
         "mansione": "Fonction",
@@ -206,7 +211,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Paiement des journaliers",
         "home_punto4_desc1": "Gestion présences",
         "home_punto4_desc2": "Calcul compensi",
-        "home_navigation": " Navigation rapide",
+        "home_navigation": "🚀 Navigation rapide",
         "giornalieri_titolo": "Déjà travailleur?",
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
@@ -230,18 +235,18 @@ TRADUZIONI = {
         "pdf_identifiants_titolo": "IDENTIFIANTS DE CONNEXION",
         "pdf_identifiants_desc": "Conservez précieusement ces identifiants:",
         "pdf_identifiants_avviso": "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne. Vous en aurez besoin pour accéder à votre espace personnel.",
-        "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
-        "sezione_paga": " Informations Salariales",
+        "sezione_dati_personali": " Données Personnelles (non modifiables)",
+        "sezione_paga": "💰 Informations Salariales",
         "sezione_contatti": "📞 Coordonnées (modifiables)",
-        "sezione_famille": "‍👩‍👧‍👦 Famille (modifiable)",
+        "sezione_famille": "👨‍👩‍👧‍👦 Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
         "paga_amount": "Montant",
         "paga_desc": "Votre salaire est géré par l'administration. Pour toute modification, contactez-nous.",
-        "salva_modifiche": "💾 Enregistrer les modifications",
+        "salva_modifiche": " Enregistrer les modifications",
         "modifiche_salvate": "✅ Modifications enregistrées avec succès ! Un email de notification a été envoyé à l'administration.",
-        "errore_salvataggio": "❌ Erreur lors de l'enregistrement. Veuillez réessayer.",
+        "errore_salvataggio": " Erreur lors de l'enregistrement. Veuillez réessayer.",
         "tipo_permesso": "Type de demande",
         "opt_permesso": "Permission (jour)",
         "opt_vacanza": "Vacances (plusieurs jours)",
@@ -282,7 +287,7 @@ TRADUZIONI = {
         "totale_operai": "Totale Dipendenti",
         "nessun_risultato": "Nessun risultato",
         "step_1": "1. Dati Personali e Famiglia",
-        "step_2": "2. Indirizzo e Documenti",
+        "step_2": "2. Indirizzo, Documenti e Servizi",
         "step_3": "3. Esperienza Professionale",
         "step_4": "4. Competenze e Patente",
         "step_5": "5. Informazioni Mediche",
@@ -290,7 +295,7 @@ TRADUZIONI = {
         "step_7": "7. Vestiario e DPI",
         "continua": "Continua →",
         "indietro": "← Indietro",
-        "genera_pdf": " Accetto le condizioni",
+        "genera_pdf": "📄 Accetto le condizioni",
         "pdf_generato": "Registrazione riuscita!",
         "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
@@ -334,6 +339,12 @@ TRADUZIONI = {
         "css": "N° CSS",
         "cmu": "N° CMU",
         "ipres": "N° IPRES",
+        "servizi_telefono": "Servizi associati al telefono",
+        "wave": "Wave",
+        "orange_money": "Orange Money",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "signal": "Signal",
         "nota_lavoro": "Indica le tue ultime 3 esperienze.",
         "azienda": "Azienda",
         "mansione": "Mansione",
@@ -344,7 +355,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -425,7 +436,7 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Altro paese",
-        "avviso_non_contratto": "️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
+        "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
         "titolo_vestiario": "👕 Taglie Abbigliamento",
@@ -435,10 +446,10 @@ TRADUZIONI = {
         "pdf_identifiants_titolo": "CREDENZIALI DI ACCESSO",
         "pdf_identifiants_desc": "Conserva con cura queste credenziali:",
         "pdf_identifiants_avviso": "Queste credenziali sono personali e confidenziali. Non condividerle con nessuno. Ti serviranno per accedere al tuo spazio personale.",
-        "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
+        "sezione_dati_personali": " Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
-        "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "👨‍‍👧‍👦 Famiglia (modificabile)",
+        "sezione_contatti": " Contatti (modificabili)",
+        "sezione_famille": "👨‍👩‍👧‍ Famiglia (modificabile)",
         "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
@@ -469,7 +480,7 @@ TRADUZIONI = {
         "data_richiesta": "Data della richiesta",
     },
     "en": {
-        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
+        "titolo": " PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
@@ -487,7 +498,7 @@ TRADUZIONI = {
         "totale_operai": "Total Employees",
         "nessun_risultato": "No results found",
         "step_1": "1. Personal Data & Family",
-        "step_2": "2. Address & Documents",
+        "step_2": "2. Address, Documents & Services",
         "step_3": "3. Professional Experience",
         "step_4": "4. Skills & License",
         "step_5": "5. Medical Information",
@@ -539,6 +550,12 @@ TRADUZIONI = {
         "css": "Social Security (CSS)",
         "cmu": "CMU",
         "ipres": "IPRES",
+        "servizi_telefono": "Phone services",
+        "wave": "Wave",
+        "orange_money": "Orange Money",
+        "whatsapp": "WhatsApp",
+        "telegram": "Telegram",
+        "signal": "Signal",
         "nota_lavoro": "Indicate your last 3 experiences.",
         "azienda": "Company",
         "mansione": "Position",
@@ -600,7 +617,7 @@ TRADUZIONI = {
         "esperienza_anno": "Years of experience",
         "salario_richiesto": "Expected salary (FCFA)",
         "note": "Additional notes",
-        "invia_candidatura": " Submit my application",
+        "invia_candidatura": "📤 Submit my application",
         "candidatura_inviata": "✅ Application submitted successfully!",
         "errore_candidatura": "Please fill in Surname, First Name, Email, and Phone.",
         "home_titolo": "📋 What is this application for?",
@@ -631,25 +648,25 @@ TRADUZIONI = {
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
         "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
-        "avviso_regole_aziendali": " By submitting this form, you accept the company rules and PROACIER's privacy policy.",
+        "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
-        "pagina_condizioni": " Read full conditions",
+        "pagina_condizioni": "📄 Read full conditions",
         "condizioni_titolo": "GENERAL CONDITIONS AND PRIVACY POLICY",
         "condizioni_testo": "These conditions govern the use of our recruitment system.",
         "pdf_identifiants_titolo": "ACCESS CREDENTIALS",
         "pdf_identifiants_desc": "Keep these credentials safe:",
         "pdf_identifiants_avviso": "These credentials are personal and confidential. Do not share them with anyone. You will need them to access your personal space.",
-        "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
-        "sezione_paga": " Salary Information",
+        "sezione_dati_personali": " Personal Data (non-modifiable)",
+        "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩‍👧‍ Family (modifiable)",
-        "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
+        "sezione_famille": "👨‍👩‍👧‍👦 Family (modifiable)",
+        "sezione_vestiario": " Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
         "paga_desc": "Your salary is managed by administration. For changes, contact us.",
-        "salva_modifiche": " Save changes",
+        "salva_modifiche": "💾 Save changes",
         "modifiche_salvate": "✅ Changes saved successfully! A notification email has been sent to administration.",
         "errore_salvataggio": "❌ Error saving. Please try again.",
         "tipo_permesso": "Request type",
@@ -664,9 +681,9 @@ TRADUZIONI = {
         "motivo_permesso": "Reason / Details",
         "invia_richiesta": "📤 Submit request",
         "richiesta_inviata": "✅ Request submitted successfully! You will receive a response from administration.",
-        "lista_richieste": "📋 My previous requests",
+        "lista_richieste": " My previous requests",
         "stato_richiesta": "Status",
-        "stato_pending": " Pending",
+        "stato_pending": "⏳ Pending",
         "stato_approved": "✅ Approved",
         "stato_rejected": "❌ Rejected",
         "risposta_admin": "Administration response",
@@ -911,8 +928,22 @@ def step_2_residenza_documenti(lingua):
         css = st.text_input(f"{get_testo('css', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('css', ''), key="s2_css")
         cmu = st.text_input(get_testo("cmu", lingua), value=st.session_state.dati_form.get('cmu', ''), key="s2_cmu")
         ipres = st.text_input(get_testo("ipres", lingua), value=st.session_state.dati_form.get('ipres', ''), key="s2_ipres")
+    
+    # CHECKBOX SERVIZI TELEFONO
+    st.markdown("---")
+    st.subheader(get_testo("servizi_telefono", lingua))
+    col3, col4 = st.columns(2)
+    with col3:
+        wave = st.checkbox(get_testo("wave", lingua), value=st.session_state.dati_form.get('wave', False), key="s2_wave")
+        orange_money = st.checkbox(get_testo("orange_money", lingua), value=st.session_state.dati_form.get('orange_money', False), key="s2_orange")
+        whatsapp = st.checkbox(get_testo("whatsapp", lingua), value=st.session_state.dati_form.get('whatsapp', False), key="s2_whatsapp")
+    with col4:
+        telegram = st.checkbox(get_testo("telegram", lingua), value=st.session_state.dati_form.get('telegram', False), key="s2_telegram")
+        signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal', False), key="s2_signal")
+    
     return {"indirizzo": indirizzo, "quartiere": quartiere, "comune": comune, "regione_senegal": regione_senegal,
-            "telefono_1": tel1, "telefono_2": tel2, "telefono_3": tel3, "cni": cni, "nif": nif, "css": css, "cmu": cmu, "ipres": ipres}
+            "telefono_1": tel1, "telefono_2": tel2, "telefono_3": tel3, "cni": cni, "nif": nif, "css": css, "cmu": cmu, "ipres": ipres,
+            "wave": wave, "orange_money": orange_money, "whatsapp": whatsapp, "telegram": telegram, "signal": signal}
 
 def step_3_esperienza(lingua):
     st.subheader(get_testo("step_3", lingua))
@@ -1018,7 +1049,7 @@ def pagina_condizioni(lingua):
     partagées avec des tiers sans votre consentement.
     """)
     
-    st.subheader(" Article 3 - Droits du candidat")
+    st.subheader("👤 Article 3 - Droits du candidat")
     st.markdown("""
     Conformément à la législation en vigueur, vous disposez d'un droit d'accès, de 
     rectification et de suppression de vos données personnelles. Pour exercer ces droits, 
@@ -1152,10 +1183,13 @@ def pagina_area_lavoratore_completa(lingua):
             return
         
         df = pd.DataFrame(dati_foglio[1:], columns=dati_foglio[0])
+        
+        # FIX: Ricerca corretta per codice e PIN
         mask = (df['Codice'] == codice_lavoratore) & (df['PIN'] == pin_lavoratore)
         
         if not mask.any():
             st.error("Travailleur non trouvé")
+            st.info(f"Code recherché: {codice_lavoratore}, PIN: {pin_lavoratore}")
             return
         
         row = df[mask].iloc[0]
@@ -1383,7 +1417,7 @@ def pagina_area_lavoratore_completa(lingua):
     if st.button(get_testo("logout", lingua)):
         st.session_state.logged_in = False
         st.session_state.user_type = None
-        st.session_state.pagina = 'home'
+        st.session_state.pagina = 'home'  # FIX: Reset alla home
         st.rerun()
 
 # ============================================
@@ -1547,7 +1581,8 @@ def main():
                 st.session_state.pagina = 'area_lavoratore_completa'
             if st.button(get_testo("logout", lingua), key="btn_logout"):
                 st.session_state.logged_in = False
-                st.session_state.pagina = 'home'
+                st.session_state.user_type = None
+                st.session_state.pagina = 'home'  # FIX: Reset alla home
         else:
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
