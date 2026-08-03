@@ -2,7 +2,7 @@
 """
 PROACIER - Gestione Risorse Umane (HRM)
 Senegal - Région de Thiès
-Versione 7.0 - Corretta
+Versione 8.0 - Finale Corretta
 """
 import streamlit as st
 import requests
@@ -74,16 +74,17 @@ TRADUZIONI = {
         "step_4": "4. Compétences & Permis",
         "step_5": "5. Informations Médicales",
         "step_6": "6. Contact d'Urgence & Validation",
+        "step_7": "7. Vêtements & EPI",
         "continua": "Continuer →",
         "indietro": "← Retour",
-        "genera_pdf": " Générer PDF & Accepter",
+        "genera_pdf": "📄 Générer PDF & Accepter",
         "pdf_generato": "Enregistrement réussi !",
         "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN d'accès",
         "scarica": "Télécharger",
         "alert_condizioni": "En cliquant, vous certifiez l'exactitude des informations et acceptez les conditions.",
-        "leggi_condizioni": " Lire les conditions complètes",
+        "leggi_condizioni": "📋 Lire les conditions complètes",
         "checkbox_confirm": "Je certifie l'exactitude des informations",
         "errore_obbligatori": "Veuillez remplir tous les champs obligatoires (*)",
         "obbligatorio": "*",
@@ -150,6 +151,34 @@ TRADUZIONI = {
         "cat_elettrico": "Électricité",
         "cat_agricoltura": "Agriculture",
         "cat_altro": "Autre",
+        "taglia_maglia": "Taille t-shirt/polo",
+        "taglia_pantaloni": "Taille pantalon",
+        "taglia_scarpe": "Pointure chaussures",
+        "taglia_giacca": "Taille veste/gilet",
+        "taglia_cappello": "Taille casque/casquette",
+        "taglia_guanti": "Taille gants",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
         "titolo_candidatura": "CANDIDATURE SPONTANÉE",
         "sottotitolo_candidatura": "Rejoignez l'équipe PROACIER.",
         "email": "Adresse Email *",
@@ -168,10 +197,10 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": "📤 Envoyer ma candidature",
+        "invia_candidatura": " Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
-        "home_titolo": "📋 A quoi sert cette application?",
+        "home_titolo": " A quoi sert cette application?",
         "home_punto1": "Transmission de données pour nouveaux travailleurs",
         "home_punto2": "Candidatures spontanées",
         "home_punto3": "Espace personnel travailleur",
@@ -214,6 +243,7 @@ TRADUZIONI = {
         "step_4": "4. Competenze e Patente",
         "step_5": "5. Informazioni Mediche",
         "step_6": "6. Contatto Emergenza e Validazione",
+        "step_7": "7. Vestiario e DPI",
         "continua": "Continua →",
         "indietro": "← Indietro",
         "genera_pdf": " Genera PDF e Accetta",
@@ -223,7 +253,7 @@ TRADUZIONI = {
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": "📋 Leggi le condizioni complete",
+        "leggi_condizioni": " Leggi le condizioni complete",
         "checkbox_confirm": "Certifico l'esattezza delle informazioni",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -290,6 +320,34 @@ TRADUZIONI = {
         "cat_elettrico": "Elettrico",
         "cat_agricoltura": "Agricoltura",
         "cat_altro": "Altro",
+        "taglia_maglia": "Taglia t-shirt/polo",
+        "taglia_pantaloni": "Taglia pantalone",
+        "taglia_scarpe": "Numero scarpe",
+        "taglia_giacca": "Taglia giacca/gilet",
+        "taglia_cappello": "Taglia casco/cappellino",
+        "taglia_guanti": "Taglia guanti",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
         "titolo_candidatura": "CANDIDATURA SPONTANEA",
         "sottotitolo_candidatura": "Unisciti al team PROACIER.",
         "email": "Indirizzo Email *",
@@ -331,11 +389,11 @@ TRADUZIONI = {
         "paese_altro": "Altro paese",
     },
     "en": {
-        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
+        "titolo": " PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
-        "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": " Spontaneous Application",
+        "nuova_assunzione": " Data Transmission",
+        "candidatura_spontanea": "📄 Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -354,6 +412,7 @@ TRADUZIONI = {
         "step_4": "4. Skills & License",
         "step_5": "5. Medical Information",
         "step_6": "6. Emergency Contact & Validation",
+        "step_7": "7. Clothing & PPE",
         "continua": "Continue →",
         "indietro": "← Back",
         "genera_pdf": "📄 Generate PDF & Accept",
@@ -363,7 +422,7 @@ TRADUZIONI = {
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": "📋 Read full conditions",
+        "leggi_condizioni": " Read full conditions",
         "checkbox_confirm": "I certify the accuracy of the information",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -430,6 +489,34 @@ TRADUZIONI = {
         "cat_elettrico": "Electrical",
         "cat_agricoltura": "Agriculture",
         "cat_altro": "Other",
+        "taglia_maglia": "T-shirt/polo size",
+        "taglia_pantaloni": "Pants size",
+        "taglia_scarpe": "Shoe size",
+        "taglia_giacca": "Jacket/vest size",
+        "taglia_cappello": "Helmet/cap size",
+        "taglia_guanti": "Gloves size",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
         "titolo_candidatura": "SPONTANEOUS APPLICATION",
         "sottotitolo_candidatura": "Join the PROACIER team.",
         "email": "Email Address *",
@@ -567,7 +654,11 @@ def genera_pdf_lavoratore(dati):
     pdf.campo("Competence:", f"{dati.get('categoria_competenza', '')} - {dati.get('dettaglio_competenza', '')}")
     pdf.campo("Permis:", dati.get('patente', ''))
     pdf.ln(1)
-    pdf.sezione("4. MEDICAL & URGENCE")
+    pdf.sezione("4. VETEMENTS & EPI")
+    pdf.campo_doppio("Taille T-shirt:", dati.get('taglia_maglia', ''), "Taille Pantalon:", dati.get('taglia_pantaloni', ''))
+    pdf.campo_doppio("Pointure:", dati.get('taglia_scarpe', ''), "Taille Gilet:", dati.get('taglia_giacca', ''))
+    pdf.ln(1)
+    pdf.sezione("5. MEDICAL & URGENCE")
     pdf.campo_doppio("Groupe:", f"{dati.get('gruppo_sanguigno', '')} {dati.get('rh', '')}", "Aptitude:", dati.get('idoneita', ''))
     pdf.campo_doppio("Contact:", dati.get('emergenza_nome', ''), "Tel:", dati.get('emergenza_tel', ''))
     pdf.ln(3)
@@ -607,7 +698,7 @@ def genera_pdf_lavoratore(dati):
     return bytes(pdf_bytes)
 
 # ============================================
-# STEP DEL FORMULARIO
+# STEP DEL FORMULARIO (7 STEP CON VESTIARIO)
 # ============================================
 def step_1_personale_famiglia(lingua):
     st.subheader(get_testo("step_1", lingua))
@@ -742,6 +833,34 @@ def step_6_emergenza_validazione(lingua):
     conferma = st.checkbox(get_testo("checkbox_confirm", lingua), key="s6_conf")
     return {"emergenza_nome": em_nome, "emergenza_parentela": em_parentela, "emergenza_tel": em_tel, "emergenza_indirizzo": em_ind, "conferma": conferma}
 
+def step_7_vestiario(lingua):
+    st.subheader(get_testo("step_7", lingua))
+    st.markdown("### 👕 Taglie Abbigliamento")
+    col1, col2 = st.columns(2)
+    with col1:
+        taglie_maglia = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), 
+                       get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua), get_testo("opt_xxxl", lingua)]
+        taglia_maglia = st.selectbox(get_testo("taglia_maglia", lingua), taglie_maglia, key="s7_maglia")
+        
+        taglie_pantaloni = ["38", "40", "42", "44", "46", "48", "50", "52"]
+        taglia_pantaloni = st.selectbox(get_testo("taglia_pantaloni", lingua), taglie_pantaloni, key="s7_pantaloni")
+        
+        taglie_scarpe = ["38", "39", "40", "41", "42", "43", "44", "45", "46", "47"]
+        taglia_scarpe = st.selectbox(get_testo("taglia_scarpe", lingua), taglie_scarpe, key="s7_scarpe")
+    with col2:
+        taglie_giacca = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), 
+                       get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua)]
+        taglia_giacca = st.selectbox(get_testo("taglia_giacca", lingua), taglie_giacca, key="s7_giacca")
+        
+        taglie_cappello = ["S", "M", "L", "XL"]
+        taglia_cappello = st.selectbox(get_testo("taglia_cappello", lingua), taglie_cappello, key="s7_cappello")
+        
+        taglie_guanti = ["S", "M", "L", "XL"]
+        taglia_guanti = st.selectbox(get_testo("taglia_guanti", lingua), taglie_guanti, key="s7_guanti")
+    
+    return {"taglia_maglia": taglia_maglia, "taglia_pantaloni": taglia_pantaloni, "taglia_scarpe": taglia_scarpe,
+            "taglia_giacca": taglia_giacca, "taglia_cappello": taglia_cappello, "taglia_guanti": taglia_guanti}
+
 # ============================================
 # PAGINA CANDIDATURA SPONTANEA
 # ============================================
@@ -841,12 +960,12 @@ def pagina_candidatura_spontanea(lingua):
                 }
 
 # ============================================
-# PAGINA REGISTRAZIONE MULTI-STEP
+# PAGINA REGISTRAZIONE MULTI-STEP (7 STEP)
 # ============================================
 def pagina_registrazione_multi_step(lingua):
     step = st.session_state.step
-    st.progress(step / 6)
-    st.markdown(f"**Étape {step} sur 6**")
+    st.progress(step / 7)
+    st.markdown(f"**Étape {step} sur 7**")
     st.markdown("---")
     if step == 1:
         dati_step = step_1_personale_famiglia(lingua)
@@ -860,6 +979,8 @@ def pagina_registrazione_multi_step(lingua):
         dati_step = step_5_medico(lingua)
     elif step == 6:
         dati_step = step_6_emergenza_validazione(lingua)
+    elif step == 7:
+        dati_step = step_7_vestiario(lingua)
     st.session_state.dati_form.update(dati_step)
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -868,7 +989,7 @@ def pagina_registrazione_multi_step(lingua):
             st.session_state.step -= 1
             st.rerun()
     with col2:
-        if step < 6:
+        if step < 7:
             if st.button(get_testo("continua", lingua), type="primary", use_container_width=True):
                 if step == 1 and (not dati_step.get('cognome') or not dati_step.get('nome')):
                     st.error(get_testo("errore_obbligatori", lingua))
@@ -979,11 +1100,7 @@ def main():
                 st.session_state.logged_in = False
                 st.session_state.pagina = 'home'
         else:
-            if st.button(get_testo("nuova_assunzione", lingua), key="btn_reg"):
-                st.session_state.pagina = 'registrazione'
-                st.session_state.step = 1
-                st.session_state.dati_form = {}
-                st.rerun()
+            # RIMOSSO: pulsante "Trasmissione Dati" - ora è solo nella pagina Espace Travailleur
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
                 st.rerun()
@@ -1003,7 +1120,7 @@ def main():
         st.subheader(get_testo("home_titolo", lingua))
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**{get_testo('home_punto1', lingua)}**\n- Formulaire complet en 6 étapes\n- Génération PDF automatique")
+            st.markdown(f"**{get_testo('home_punto1', lingua)}**\n- Formulaire complet en 7 étapes\n- Génération PDF automatique")
             st.markdown(f"**{get_testo('home_punto2', lingua)}**\n- Formulaire rapide\n- Évaluation par RH")
         with col2:
             st.markdown(f"**{get_testo('home_punto3', lingua)}**\n- Accès avec code et PIN\n- Visualisation données")
