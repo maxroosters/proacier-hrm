@@ -3,13 +3,12 @@
 PROACIER - HRM - Versione Finale Completa
 ==========================================
 MODIFICHE:
-1. ✅ Checkbox servizi sotto OGNI numero di telefono
-2. ✅ Fix ricerca lavoratore (Code/PIN)
-3. ✅ Email obbligatoria candidatura
-4. ✅ PDF con pagina credenziali accesso
-5. ✅ Traduzioni senza spazi extra
-6. ✅ 7 step completi con vestiario
-7. ✅ Supporto colonne Google Sheet aggiornate
+1. ✅ Fix errore lettura Google Sheet
+2. ✅ Checkbox sotto OGNI telefono con riquadri colorati
+3. ✅ Spaziatura ottimizzata
+4. ✅ Email obbligatoria candidatura
+5. ✅ PDF con pagina credenziali accesso
+6. ✅ Traduzioni senza spazi extra
 """
 import streamlit as st
 import requests
@@ -28,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS SIDEBAR VERDE PROACIER
+# CSS SIDEBAR VERDE PROACIER + Riquadri Telefoni
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
@@ -44,6 +43,18 @@ st.markdown("""
 }
 [data-testid="stSidebar"] button:hover {
     background-color: rgba(255,255,255,0.2) !important;
+}
+/* Riquadri telefoni */
+.telefono-box {
+    border: 2px solid #5EA529;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    background-color: #f0f8f0;
+}
+.telefono-box h4 {
+    color: #5EA529;
+    margin-top: 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -86,7 +97,7 @@ TRADUZIONI = {
         "indietro": "← Retour",
         "genera_pdf": "📄 J'accepte les conditions",
         "pdf_generato": "Enregistrement réussi !",
-        "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
+        "conserva_credenziali": "️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN d'accès",
         "scarica": "Télécharger",
@@ -195,7 +206,7 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
         "home_titolo": "📋 À quoi sert cette application?",
@@ -231,9 +242,9 @@ TRADUZIONI = {
         "titolo_vestiario": "👕 Tailles Vêtements",
         "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
         "sezione_paga": "💰 Informations Salariales",
-        "sezione_contatti": "📞 Coordonnées (modifiables)",
-        "sezione_famille": "👨‍👩‍‍👦 Famille (modifiable)",
-        "sezione_vestiario": " Vêtements & EPI (modifiables)",
+        "sezione_contatti": " Coordonnées (modifiables)",
+        "sezione_famille": "👨‍‍👧‍👦 Famille (modifiable)",
+        "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
         "paga_amount": "Montant",
@@ -266,10 +277,10 @@ TRADUZIONI = {
         "pdf_identifiants_avviso": "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne. Vous en aurez besoin pour accéder à votre espace personnel.",
     },
     "it": {
-        "titolo": " PROACIER - GESTIONE RISORSE UMANE",
+        "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
-        "nuova_assunzione": "📝 Trasmissione Dati",
+        "nuova_assunzione": " Trasmissione Dati",
         "candidatura_spontanea": "📄 Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
@@ -352,7 +363,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -425,7 +436,7 @@ TRADUZIONI = {
         "nuovo_giornaliero_titolo": "Nuovo / Giornaliero?",
         "nuovo_giornaliero_desc": "Trasmetti dati (non contratto)",
         "login_btn": "🔐 Accedi al mio spazio",
-        "trasmissione_btn": " Trasmetti i miei dati",
+        "trasmissione_btn": "📝 Trasmetti i miei dati",
         "paese_senegal": "Senegal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -440,8 +451,8 @@ TRADUZIONI = {
         "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
         "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "‍👩‍👧👦 Famiglia (modificabile)",
-        "sezione_vestiario": " Vestiario e DPI (modificabili)",
+        "sezione_famille": "👨‍‍👧‍👦 Famiglia (modificabile)",
+        "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
         "paga_amount": "Importo",
@@ -478,7 +489,7 @@ TRADUZIONI = {
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": "📄 Spontaneous Application",
+        "candidatura_spontanea": " Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -507,7 +518,7 @@ TRADUZIONI = {
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": " Read full conditions",
+        "leggi_condizioni": "📋 Read full conditions",
         "checkbox_confirm": "I have read and accept the general conditions and privacy policy",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -560,7 +571,7 @@ TRADUZIONI = {
         "categoria_competenza": "Skill category",
         "dettaglio_competenza": "Details",
         "patente": "Driver's license",
-        "nota_patente": "⚠️ A photocopy of the license will be required.",
+        "nota_patente": "️ A photocopy of the license will be required.",
         "gruppo_sanguigno": "Blood type",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -627,7 +638,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Daily workers payment",
         "home_punto4_desc1": "Attendance management",
         "home_punto4_desc2": "Payment calculation",
-        "home_navigation": " Quick navigation",
+        "home_navigation": "🚀 Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -645,11 +656,11 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
-        "sezione_dati_personali": " Personal Data (non-modifiable)",
+        "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
         "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
         "sezione_famille": "👨‍👩‍👧‍👦 Family (modifiable)",
-        "sezione_vestiario": " Clothing & PPE (modifiable)",
+        "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
@@ -669,11 +680,11 @@ TRADUZIONI = {
         "motivo_permesso": "Reason / Details",
         "invia_richiesta": "📤 Submit request",
         "richiesta_inviata": "✅ Request submitted successfully! You will receive a response from administration.",
-        "lista_richieste": " My previous requests",
+        "lista_richieste": "📋 My previous requests",
         "stato_richiesta": "Status",
-        "stato_pending": "⏳ Pending",
+        "stato_pending": " Pending",
         "stato_approved": "✅ Approved",
-        "stato_rejected": "❌ Rejected",
+        "stato_rejected": " Rejected",
         "risposta_admin": "Administration response",
         "nessuna_richiesta": "No previous requests",
         "data_richiesta": "Request date",
@@ -708,9 +719,19 @@ def salva_su_google_sheet(dati, url_script, azione="append"):
 def leggi_da_google_sheet(url_script):
     try:
         response = requests.get(url_script, timeout=30)
-        return response.json() if response.status_code == 200 else []
+        # FIX: Controlla se la risposta è vuota o non JSON
+        if not response.text.strip():
+            st.error("La réponse du serveur est vide")
+            return []
+        if response.status_code == 200:
+            try:
+                return response.json()
+            except:
+                st.error("La réponse n'est pas un JSON valide")
+                return []
+        return []
     except Exception as e:
-        st.error(f"Errore lettura: {e}")
+        st.error(f"Errore lettura: {str(e)}")
         return []
 
 # ============================================
@@ -911,11 +932,15 @@ def step_2_residenza_documenti(lingua):
         comune = st.text_input(get_testo("comune", lingua), value=st.session_state.dati_form.get('comune', ''), key="s2_com")
         regione_senegal = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"], key="s2_reg")
         
-        # TELEFONO 1 CON CHECKBOX
+        # TELEFONO 1 CON CHECKBOX - RIQUADRO COLORATO
         st.markdown("---")
-        st.markdown(f"**{get_testo('telefono_1', lingua)}**")
-        tel1 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_1', ''), key="s2_tel1")
-        st.markdown("Services:")
+        st.markdown(f"""
+        <div class="telefono-box">
+            <h4>{get_testo('telefono_1', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel1 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_1', ''), key="s2_tel1", label_visibility="collapsed")
+        st.markdown("**Services:**")
         col_a, col_b = st.columns(2)
         with col_a:
             wave = st.checkbox(get_testo("wave", lingua), value=st.session_state.dati_form.get('wave_tel1', False), key="s2_wave")
@@ -926,11 +951,15 @@ def step_2_residenza_documenti(lingua):
             signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal_tel1', False), key="s2_signal")
         
     with col2:
-        # TELEFONO 2 CON CHECKBOX
+        # TELEFONO 2 CON CHECKBOX - RIQUADRO COLORATO
         st.markdown("---")
-        st.markdown(f"**{get_testo('telefono_2', lingua)}**")
-        tel2 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2")
-        st.markdown("Services:")
+        st.markdown(f"""
+        <div class="telefono-box">
+            <h4>{get_testo('telefono_2', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel2 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2", label_visibility="collapsed")
+        st.markdown("**Services:**")
         col_c, col_d = st.columns(2)
         with col_c:
             wave2 = st.checkbox(get_testo("wave", lingua) + " 2", value=st.session_state.dati_form.get('wave_tel2', False), key="s2_wave2")
@@ -940,11 +969,15 @@ def step_2_residenza_documenti(lingua):
             telegram2 = st.checkbox(get_testo("telegram", lingua) + " 2", value=st.session_state.dati_form.get('telegram_tel2', False), key="s2_telegram2")
             signal2 = st.checkbox(get_testo("signal", lingua) + " 2", value=st.session_state.dati_form.get('signal_tel2', False), key="s2_signal2")
         
-        # TELEFONO 3 CON CHECKBOX
+        # TELEFONO 3 CON CHECKBOX - RIQUADRO COLORATO
         st.markdown("---")
-        st.markdown(f"**{get_testo('telefono_3', lingua)}**")
-        tel3 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3")
-        st.markdown("Services:")
+        st.markdown(f"""
+        <div class="telefono-box">
+            <h4>{get_testo('telefono_3', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel3 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3", label_visibility="collapsed")
+        st.markdown("**Services:**")
         col_e, col_f = st.columns(2)
         with col_e:
             wave3 = st.checkbox(get_testo("wave", lingua) + " 3", value=st.session_state.dati_form.get('wave_tel3', False), key="s2_wave3")
@@ -1066,9 +1099,6 @@ def pagina_area_lavoratore_completa(lingua):
     st.success(f"**{get_testo('benvenuto', lingua)}** - Code: {codice_lavoratore}")
     st.markdown("---")
     
-    # DEBUG: Mostra cosa stiamo cercando
-    st.info(f" Ricerca: Code={codice_lavoratore}, PIN={pin_lavoratore}")
-    
     # Carica dati dal foglio
     try:
         dati_foglio = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
@@ -1079,14 +1109,9 @@ def pagina_area_lavoratore_completa(lingua):
             
         if len(dati_foglio) < 2:
             st.error("Feuille Google vide ou sans en-têtes")
-            st.write(f"Données reçues: {dati_foglio}")
             return
         
         df = pd.DataFrame(dati_foglio[1:], columns=dati_foglio[0])
-        
-        # DEBUG: Mostra le colonne disponibili
-        st.write("Colonnes disponibles:", df.columns.tolist())
-        st.write(f"Total lignes: {len(df)}")
         
         # Cerca il lavoratore
         if 'Codice' in df.columns and 'PIN' in df.columns:
@@ -1096,9 +1121,7 @@ def pagina_area_lavoratore_completa(lingua):
                 row = df[mask].iloc[0]
                 idx = row.name
                 
-                # Mostra tutti i dati
-                st.success(f"✅ Travailleur trouvé! Ligne: {idx}")
-                st.write(row)
+                st.success(f"✅ Travailleur trouvé!")
                 
                 # SEZIONE 1: DATI PERSONALI (NON MODIFICABILI)
                 st.subheader(get_testo("sezione_dati_personali", lingua))
@@ -1335,6 +1358,109 @@ def pagina_area_lavoratore_completa(lingua):
         st.rerun()
 
 # ============================================
+# PAGINA CANDIDATURA SPONTANEA
+# ============================================
+def pagina_candidatura_spontanea(lingua):
+    st.title(get_testo("titolo_candidatura", lingua))
+    st.markdown(get_testo("sottotitolo_candidatura", lingua))
+    st.info("️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
+    st.markdown("---")
+    
+    # Inizializza session state
+    if 'candidatura_dati' not in st.session_state:
+        st.session_state.candidatura_dati = {}
+    
+    with st.form("form_candidatura", clear_on_submit=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            c_cognome = st.text_input(f"{get_testo('cognome', lingua)} {get_testo('obbligatorio', lingua)}", 
+                                    value=st.session_state.candidatura_dati.get('cognome', ''), key="c_cognome")
+            c_nome = st.text_input(f"{get_testo('nome', lingua)} {get_testo('obbligatorio', lingua)}", 
+                                 value=st.session_state.candidatura_dati.get('nome', ''), key="c_nome")
+            c_email = st.text_input(f"{get_testo('email', lingua)} {get_testo('obbligatorio', lingua)}", 
+                                  value=st.session_state.candidatura_dati.get('email', ''), key="c_email")
+            c_tel = st.text_input(f"{get_testo('telefono_1', lingua)} {get_testo('obbligatorio', lingua)}", 
+                                value=st.session_state.candidatura_dati.get('telefono', ''), key="c_tel")
+            st.markdown(f"**{get_testo('data_nascita', lingua)}**")
+            cg, cm, ca = st.columns(3)
+            with cg:
+                g = st.selectbox(get_testo("giorno", lingua), list(range(1, 32)), 
+                               index=st.session_state.candidatura_dati.get('g', 0), key="c_g")
+            with cm:
+                m = st.selectbox(get_testo("mese", lingua), list(range(1, 13)), 
+                               index=st.session_state.candidatura_dati.get('m', 0), key="c_m")
+            with ca:
+                # Calcola index sicuro per l'anno
+                anno_val = st.session_state.candidatura_dati.get('a', 1990) if hasattr(st.session_state, 'candidatura_dati') else 1990
+                if isinstance(anno_val, int) and 1960 <= anno_val < 2010:
+                    index_anno = anno_val - 1960
+                else:
+                    index_anno = 30  # Default 1990
+                a = st.selectbox(get_testo("anno", lingua), list(range(1960, 2010)), 
+                               index=index_anno, key="c_a")
+            c_data_nascita = f"{g:02d}/{m:02d}/{a}"
+        with col2:
+            c_indirizzo = st.text_input(get_testo("indirizzo", lingua), 
+                                      value=st.session_state.candidatura_dati.get('indirizzo', ''), key="c_ind")
+            c_comune = st.text_input(get_testo("comune", lingua), 
+                                   value=st.session_state.candidatura_dati.get('comune', ''), key="c_com")
+            c_regione = st.selectbox(get_testo("regione_senegal", lingua), 
+                                   ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", 
+                                    "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", 
+                                    "Louga", "Matam", "Autre"], 
+                                   index=0, key="c_reg")
+            c_mansione = st.selectbox(get_testo("mansione_richiesta", lingua), [
+                get_testo("opt_contabile", lingua), get_testo("opt_tecnico", lingua), 
+                get_testo("opt_operaio", lingua), get_testo("opt_autista", lingua), get_testo("opt_altro", lingua)
+            ], key="c_man")
+            c_studi = st.selectbox(get_testo("studi", lingua), [
+                get_testo("opt_media", lingua), get_testo("opt_diploma", lingua), 
+                get_testo("opt_laurea", lingua), get_testo("opt_prof", lingua)
+            ], key="c_studi")
+        c_skills = st.text_area(get_testo("skills", lingua), 
+                              value=st.session_state.candidatura_dati.get('skills', ''), key="c_skills")
+        col3, col4 = st.columns(2)
+        with col3:
+            c_esperienza = st.number_input(get_testo("esperienza_anno", lingua), min_value=0, max_value=50, 
+                                         value=st.session_state.candidatura_dati.get('esperienza', 0), key="c_exp")
+        with col4:
+            c_salario = st.text_input(get_testo("salario_richiesto", lingua), 
+                                    value=st.session_state.candidatura_dati.get('salario', ''), key="c_sal")
+        c_note = st.text_area(get_testo("note", lingua), 
+                            value=st.session_state.candidatura_dati.get('note', ''), key="c_note")
+        
+        submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
+        
+        if submitted:
+            # FIX: Salva i dati PRIMA della validazione
+            st.session_state.candidatura_dati = {
+                'cognome': c_cognome, 'nome': c_nome, 'email': c_email, 'telefono': c_tel,
+                'g': g, 'm': m, 'a': a, 'indirizzo': c_indirizzo, 'comune': c_comune,
+                'regione': c_regione, 'skills': c_skills, 'esperienza': c_esperienza,
+                'salario': c_salario, 'note': c_note
+            }
+            
+            # Validazione DOPO aver salvato
+            if not c_cognome or not c_nome or not c_email or not c_tel:
+                st.error(get_testo("errore_candidatura", lingua))
+                return
+            
+            dati_candidatura = {
+                "id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
+                "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
+                "data_nascita": c_data_nascita, "indirizzo": c_indirizzo, "comune": c_comune, "regione": c_regione,
+                "mansione_richiesta": c_mansione, "studi": c_studi, "skills": c_skills,
+                "esperienza_anno": c_esperienza, "salario_richiesto": c_salario, "note": c_note, "stato": "Nuova"
+            }
+            if salva_su_google_sheet(dati_candidatura, GOOGLE_SCRIPT_URL_CANDIDATURE, "append"):
+                st.success(get_testo("candidatura_inviata", lingua))
+                st.balloons()
+                st.session_state.candidatura_dati = {}
+            else:
+                st.error("Erreur de connexion. Veuillez réessayer.")
+
+# ============================================
 # PAGINA REGISTRAZIONE MULTI-STEP (7 STEP)
 # ============================================
 def pagina_registrazione_multi_step(lingua):
@@ -1421,103 +1547,6 @@ def genera_e_salva_pdf(dati, lingua):
         st.error("Erreur de connexion à Google Sheets.")
 
 # ============================================
-# PAGINA CANDIDATURA SPONTANEA
-# ============================================
-def pagina_candidatura_spontanea(lingua):
-    st.title(get_testo("titolo_candidatura", lingua))
-    st.markdown(get_testo("sottotitolo_candidatura", lingua))
-    st.info("️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
-    st.markdown("---")
-    
-    # Inizializza session state
-    if 'candidatura_dati' not in st.session_state:
-        st.session_state.candidatura_dati = {}
-    
-    with st.form("form_candidatura", clear_on_submit=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            c_cognome = st.text_input(f"{get_testo('cognome', lingua)} {get_testo('obbligatorio', lingua)}", 
-                                    value=st.session_state.candidatura_dati.get('cognome', ''), key="c_cognome")
-            c_nome = st.text_input(f"{get_testo('nome', lingua)} {get_testo('obbligatorio', lingua)}", 
-                                 value=st.session_state.candidatura_dati.get('nome', ''), key="c_nome")
-            c_email = st.text_input(f"{get_testo('email', lingua)} {get_testo('obbligatorio', lingua)}", 
-                                  value=st.session_state.candidatura_dati.get('email', ''), key="c_email")
-            c_tel = st.text_input(f"{get_testo('telefono_1', lingua)} {get_testo('obbligatorio', lingua)}", 
-                                value=st.session_state.candidatura_dati.get('telefono', ''), key="c_tel")
-            st.markdown(f"**{get_testo('data_nascita', lingua)}**")
-            cg, cm, ca = st.columns(3)
-            with cg:
-                g = st.selectbox(get_testo("giorno", lingua), list(range(1, 32)), 
-                               index=st.session_state.candidatura_dati.get('g', 0), key="c_g")
-            with cm:
-                m = st.selectbox(get_testo("mese", lingua), list(range(1, 13)), 
-                               index=st.session_state.candidatura_dati.get('m', 0), key="c_m")
-            with ca:
-                a = st.selectbox(get_testo("anno", lingua), list(range(1960, 2010)), 
-                               index=st.session_state.candidatura_dati.get('a', 30), key="c_a")
-            c_data_nascita = f"{g:02d}/{m:02d}/{a}"
-        with col2:
-            c_indirizzo = st.text_input(get_testo("indirizzo", lingua), 
-                                      value=st.session_state.candidatura_dati.get('indirizzo', ''), key="c_ind")
-            c_comune = st.text_input(get_testo("comune", lingua), 
-                                   value=st.session_state.candidatura_dati.get('comune', ''), key="c_com")
-            c_regione = st.selectbox(get_testo("regione_senegal", lingua), 
-                                   ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", 
-                                    "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", 
-                                    "Louga", "Matam", "Autre"], 
-                                   index=0, key="c_reg")
-            c_mansione = st.selectbox(get_testo("mansione_richiesta", lingua), [
-                get_testo("opt_contabile", lingua), get_testo("opt_tecnico", lingua), 
-                get_testo("opt_operaio", lingua), get_testo("opt_autista", lingua), get_testo("opt_altro", lingua)
-            ], key="c_man")
-            c_studi = st.selectbox(get_testo("studi", lingua), [
-                get_testo("opt_media", lingua), get_testo("opt_diploma", lingua), 
-                get_testo("opt_laurea", lingua), get_testo("opt_prof", lingua)
-            ], key="c_studi")
-        c_skills = st.text_area(get_testo("skills", lingua), 
-                              value=st.session_state.candidatura_dati.get('skills', ''), key="c_skills")
-        col3, col4 = st.columns(2)
-        with col3:
-            c_esperienza = st.number_input(get_testo("esperienza_anno", lingua), min_value=0, max_value=50, 
-                                         value=st.session_state.candidatura_dati.get('esperienza', 0), key="c_exp")
-        with col4:
-            c_salario = st.text_input(get_testo("salario_richiesto", lingua), 
-                                    value=st.session_state.candidatura_dati.get('salario', ''), key="c_sal")
-        c_note = st.text_area(get_testo("note", lingua), 
-                            value=st.session_state.candidatura_dati.get('note', ''), key="c_note")
-        
-        submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
-        
-        if submitted:
-            # FIX: Salva i dati PRIMA della validazione
-            st.session_state.candidatura_dati = {
-                'cognome': c_cognome, 'nome': c_nome, 'email': c_email, 'telefono': c_tel,
-                'g': g, 'm': m, 'a': a, 'indirizzo': c_indirizzo, 'comune': c_comune,
-                'regione': c_regione, 'skills': c_skills, 'esperienza': c_esperienza,
-                'salario': c_salario, 'note': c_note
-            }
-            
-            # Validazione DOPO aver salvato
-            if not c_cognome or not c_nome or not c_email or not c_tel:
-                st.error(get_testo("errore_candidatura", lingua))
-                return
-            
-            dati_candidatura = {
-                "id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
-                "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
-                "data_nascita": c_data_nascita, "indirizzo": c_indirizzo, "comune": c_comune, "regione": c_regione,
-                "mansione_richiesta": c_mansione, "studi": c_studi, "skills": c_skills,
-                "esperienza_anno": c_esperienza, "salario_richiesto": c_salario, "note": c_note, "stato": "Nuova"
-            }
-            if salva_su_google_sheet(dati_candidatura, GOOGLE_SCRIPT_URL_CANDIDATURE, "append"):
-                st.success(get_testo("candidatura_inviata", lingua))
-                st.balloons()
-                st.session_state.candidatura_dati = {}
-            else:
-                st.error("Erreur de connexion. Veuillez réessayer.")
-
-# ============================================
 # PAGINA ESPACE TRAVAILLEUR (CON 2 PULSANTI)
 # ============================================
 def pagina_espace_travailleur(lingua):
@@ -1534,7 +1563,7 @@ def pagina_espace_travailleur(lingua):
             st.rerun()
     
     with col2:
-        st.markdown(f"###  {get_testo('nuovo_giornaliero_titolo', lingua)}")
+        st.markdown(f"### 📝 {get_testo('nuovo_giornaliero_titolo', lingua)}")
         st.info(get_testo('nuovo_giornaliero_desc', lingua))
         if st.button(get_testo('trasmissione_btn', lingua), use_container_width=True, type="primary"):
             st.session_state.pagina = 'registrazione'
