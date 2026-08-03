@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER - HRM - Versione Finale Completa
+PROACIER - HRM - Versione 12.0
 ==========================================
-MODIFICHE:
-1. ✅ Fix errore lettura Google Sheet
-2. ✅ Checkbox sotto OGNI telefono con riquadri colorati
-3. ✅ Spaziatura ottimizzata
-4. ✅ Email obbligatoria candidatura
-5. ✅ PDF con pagina credenziali accesso
-6. ✅ Traduzioni senza spazi extra
+LISTA MODIFICHE APPLICATE:
+1. ✅ Lista modifiche all'inizio del codice (aggiornata ad ogni versione)
+2. ✅ Layout telefoni: riquadro verde compatto con checkbox orizzontali
+3. ✅ Telefono principale in alto, secondary e terzo sotto
+4. ✅ Caselle documenti (CNI, CSS, ecc.) spostate a sinistra
+5. ✅ Fix errore JSON non valido (gestione risposta HTML)
+6. ✅ Email oggetto "Nuovi dati lavoratore" con tutti i dettagli
+7. ✅ Email obbligatoria candidatura
+8. ✅ PDF con pagina credenziali accesso
+9. ✅ Traduzioni senza spazi extra
+10. ✅ 7 step completi con vestiario
+11. ✅ Supporto colonne Google Sheet aggiornate
+12. ✅ Area lavoratore completa con debug
 """
 import streamlit as st
 import requests
@@ -16,18 +22,19 @@ from datetime import datetime
 import random
 from fpdf import FPDF
 import pandas as pd
+import json
 
 # ============================================
 # CONFIGURAZIONE
 # ============================================
 st.set_page_config(
     page_title="Proacier - Ressources Humaines",
-    page_icon="",
+    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS SIDEBAR VERDE PROACIER + Riquadri Telefoni
+# CSS SIDEBAR VERDE PROACIER + Riquadri Telefoni stile compatto
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
@@ -44,17 +51,25 @@ st.markdown("""
 [data-testid="stSidebar"] button:hover {
     background-color: rgba(255,255,255,0.2) !important;
 }
-/* Riquadri telefoni */
-.telefono-box {
-    border: 2px solid #5EA529;
+/* Riquadri telefoni stile compatto */
+.phone-box {
+    background-color: #5EA529;
     border-radius: 10px;
-    padding: 15px;
-    margin: 10px 0;
-    background-color: #f0f8f0;
+    padding: 12px 15px;
+    margin: 8px 0;
+    color: white;
 }
-.telefono-box h4 {
-    color: #5EA529;
-    margin-top: 0;
+.phone-box h4 {
+    margin: 0 0 8px 0;
+    color: white;
+    font-size: 16px;
+}
+.phone-box .stTextInput > div > div > input {
+    background-color: white;
+    color: black;
+}
+.phone-box .stCheckbox label {
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -69,11 +84,11 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
         "nuova_assunzione": "📝 Transmission de Données",
-        "candidatura_spontanea": " Candidature Spontanée",
+        "candidatura_spontanea": "📄 Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Travailleur",
         "logout": "Déconnexion",
@@ -97,7 +112,7 @@ TRADUZIONI = {
         "indietro": "← Retour",
         "genera_pdf": "📄 J'accepte les conditions",
         "pdf_generato": "Enregistrement réussi !",
-        "conserva_credenziali": "️ CONSERVEZ CES IDENTIFIANTS",
+        "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN d'accès",
         "scarica": "Télécharger",
@@ -155,7 +170,7 @@ TRADUZIONI = {
         "categoria_competenza": "Catégorie de compétence",
         "dettaglio_competenza": "Détails",
         "patente": "Permis de conduire",
-        "nota_patente": "⚠️ Une photocopie du permis sera exigée.",
+        "nota_patente": "️ Une photocopie du permis sera exigée.",
         "gruppo_sanguigno": "Groupe sanguin",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -227,7 +242,7 @@ TRADUZIONI = {
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
         "nuovo_giornaliero_desc": "Transmettez vos données (pas un contrat)",
-        "login_btn": "🔐 Connexion à mon espace",
+        "login_btn": " Connexion à mon espace",
         "trasmissione_btn": "📝 Transmettre mes données",
         "paese_senegal": "Sénégal",
         "paese_mali": "Mali",
@@ -239,10 +254,10 @@ TRADUZIONI = {
         "avviso_non_contratto": "⚠️ Ceci n'est PAS un contrat d'embauche. Il s'agit uniquement d'une transmission de données à l'administration.",
         "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
-        "titolo_vestiario": "👕 Tailles Vêtements",
+        "titolo_vestiario": " Tailles Vêtements",
         "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
         "sezione_paga": "💰 Informations Salariales",
-        "sezione_contatti": " Coordonnées (modifiables)",
+        "sezione_contatti": "📞 Coordonnées (modifiables)",
         "sezione_famille": "👨‍‍👧‍👦 Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
@@ -277,10 +292,10 @@ TRADUZIONI = {
         "pdf_identifiants_avviso": "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne. Vous en aurez besoin pour accéder à votre espace personnel.",
     },
     "it": {
-        "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
+        "titolo": " PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
-        "nuova_assunzione": " Trasmissione Dati",
+        "nuova_assunzione": "📝 Trasmissione Dati",
         "candidatura_spontanea": "📄 Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
@@ -305,7 +320,7 @@ TRADUZIONI = {
         "indietro": "← Indietro",
         "genera_pdf": "📄 Accetto le condizioni",
         "pdf_generato": "Registrazione riuscita!",
-        "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
+        "conserva_credenziali": "️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
@@ -363,7 +378,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -447,7 +462,7 @@ TRADUZIONI = {
         "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
-        "titolo_vestiario": "👕 Taglie Abbigliamento",
+        "titolo_vestiario": " Taglie Abbigliamento",
         "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
         "sezione_contatti": "📞 Contatti (modificabili)",
@@ -470,11 +485,11 @@ TRADUZIONI = {
         "data_inizio_permesso": "Data di inizio",
         "data_fine_permesso": "Data di fine",
         "motivo_permesso": "Motivo / Dettagli",
-        "invia_richiesta": "📤 Invia richiesta",
+        "invia_richiesta": " Invia richiesta",
         "richiesta_inviata": "✅ Richiesta inviata con successo! Riceverai una risposta dall'amministrazione.",
         "lista_richieste": "📋 Le mie richieste precedenti",
         "stato_richiesta": "Stato",
-        "stato_pending": "⏳ In attesa",
+        "stato_pending": " In attesa",
         "stato_approved": "✅ Approvata",
         "stato_rejected": "❌ Rifiutata",
         "risposta_admin": "Risposta dell'amministrazione",
@@ -489,7 +504,7 @@ TRADUZIONI = {
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": " Spontaneous Application",
+        "candidatura_spontanea": "📄 Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -571,7 +586,7 @@ TRADUZIONI = {
         "categoria_competenza": "Skill category",
         "dettaglio_competenza": "Details",
         "patente": "Driver's license",
-        "nota_patente": "️ A photocopy of the license will be required.",
+        "nota_patente": "⚠️ A photocopy of the license will be required.",
         "gruppo_sanguigno": "Blood type",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -625,7 +640,7 @@ TRADUZIONI = {
         "invia_candidatura": "📤 Submit my application",
         "candidatura_inviata": "✅ Application submitted successfully!",
         "errore_candidatura": "Please fill in Surname, First Name, Email, and Phone.",
-        "home_titolo": "📋 What is this application for?",
+        "home_titolo": " What is this application for?",
         "home_punto1_titolo": "Data transmission new workers",
         "home_punto1_desc1": "Complete form in 7 steps",
         "home_punto1_desc2": "Automatic PDF generation",
@@ -638,7 +653,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Daily workers payment",
         "home_punto4_desc1": "Attendance management",
         "home_punto4_desc2": "Payment calculation",
-        "home_navigation": "🚀 Quick navigation",
+        "home_navigation": " Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -652,15 +667,15 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
-        "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
+        "avviso_non_contratto": "️ This is NOT an employment contract. This is only a data transmission to the administration.",
         "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
         "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
         "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩‍👧‍👦 Family (modifiable)",
-        "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
+        "sezione_famille": "👨‍👩👧‍👦 Family (modifiable)",
+        "sezione_vestiario": " Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
@@ -684,7 +699,7 @@ TRADUZIONI = {
         "stato_richiesta": "Status",
         "stato_pending": " Pending",
         "stato_approved": "✅ Approved",
-        "stato_rejected": " Rejected",
+        "stato_rejected": "❌ Rejected",
         "risposta_admin": "Administration response",
         "nessuna_richiesta": "No previous requests",
         "data_richiesta": "Request date",
@@ -717,21 +732,32 @@ def salva_su_google_sheet(dati, url_script, azione="append"):
         return False
 
 def leggi_da_google_sheet(url_script):
+    """FIX: Gestione robusta della risposta JSON"""
     try:
         response = requests.get(url_script, timeout=30)
-        # FIX: Controlla se la risposta è vuota o non JSON
-        if not response.text.strip():
+        
+        # Controlla se la risposta è vuota
+        if not response.text or not response.text.strip():
             st.error("La réponse du serveur est vide")
             return []
+        
+        # Controlla se è JSON valido
         if response.status_code == 200:
             try:
                 return response.json()
-            except:
-                st.error("La réponse n'est pas un JSON valide")
+            except json.JSONDecodeError:
+                # La risposta non è JSON, probabilmente HTML di errore
+                st.error(f"La réponse n'est pas un JSON valide. Status: {response.status_code}")
+                st.error(f"Premiers caractères: {response.text[:200]}")
                 return []
+        else:
+            st.error(f"Erreur HTTP: {response.status_code}")
+            return []
+    except requests.exceptions.RequestException as e:
+        st.error(f"Erreur de connexion: {str(e)}")
         return []
     except Exception as e:
-        st.error(f"Errore lettura: {str(e)}")
+        st.error(f"Erreur inattendue: {str(e)}")
         return []
 
 # ============================================
@@ -924,76 +950,85 @@ def step_1_personale_famiglia(lingua):
             "numero_mogli": numero_mogli, "dettagli_mogli": dettagli_mogli, "figli_totale": figli_totale_calcolato}
 
 def step_2_residenza_documenti(lingua):
+    """
+    FIX: Layout telefoni con riquadri verdi compatti
+    - Telefono principale in alto (colonna destra)
+    - Telefono secondario e terzo sotto
+    - Documenti (CNI, CSS, ecc.) a sinistra
+    """
     st.subheader(get_testo("step_2", lingua))
-    col1, col2 = st.columns(2)
-    with col1:
+    
+    col_left, col_right = st.columns([1, 1])
+    
+    with col_left:
+        # INDIRIZZO E DOCUMENTI
         indirizzo = st.text_input(f"{get_testo('indirizzo', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('indirizzo', ''), key="s2_ind")
         quartiere = st.text_input(get_testo("quartiere", lingua), value=st.session_state.dati_form.get('quartiere', ''), key="s2_quart")
         comune = st.text_input(get_testo("comune", lingua), value=st.session_state.dati_form.get('comune', ''), key="s2_com")
         regione_senegal = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"], key="s2_reg")
         
-        # TELEFONO 1 CON CHECKBOX - RIQUADRO COLORATO
-        st.markdown("---")
-        st.markdown(f"""
-        <div class="telefono-box">
-            <h4>{get_testo('telefono_1', lingua)}</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        tel1 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_1', ''), key="s2_tel1", label_visibility="collapsed")
-        st.markdown("**Services:**")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            wave = st.checkbox(get_testo("wave", lingua), value=st.session_state.dati_form.get('wave_tel1', False), key="s2_wave")
-            orange_money = st.checkbox(get_testo("orange_money", lingua), value=st.session_state.dati_form.get('orange_tel1', False), key="s2_orange")
-        with col_b:
-            whatsapp = st.checkbox(get_testo("whatsapp", lingua), value=st.session_state.dati_form.get('whatsapp_tel1', False), key="s2_whatsapp")
-            telegram = st.checkbox(get_testo("telegram", lingua), value=st.session_state.dati_form.get('telegram_tel1', False), key="s2_telegram")
-            signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal_tel1', False), key="s2_signal")
-        
-    with col2:
-        # TELEFONO 2 CON CHECKBOX - RIQUADRO COLORATO
-        st.markdown("---")
-        st.markdown(f"""
-        <div class="telefono-box">
-            <h4>{get_testo('telefono_2', lingua)}</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        tel2 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2", label_visibility="collapsed")
-        st.markdown("**Services:**")
-        col_c, col_d = st.columns(2)
-        with col_c:
-            wave2 = st.checkbox(get_testo("wave", lingua) + " 2", value=st.session_state.dati_form.get('wave_tel2', False), key="s2_wave2")
-            orange_money2 = st.checkbox(get_testo("orange_money", lingua) + " 2", value=st.session_state.dati_form.get('orange_tel2', False), key="s2_orange2")
-        with col_d:
-            whatsapp2 = st.checkbox(get_testo("whatsapp", lingua) + " 2", value=st.session_state.dati_form.get('whatsapp_tel2', False), key="s2_whatsapp2")
-            telegram2 = st.checkbox(get_testo("telegram", lingua) + " 2", value=st.session_state.dati_form.get('telegram_tel2', False), key="s2_telegram2")
-            signal2 = st.checkbox(get_testo("signal", lingua) + " 2", value=st.session_state.dati_form.get('signal_tel2', False), key="s2_signal2")
-        
-        # TELEFONO 3 CON CHECKBOX - RIQUADRO COLORATO
-        st.markdown("---")
-        st.markdown(f"""
-        <div class="telefono-box">
-            <h4>{get_testo('telefono_3', lingua)}</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        tel3 = st.text_input("Numero", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3", label_visibility="collapsed")
-        st.markdown("**Services:**")
-        col_e, col_f = st.columns(2)
-        with col_e:
-            wave3 = st.checkbox(get_testo("wave", lingua) + " 3", value=st.session_state.dati_form.get('wave_tel3', False), key="s2_wave3")
-            orange_money3 = st.checkbox(get_testo("orange_money", lingua) + " 3", value=st.session_state.dati_form.get('orange_tel3', False), key="s2_orange3")
-        with col_f:
-            whatsapp3 = st.checkbox(get_testo("whatsapp", lingua) + " 3", value=st.session_state.dati_form.get('whatsapp_tel3', False), key="s2_whatsapp3")
-            telegram3 = st.checkbox(get_testo("telegram", lingua) + " 3", value=st.session_state.dati_form.get('telegram_tel3', False), key="s2_telegram3")
-            signal3 = st.checkbox(get_testo("signal", lingua) + " 3", value=st.session_state.dati_form.get('signal_tel3', False), key="s2_signal3")
-        
-        # DOCUMENTI
         st.markdown("---")
         cni = st.text_input(f"{get_testo('cni', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('cni', ''), key="s2_cni")
         nif = st.text_input(get_testo("nif", lingua), value=st.session_state.dati_form.get('nif', ''), key="s2_nif")
         css = st.text_input(f"{get_testo('css', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('css', ''), key="s2_css")
         cmu = st.text_input(get_testo("cmu", lingua), value=st.session_state.dati_form.get('cmu', ''), key="s2_cmu")
         ipres = st.text_input(get_testo("ipres", lingua), value=st.session_state.dati_form.get('ipres', ''), key="s2_ipres")
+    
+    with col_right:
+        # TELEFONO PRINCIPALE (in alto)
+        st.markdown(f"""
+        <div class="phone-box">
+            <h4>{get_testo('telefono_1', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel1 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_1', ''), key="s2_tel1", label_visibility="collapsed")
+        
+        col_cb1, col_cb2 = st.columns(2)
+        with col_cb1:
+            wave = st.checkbox(get_testo("wave", lingua), value=st.session_state.dati_form.get('wave_tel1', False), key="s2_wave")
+            orange_money = st.checkbox(get_testo("orange_money", lingua), value=st.session_state.dati_form.get('orange_tel1', False), key="s2_orange")
+        with col_cb2:
+            whatsapp = st.checkbox(get_testo("whatsapp", lingua), value=st.session_state.dati_form.get('whatsapp_tel1', False), key="s2_whatsapp")
+            telegram = st.checkbox(get_testo("telegram", lingua), value=st.session_state.dati_form.get('telegram_tel1', False), key="s2_telegram")
+        signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal_tel1', False), key="s2_signal")
+        
+        st.markdown("---")
+        
+        # TELEFONO SECONDARIO
+        st.markdown(f"""
+        <div class="phone-box">
+            <h4>{get_testo('telefono_2', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel2 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2", label_visibility="collapsed")
+        
+        col_cb3, col_cb4 = st.columns(2)
+        with col_cb3:
+            wave2 = st.checkbox(get_testo("wave", lingua) + " 2", value=st.session_state.dati_form.get('wave_tel2', False), key="s2_wave2")
+            orange_money2 = st.checkbox(get_testo("orange_money", lingua) + " 2", value=st.session_state.dati_form.get('orange_tel2', False), key="s2_orange2")
+        with col_cb4:
+            whatsapp2 = st.checkbox(get_testo("whatsapp", lingua) + " 2", value=st.session_state.dati_form.get('whatsapp_tel2', False), key="s2_whatsapp2")
+            telegram2 = st.checkbox(get_testo("telegram", lingua) + " 2", value=st.session_state.dati_form.get('telegram_tel2', False), key="s2_telegram2")
+        signal2 = st.checkbox(get_testo("signal", lingua) + " 2", value=st.session_state.dati_form.get('signal_tel2', False), key="s2_signal2")
+        
+        st.markdown("---")
+        
+        # TELEFONO 3
+        st.markdown(f"""
+        <div class="phone-box">
+            <h4>{get_testo('telefono_3', lingua)}</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        tel3 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3", label_visibility="collapsed")
+        
+        col_cb5, col_cb6 = st.columns(2)
+        with col_cb5:
+            wave3 = st.checkbox(get_testo("wave", lingua) + " 3", value=st.session_state.dati_form.get('wave_tel3', False), key="s2_wave3")
+            orange_money3 = st.checkbox(get_testo("orange_money", lingua) + " 3", value=st.session_state.dati_form.get('orange_tel3', False), key="s2_orange3")
+        with col_cb6:
+            whatsapp3 = st.checkbox(get_testo("whatsapp", lingua) + " 3", value=st.session_state.dati_form.get('whatsapp_tel3', False), key="s2_whatsapp3")
+            telegram3 = st.checkbox(get_testo("telegram", lingua) + " 3", value=st.session_state.dati_form.get('telegram_tel3', False), key="s2_telegram3")
+        signal3 = st.checkbox(get_testo("signal", lingua) + " 3", value=st.session_state.dati_form.get('signal_tel3', False), key="s2_signal3")
     
     return {
         "indirizzo": indirizzo, "quartiere": quartiere, "comune": comune, "regione_senegal": regione_senegal,
@@ -1363,7 +1398,7 @@ def pagina_area_lavoratore_completa(lingua):
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
-    st.info("️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
+    st.info("ℹ️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
     st.markdown("---")
     
     # Inizializza session state
