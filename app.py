@@ -2,7 +2,7 @@
 """
 PROACIER - Gestione Risorse Umane (HRM)
 Senegal - Région de Thiès
-Versione 5.0 - Definitiva
+Versione 6.0 - Completa con Vestiario
 """
 import streamlit as st
 import requests
@@ -16,12 +16,12 @@ import pandas as pd
 # ============================================
 st.set_page_config(
     page_title="Proacier - Ressources Humaines",
-    page_icon="",
+    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS SIDEBAR VERDE PROACIER
+# CSS SIDEBAR VERDE
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
@@ -41,25 +41,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Logo da GitHub
 LOGO_URL = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/logo.png"
-
-# URL Google Apps Script
 GOOGLE_SCRIPT_URL_ASSUNZIONI = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
 GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycbzlc2iOHSiNSWNvU21g4GqsGwMA4QQDJXTG_J3hkfe5Za8nyeTWb1amhuR2ULFI5b9k/exec"
+GOOGLE_SCRIPT_URL_VESTIARIO = "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec"
 
 PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 
 # ============================================
-# TRADUZIONI (SENZA SPAZI EXTRA)
+# TRADUZIONI
 # ============================================
 TRADUZIONI = {
     "fr": {
         "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
-        "nuova_assunzione": "📝 Transmission de Données",
+        "nuova_assunzione": " Transmission de Données",
         "candidatura_spontanea": "📄 Candidature Spontanée",
+        "vestiario": " Vestiary / EPI",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Ouvrier",
         "logout": "Déconnexion",
@@ -82,7 +81,7 @@ TRADUZIONI = {
         "indietro": "← Retour",
         "genera_pdf": "📄 Générer PDF & Accepter",
         "pdf_generato": "Enregistrement réussi !",
-        "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
+        "conserva_credenziali": "️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
         "pin_accesso": "PIN d'accès",
         "scarica": "Télécharger",
@@ -172,7 +171,7 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
         "paese_senegal": "Sénégal",
@@ -188,13 +187,60 @@ TRADUZIONI = {
         "donnees_modifiables": "Données Modifiables",
         "salaire_titolo": "Informations Salariales",
         "salaire_desc": "Votre salaire est géré par l'administration",
+        "vestiario_titolo": "GESTION VESTIAIRE & EPI",
+        "vestiario_desc": "Enregistrez les tailles pour l'uniforme et les équipements de protection individuelle.",
+        "taglia_maglia": "Taille t-shirt/polo",
+        "taglia_pantaloni": "Taille pantalon",
+        "taglia_scarpe": "Pointure chaussures",
+        "taglia_giacca": "Taille veste/gilet",
+        "taglia_cappello": "Taille casque/casquette",
+        "taglia_guanti": "Taille gants",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
+        "dpi_casco": "Casque de sécurité",
+        "dpi_occhiali": "Lunettes de protection",
+        "dpi_orecchini": "Bouchons d'oreilles",
+        "dpi_maschera": "Masque respiratoire",
+        "dpi_guanti": "Gants de protection",
+        "dpi_scarpe": "Chaussures de sécurité",
+        "dpi_gilet": "Gilet haute visibilité",
+        "dpi_imbracatura": "Harnais de sécurité",
+        "si": "Oui",
+        "no": "Non",
+        "invia_vestiario": "📋 Enregistrer les tailles",
+        "vestiario_inviato": "✅ Tailles enregistrées avec succès !",
+        "home_punto1": "📋 Transmission de données pour nouveaux travailleurs",
+        "home_punto2": "📨 Candidatures spontanées",
+        "home_punto3": "👷 Gestion vestiaire & EPI",
+        "home_punto4": "👤 Espace personnel travailleur",
     },
     "it": {
         "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Trasmissione Dati",
-        "candidatura_spontanea": " Candidatura Spontanea",
+        "candidatura_spontanea": "📄 Candidatura Spontanea",
+        "vestiario": "👷 Vestiario / DPI",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
         "logout": "Esci",
@@ -215,14 +261,14 @@ TRADUZIONI = {
         "step_6": "6. Contatto Emergenza e Validazione",
         "continua": "Continua →",
         "indietro": "← Indietro",
-        "genera_pdf": " Genera PDF e Accetta",
+        "genera_pdf": "📄 Genera PDF e Accetta",
         "pdf_generato": "Registrazione riuscita!",
         "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": " Leggi le condizioni complete",
+        "leggi_condizioni": "📋 Leggi le condizioni complete",
         "checkbox_confirm": "Certifico l'esattezza delle informazioni",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -323,13 +369,60 @@ TRADUZIONI = {
         "donnees_modifiables": "Dati Modificabili",
         "salaire_titolo": "Informazioni Salariali",
         "salaire_desc": "Salario gestito da amministrazione",
+        "vestiario_titolo": "GESTIONE VESTIARIO & DPI",
+        "vestiario_desc": "Registra le taglie per uniforme e dispositivi di protezione individuale.",
+        "taglia_maglia": "Taglia t-shirt/polo",
+        "taglia_pantaloni": "Taglia pantalone",
+        "taglia_scarpe": "Numero scarpe",
+        "taglia_giacca": "Taglia giacca/gilet",
+        "taglia_cappello": "Taglia casco/cappellino",
+        "taglia_guanti": "Taglia guanti",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
+        "dpi_casco": "Casco di sicurezza",
+        "dpi_occhiali": "Occhiali di protezione",
+        "dpi_orecchini": "Tappi per orecchie",
+        "dpi_maschera": "Maschera respiratoria",
+        "dpi_guanti": "Guanti di protezione",
+        "dpi_scarpe": "Scarpe antinfortunistiche",
+        "dpi_gilet": "Gilet alta visibilità",
+        "dpi_imbracatura": "Imbracatura di sicurezza",
+        "si": "Sì",
+        "no": "No",
+        "invia_vestiario": "📋 Registra taglie",
+        "vestiario_inviato": "✅ Taglie registrate con successo!",
+        "home_punto1": "📋 Trasmissione dati nuovi lavoratori",
+        "home_punto2": "📨 Candidature spontanee",
+        "home_punto3": "👷 Gestione vestiario & DPI",
+        "home_punto4": "👤 Spazio personale lavoratore",
     },
     "en": {
-        "titolo": " PROACIER - HUMAN RESOURCES",
+        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
-        "nuova_assunzione": " Data Transmission",
+        "nuova_assunzione": "📝 Data Transmission",
         "candidatura_spontanea": "📄 Spontaneous Application",
+        "vestiario": " Clothing / PPE",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Area",
         "logout": "Logout",
@@ -350,14 +443,14 @@ TRADUZIONI = {
         "step_6": "6. Emergency Contact & Validation",
         "continua": "Continue →",
         "indietro": "← Back",
-        "genera_pdf": " Generate PDF & Accept",
+        "genera_pdf": "📄 Generate PDF & Accept",
         "pdf_generato": "Registration successful!",
         "conserva_credenziali": "⚠️ SAVE THESE CREDENTIALS",
         "codice_accesso": "Access code",
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": "📋 Read full conditions",
+        "leggi_condizioni": " Read full conditions",
         "checkbox_confirm": "I certify the accuracy of the information",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -458,6 +551,52 @@ TRADUZIONI = {
         "donnees_modifiables": "Modifiable Data",
         "salaire_titolo": "Salary Information",
         "salaire_desc": "Salary managed by administration",
+        "vestiario_titolo": "CLOTHING & PPE MANAGEMENT",
+        "vestiario_desc": "Register sizes for uniform and personal protective equipment.",
+        "taglia_maglia": "T-shirt/polo size",
+        "taglia_pantaloni": "Pants size",
+        "taglia_scarpe": "Shoe size",
+        "taglia_giacca": "Jacket/vest size",
+        "taglia_cappello": "Helmet/cap size",
+        "taglia_guanti": "Gloves size",
+        "opt_xs": "XS",
+        "opt_s": "S",
+        "opt_m": "M",
+        "opt_l": "L",
+        "opt_xl": "XL",
+        "opt_xxl": "XXL",
+        "opt_xxxl": "XXXL",
+        "opt_38": "38",
+        "opt_39": "39",
+        "opt_40": "40",
+        "opt_41": "41",
+        "opt_42": "42",
+        "opt_43": "43",
+        "opt_44": "44",
+        "opt_45": "45",
+        "opt_46": "46",
+        "opt_47": "47",
+        "opt_48": "48",
+        "opt_49": "49",
+        "opt_50": "50",
+        "opt_51": "51",
+        "opt_52": "52",
+        "dpi_casco": "Safety helmet",
+        "dpi_occhiali": "Safety glasses",
+        "dpi_orecchini": "Ear plugs",
+        "dpi_maschera": "Respiratory mask",
+        "dpi_guanti": "Protective gloves",
+        "dpi_scarpe": "Safety shoes",
+        "dpi_gilet": "High visibility vest",
+        "dpi_imbracatura": "Safety harness",
+        "si": "Yes",
+        "no": "No",
+        "invia_vestiario": "📋 Register sizes",
+        "vestiario_inviato": "✅ Sizes registered successfully!",
+        "home_punto1": "📋 Data transmission new workers",
+        "home_punto2": "📨 Spontaneous applications",
+        "home_punto3": " Clothing & PPE management",
+        "home_punto4": "👤 Personal worker space",
     }
 }
 
@@ -735,22 +874,77 @@ def step_6_emergenza_validazione(lingua):
     return {"emergenza_nome": em_nome, "emergenza_parentela": em_parentela, "emergenza_tel": em_tel, "emergenza_indirizzo": em_ind, "conferma": conferma}
 
 # ============================================
-# PAGINA CONDIZIONI
+# PAGINA VESTIARIO
 # ============================================
-def pagina_condizioni(lingua):
-    st.title(get_testo("condizioni_titolo", lingua))
-    st.markdown(get_testo("condizioni_testo", lingua))
+def pagina_vestiario(lingua):
+    st.title(get_testo("vestiario_titolo", lingua))
+    st.markdown(get_testo("vestiario_desc", lingua))
     st.markdown("---")
-    st.info("ℹ️ Questa pagina sarà utilizzata per la firma digitale del modulo privacy e condizioni.")
-    accetta = st.checkbox(get_testo("checkbox_confirm", lingua))
-    if accetta:
-        st.success("✅ Condizioni accettate")
-        if st.button("Continuer", type="primary"):
-            st.session_state.pagina = 'registrazione'
-            st.rerun()
-    if st.button("Retour"):
-        st.session_state.pagina = 'home'
-        st.rerun()
+    
+    with st.form("form_vestiario", clear_on_submit=False):
+        st.subheader("👕 Taglie Abbigliamento")
+        col1, col2 = st.columns(2)
+        with col1:
+            taglie_maglia = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), 
+                           get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua), get_testo("opt_xxxl", lingua)]
+            taglia_maglia = st.selectbox(get_testo("taglia_maglia", lingua), taglie_maglia, key="v_maglia")
+            
+            taglie_pantaloni = ["38", "40", "42", "44", "46", "48", "50", "52"]
+            taglia_pantaloni = st.selectbox(get_testo("taglia_pantaloni", lingua), taglie_pantaloni, key="v_pantaloni")
+            
+            taglie_scarpe = ["38", "39", "40", "41", "42", "43", "44", "45", "46", "47"]
+            taglia_scarpe = st.selectbox(get_testo("taglia_scarpe", lingua), taglie_scarpe, key="v_scarpe")
+        with col2:
+            taglie_giacca = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), 
+                           get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua)]
+            taglia_giacca = st.selectbox(get_testo("taglia_giacca", lingua), taglie_giacca, key="v_giacca")
+            
+            taglie_cappello = ["S", "M", "L", "XL"]
+            taglia_cappello = st.selectbox(get_testo("taglia_cappello", lingua), taglie_cappello, key="v_cappello")
+            
+            taglie_guanti = ["S", "M", "L", "XL"]
+            taglia_guanti = st.selectbox(get_testo("taglia_guanti", lingua), taglie_guanti, key="v_guanti")
+        
+        st.markdown("---")
+        st.subheader(" Dispositivi di Protezione Individuale (DPI)")
+        col3, col4 = st.columns(2)
+        with col3:
+            dpi_casco = st.selectbox(get_testo("dpi_casco", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_casco")
+            dpi_occhiali = st.selectbox(get_testo("dpi_occhiali", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_occhiali")
+            dpi_orecchini = st.selectbox(get_testo("dpi_orecchini", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_orecchini")
+            dpi_maschera = st.selectbox(get_testo("dpi_maschera", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_maschera")
+        with col4:
+            dpi_guanti = st.selectbox(get_testo("dpi_guanti", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_guanti_dpi")
+            dpi_scarpe = st.selectbox(get_testo("dpi_scarpe", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_scarpe_dpi")
+            dpi_gilet = st.selectbox(get_testo("dpi_gilet", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_gilet")
+            dpi_imbracatura = st.selectbox(get_testo("dpi_imbracatura", lingua), [get_testo("si", lingua), get_testo("no", lingua)], key="v_imbracatura")
+        
+        submitted = st.form_submit_button(get_testo("invia_vestiario", lingua), type="primary", use_container_width=True)
+        
+        if submitted:
+            dati_vestiario = {
+                "id": f"VEST-{datetime.now().year}-{random.randint(1000, 9999)}",
+                "data_registrazione": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "taglia_maglia": taglia_maglia,
+                "taglia_pantaloni": taglia_pantaloni,
+                "taglia_scarpe": taglia_scarpe,
+                "taglia_giacca": taglia_giacca,
+                "taglia_cappello": taglia_cappello,
+                "taglia_guanti": taglia_guanti,
+                "dpi_casco": dpi_casco,
+                "dpi_occhiali": dpi_occhiali,
+                "dpi_orecchini": dpi_orecchini,
+                "dpi_maschera": dpi_maschera,
+                "dpi_guanti": dpi_guanti,
+                "dpi_scarpe": dpi_scarpe,
+                "dpi_gilet": dpi_gilet,
+                "dpi_imbracatura": dpi_imbracatura
+            }
+            if salva_su_google_sheet(dati_vestiario, GOOGLE_SCRIPT_URL_VESTIARIO, "append"):
+                st.success(get_testo("vestiario_inviato", lingua))
+                st.balloons()
+            else:
+                st.error("Erreur de connexion. Veuillez réessayer.")
 
 # ============================================
 # PAGINA CANDIDATURA SPONTANEA
@@ -972,6 +1166,9 @@ def main():
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
                 st.rerun()
+            if st.button(get_testo("vestiario", lingua), key="btn_vestiario"):
+                st.session_state.pagina = 'vestiario'
+                st.rerun()
             if st.button(get_testo("area_lavoratore", lingua), key="btn_area"):
                 st.session_state.pagina = 'login_lavoratore'
                 st.rerun()
@@ -981,15 +1178,58 @@ def main():
 
     # ROUTING
     if st.session_state.pagina == 'home':
-        st.title("🏭 PROACIER SN")
-        st.markdown("### Système de Gestion des Ressources Humaines")
-        st.info("Utilisez le menu à gauche")
+        st.title(get_testo("titolo", lingua))
+        st.subheader(get_testo("sottotitolo", lingua))
+        st.markdown("---")
+        
+        st.subheader("📋 A cosa serve questa applicazione?")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"""
+            **{get_testo('home_punto1', lingua)}**
+            - Formulaire complet en 6 étapes
+            - Génération PDF automatique
+            
+            **{get_testo('home_punto2', lingua)}**
+            - Formulaire rapide
+            - Évaluation par RH
+            """)
+        with col2:
+            st.markdown(f"""
+            **{get_testo('home_punto3', lingua)}**
+            - Gestion des tailles
+            - Équipements de protection
+            
+            **{get_testo('home_punto4', lingua)}**
+            - Accès avec code et PIN
+            - Visualisation données
+            """)
+        
+        st.markdown("---")
+        st.subheader("🚀 Navigation rapide")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            if st.button(get_testo("candidatura_spontanea", lingua), use_container_width=True, type="primary"):
+                st.session_state.pagina = 'candidatura'
+                st.rerun()
+        with c2:
+            if st.button(get_testo("vestiario", lingua), use_container_width=True, type="primary"):
+                st.session_state.pagina = 'vestiario'
+                st.rerun()
+        with c3:
+            if st.button(get_testo("area_lavoratore", lingua), use_container_width=True, type="primary"):
+                st.session_state.pagina = 'login_lavoratore'
+                st.rerun()
+        with c4:
+            if st.button(get_testo("dashboard", lingua), use_container_width=True):
+                st.session_state.pagina = 'login_admin'
+                st.rerun()
     elif st.session_state.pagina == 'registrazione':
         pagina_registrazione_multi_step(lingua)
     elif st.session_state.pagina == 'candidatura':
         pagina_candidatura_spontanea(lingua)
-    elif st.session_state.pagina == 'condizioni':
-        pagina_condizioni(lingua)
+    elif st.session_state.pagina == 'vestiario':
+        pagina_vestiario(lingua)
     elif st.session_state.pagina == 'login_lavoratore':
         codice = st.text_input(get_testo("codice", lingua), key="login_codice")
         pin = st.text_input(get_testo("pin", lingua), type="password", key="login_pin")
