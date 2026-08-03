@@ -2,7 +2,7 @@
 """
 PROACIER - Gestione Risorse Umane (HRM)
 Senegal - Région de Thiès
-Versione 8.0 - Finale Corretta
+Versione 9.0 - Finale con traduzioni complete
 """
 import streamlit as st
 import requests
@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS SIDEBAR VERDE
+# CSS SIDEBAR VERDE PROACIER
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {
@@ -47,7 +47,7 @@ GOOGLE_SCRIPT_URL_CANDIDATURE = "https://script.google.com/macros/s/AKfycbzlc2iO
 PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 
 # ============================================
-# TRADUZIONI (SENZA SPAZI EXTRA)
+# TRADUZIONI COMPLETE (SENZA SPAZI EXTRA)
 # ============================================
 TRADUZIONI = {
     "fr": {
@@ -73,7 +73,7 @@ TRADUZIONI = {
         "step_3": "3. Expérience Professionnelle",
         "step_4": "4. Compétences & Permis",
         "step_5": "5. Informations Médicales",
-        "step_6": "6. Contact d'Urgence & Validation",
+        "step_6": "6. Contact d'Urgence",
         "step_7": "7. Vêtements & EPI",
         "continua": "Continuer →",
         "indietro": "← Retour",
@@ -164,21 +164,6 @@ TRADUZIONI = {
         "opt_xl": "XL",
         "opt_xxl": "XXL",
         "opt_xxxl": "XXXL",
-        "opt_38": "38",
-        "opt_39": "39",
-        "opt_40": "40",
-        "opt_41": "41",
-        "opt_42": "42",
-        "opt_43": "43",
-        "opt_44": "44",
-        "opt_45": "45",
-        "opt_46": "46",
-        "opt_47": "47",
-        "opt_48": "48",
-        "opt_49": "49",
-        "opt_50": "50",
-        "opt_51": "51",
-        "opt_52": "52",
         "titolo_candidatura": "CANDIDATURE SPONTANÉE",
         "sottotitolo_candidatura": "Rejoignez l'équipe PROACIER.",
         "email": "Adresse Email *",
@@ -197,14 +182,23 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
-        "home_titolo": " A quoi sert cette application?",
-        "home_punto1": "Transmission de données pour nouveaux travailleurs",
-        "home_punto2": "Candidatures spontanées",
-        "home_punto3": "Espace personnel travailleur",
-        "home_punto4": "Paiement des journaliers",
+        "home_titolo": "📋 À quoi sert cette application?",
+        "home_punto1_titolo": "Transmission de données pour nouveaux travailleurs",
+        "home_punto1_desc1": "Formulaire complet en 7 étapes",
+        "home_punto1_desc2": "Génération PDF automatique",
+        "home_punto2_titolo": "Candidatures spontanées",
+        "home_punto2_desc1": "Formulaire rapide",
+        "home_punto2_desc2": "Évaluation par RH",
+        "home_punto3_titolo": "Espace personnel travailleur",
+        "home_punto3_desc1": "Accès avec code et PIN",
+        "home_punto3_desc2": "Visualisation données",
+        "home_punto4_titolo": "Paiement des journaliers",
+        "home_punto4_desc1": "Gestion présences",
+        "home_punto4_desc2": "Calcul compensi",
+        "home_navigation": "🚀 Navigation rapide",
         "giornalieri_titolo": "Déjà travailleur?",
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
@@ -218,12 +212,16 @@ TRADUZIONI = {
         "paese_guinea": "Guinée",
         "paese_gambia": "Gambie",
         "paese_altro": "Autre pays",
+        "avviso_non_contratto": "⚠️ Ceci n'est PAS un contrat d'embauche. Il s'agit uniquement d'une transmission de données à l'administration pour un futur emploi éventuel et le paiement des journaliers.",
+        "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
+        "cocher_case": "Veuillez cocher la case de confirmation",
+        "titolo_vestiario": "👕 Tailles Vêtements",
     },
     "it": {
         "titolo": "🏭 PROACIER - GESTIONE RISORSE UMANE",
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
-        "nuova_assunzione": "📝 Trasmissione Dati",
+        "nuova_assunzione": " Trasmissione Dati",
         "candidatura_spontanea": "📄 Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
@@ -242,18 +240,18 @@ TRADUZIONI = {
         "step_3": "3. Esperienza Professionale",
         "step_4": "4. Competenze e Patente",
         "step_5": "5. Informazioni Mediche",
-        "step_6": "6. Contatto Emergenza e Validazione",
+        "step_6": "6. Contatto Emergenza",
         "step_7": "7. Vestiario e DPI",
         "continua": "Continua →",
         "indietro": "← Indietro",
-        "genera_pdf": " Genera PDF e Accetta",
+        "genera_pdf": "📄 Genera PDF e Accetta",
         "pdf_generato": "Registrazione riuscita!",
-        "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
+        "conserva_credenziali": "️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": " Leggi le condizioni complete",
+        "leggi_condizioni": "📋 Leggi le condizioni complete",
         "checkbox_confirm": "Certifico l'esattezza delle informazioni",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -333,21 +331,6 @@ TRADUZIONI = {
         "opt_xl": "XL",
         "opt_xxl": "XXL",
         "opt_xxxl": "XXXL",
-        "opt_38": "38",
-        "opt_39": "39",
-        "opt_40": "40",
-        "opt_41": "41",
-        "opt_42": "42",
-        "opt_43": "43",
-        "opt_44": "44",
-        "opt_45": "45",
-        "opt_46": "46",
-        "opt_47": "47",
-        "opt_48": "48",
-        "opt_49": "49",
-        "opt_50": "50",
-        "opt_51": "51",
-        "opt_52": "52",
         "titolo_candidatura": "CANDIDATURA SPONTANEA",
         "sottotitolo_candidatura": "Unisciti al team PROACIER.",
         "email": "Indirizzo Email *",
@@ -370,10 +353,19 @@ TRADUZIONI = {
         "candidatura_inviata": "✅ Candidatura inviata con successo!",
         "errore_candidatura": "Compila Cognome, Nome, Email e Telefono.",
         "home_titolo": "📋 A cosa serve questa applicazione?",
-        "home_punto1": "Trasmissione dati nuovi lavoratori",
-        "home_punto2": "Candidature spontanee",
-        "home_punto3": "Spazio personale lavoratore",
-        "home_punto4": "Pagamento giornalieri",
+        "home_punto1_titolo": "Trasmissione dati nuovi lavoratori",
+        "home_punto1_desc1": "Modulo completo in 7 fasi",
+        "home_punto1_desc2": "Generazione PDF automatica",
+        "home_punto2_titolo": "Candidature spontanee",
+        "home_punto2_desc1": "Modulo rapido",
+        "home_punto2_desc2": "Valutazione da parte HR",
+        "home_punto3_titolo": "Spazio personale lavoratore",
+        "home_punto3_desc1": "Accesso con codice e PIN",
+        "home_punto3_desc2": "Visualizzazione dati",
+        "home_punto4_titolo": "Pagamento giornalieri",
+        "home_punto4_desc1": "Gestione presenze",
+        "home_punto4_desc2": "Calcolo compensi",
+        "home_navigation": "🚀 Navigazione rapida",
         "giornalieri_titolo": "Già lavoratore?",
         "giornalieri_desc": "Accedi al tuo spazio",
         "nuovo_giornaliero_titolo": "Nuovo / Giornaliero?",
@@ -387,9 +379,13 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Altro paese",
+        "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione per un futuro impiego eventuale e il pagamento dei giornalieri.",
+        "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
+        "cocher_case": "Per favore seleziona la casella di conferma",
+        "titolo_vestiario": " Taglie Abbigliamento",
     },
     "en": {
-        "titolo": " PROACIER - HUMAN RESOURCES",
+        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": " Data Transmission",
@@ -411,18 +407,18 @@ TRADUZIONI = {
         "step_3": "3. Professional Experience",
         "step_4": "4. Skills & License",
         "step_5": "5. Medical Information",
-        "step_6": "6. Emergency Contact & Validation",
+        "step_6": "6. Emergency Contact",
         "step_7": "7. Clothing & PPE",
         "continua": "Continue →",
         "indietro": "← Back",
-        "genera_pdf": "📄 Generate PDF & Accept",
+        "genera_pdf": " Generate PDF & Accept",
         "pdf_generato": "Registration successful!",
         "conserva_credenziali": "⚠️ SAVE THESE CREDENTIALS",
         "codice_accesso": "Access code",
         "pin_accesso": "Access PIN",
         "scarica": "Download",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
-        "leggi_condizioni": " Read full conditions",
+        "leggi_condizioni": "📋 Read full conditions",
         "checkbox_confirm": "I certify the accuracy of the information",
         "errore_obbligatori": "Please fill in all required fields (*)",
         "obbligatorio": "*",
@@ -502,21 +498,6 @@ TRADUZIONI = {
         "opt_xl": "XL",
         "opt_xxl": "XXL",
         "opt_xxxl": "XXXL",
-        "opt_38": "38",
-        "opt_39": "39",
-        "opt_40": "40",
-        "opt_41": "41",
-        "opt_42": "42",
-        "opt_43": "43",
-        "opt_44": "44",
-        "opt_45": "45",
-        "opt_46": "46",
-        "opt_47": "47",
-        "opt_48": "48",
-        "opt_49": "49",
-        "opt_50": "50",
-        "opt_51": "51",
-        "opt_52": "52",
         "titolo_candidatura": "SPONTANEOUS APPLICATION",
         "sottotitolo_candidatura": "Join the PROACIER team.",
         "email": "Email Address *",
@@ -539,10 +520,19 @@ TRADUZIONI = {
         "candidatura_inviata": "✅ Application submitted successfully!",
         "errore_candidatura": "Please fill in Surname, First Name, Email, and Phone.",
         "home_titolo": "📋 What is this application for?",
-        "home_punto1": "Data transmission new workers",
-        "home_punto2": "Spontaneous applications",
-        "home_punto3": "Personal worker space",
-        "home_punto4": "Daily workers payment",
+        "home_punto1_titolo": "Data transmission new workers",
+        "home_punto1_desc1": "Complete form in 7 steps",
+        "home_punto1_desc2": "Automatic PDF generation",
+        "home_punto2_titolo": "Spontaneous applications",
+        "home_punto2_desc1": "Quick form",
+        "home_punto2_desc2": "HR evaluation",
+        "home_punto3_titolo": "Personal worker space",
+        "home_punto3_desc1": "Access with code and PIN",
+        "home_punto3_desc2": "Data visualization",
+        "home_punto4_titolo": "Daily workers payment",
+        "home_punto4_desc1": "Attendance management",
+        "home_punto4_desc2": "Payment calculation",
+        "home_navigation": "🚀 Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -556,6 +546,10 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
+        "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration for a possible future employment and daily workers payment.",
+        "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
+        "cocher_case": "Please check the confirmation box",
+        "titolo_vestiario": "👕 Clothing Sizes",
     }
 }
 
@@ -698,7 +692,7 @@ def genera_pdf_lavoratore(dati):
     return bytes(pdf_bytes)
 
 # ============================================
-# STEP DEL FORMULARIO (7 STEP CON VESTIARIO)
+# STEP DEL FORMULARIO (7 STEP)
 # ============================================
 def step_1_personale_famiglia(lingua):
     st.subheader(get_testo("step_1", lingua))
@@ -827,15 +821,11 @@ def step_6_emergenza_validazione(lingua):
     with col2:
         em_tel = st.text_input(get_testo("emergenza_tel", lingua), key="s6_em_tel")
         em_ind = st.text_input(get_testo("emergenza_indirizzo", lingua), key="s6_em_ind")
-    st.markdown("---")
-    st.warning(get_testo("alert_condizioni", lingua))
-    st.markdown(f"[{get_testo('leggi_condizioni', lingua)}](?pagina=condizioni)")
-    conferma = st.checkbox(get_testo("checkbox_confirm", lingua), key="s6_conf")
-    return {"emergenza_nome": em_nome, "emergenza_parentela": em_parentela, "emergenza_tel": em_tel, "emergenza_indirizzo": em_ind, "conferma": conferma}
+    return {"emergenza_nome": em_nome, "emergenza_parentela": em_parentela, "emergenza_tel": em_tel, "emergenza_indirizzo": em_ind}
 
 def step_7_vestiario(lingua):
     st.subheader(get_testo("step_7", lingua))
-    st.markdown("### 👕 Taglie Abbigliamento")
+    st.markdown(f"### {get_testo('titolo_vestiario', lingua)}")
     col1, col2 = st.columns(2)
     with col1:
         taglie_maglia = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), 
@@ -862,11 +852,12 @@ def step_7_vestiario(lingua):
             "taglia_giacca": taglia_giacca, "taglia_cappello": taglia_cappello, "taglia_guanti": taglia_guanti}
 
 # ============================================
-# PAGINA CANDIDATURA SPONTANEA
+# PAGINA CANDIDATURA SPONTANEA (FIX ERRORI)
 # ============================================
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
+    st.info("ℹ️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
     st.markdown("---")
     
     if 'candidatura_dati' not in st.session_state:
@@ -928,6 +919,7 @@ def pagina_candidatura_spontanea(lingua):
         submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
         
         if submitted:
+            # FIX: Validazione PRIMA di usare le variabili
             if not c_cognome or not c_nome or not c_email or not c_tel:
                 st.error(get_testo("errore_candidatura", lingua))
                 st.session_state.candidatura_dati = {
@@ -936,7 +928,7 @@ def pagina_candidatura_spontanea(lingua):
                     'regione': c_regione, 'skills': c_skills, 'esperienza': c_esperienza,
                     'salario': c_salario, 'note': c_note
                 }
-                return
+                return  # FIX: return invece di st.stop()
             
             dati_candidatura = {
                 "id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
@@ -964,9 +956,17 @@ def pagina_candidatura_spontanea(lingua):
 # ============================================
 def pagina_registrazione_multi_step(lingua):
     step = st.session_state.step
+    
+    # AVVISO NON CONTRATTO (solo al primo accesso)
+    if step == 1 and 'avviso_mostrato' not in st.session_state:
+        st.warning(get_testo("avviso_non_contratto", lingua))
+        st.info(get_testo("avviso_regole_aziendali", lingua))
+        st.session_state.avviso_mostrato = True
+    
     st.progress(step / 7)
     st.markdown(f"**Étape {step} sur 7**")
     st.markdown("---")
+    
     if step == 1:
         dati_step = step_1_personale_famiglia(lingua)
     elif step == 2:
@@ -981,6 +981,7 @@ def pagina_registrazione_multi_step(lingua):
         dati_step = step_6_emergenza_validazione(lingua)
     elif step == 7:
         dati_step = step_7_vestiario(lingua)
+    
     st.session_state.dati_form.update(dati_step)
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -1000,11 +1001,13 @@ def pagina_registrazione_multi_step(lingua):
                 st.session_state.step += 1
                 st.rerun()
         else:
-            if dati_step.get('conferma'):
+            # STEP 7 - CHECKBOX CONFERMA FINALE
+            conferma = st.checkbox(get_testo("checkbox_confirm", lingua), key="s7_conf")
+            if conferma:
                 if st.button(get_testo("genera_pdf", lingua), type="primary", use_container_width=True):
                     genera_e_salva_pdf(st.session_state.dati_form, lingua)
             else:
-                st.warning("Veuillez cocher la case de confirmation")
+                st.warning(get_testo("cocher_case", lingua))
 
 def genera_e_salva_pdf(dati, lingua):
     codice = genera_codice()
@@ -1023,6 +1026,7 @@ def genera_e_salva_pdf(dati, lingua):
         st.balloons()
         st.session_state.step = 1
         st.session_state.dati_form = {}
+        st.session_state.avviso_mostrato = False
     else:
         st.error("Erreur de connexion à Google Sheets.")
 
@@ -1043,12 +1047,13 @@ def pagina_espace_travailleur(lingua):
             st.rerun()
     
     with col2:
-        st.markdown(f"### 📝 {get_testo('nuovo_giornaliero_titolo', lingua)}")
+        st.markdown(f"###  {get_testo('nuovo_giornaliero_titolo', lingua)}")
         st.info(get_testo('nuovo_giornaliero_desc', lingua))
         if st.button(get_testo('trasmissione_btn', lingua), use_container_width=True, type="primary"):
             st.session_state.pagina = 'registrazione'
             st.session_state.step = 1
             st.session_state.dati_form = {}
+            st.session_state.avviso_mostrato = False
             st.rerun()
 
 # ============================================
@@ -1073,6 +1078,8 @@ def main():
         st.session_state.pin_operatore = None
     if 'admin_logged' not in st.session_state:
         st.session_state.admin_logged = False
+    if 'avviso_mostrato' not in st.session_state:
+        st.session_state.avviso_mostrato = False
 
     lingua = st.session_state.lingua
 
@@ -1100,7 +1107,6 @@ def main():
                 st.session_state.logged_in = False
                 st.session_state.pagina = 'home'
         else:
-            # RIMOSSO: pulsante "Trasmissione Dati" - ora è solo nella pagina Espace Travailleur
             if st.button(get_testo("candidatura_spontanea", lingua), key="btn_cand"):
                 st.session_state.pagina = 'candidatura'
                 st.rerun()
@@ -1120,14 +1126,14 @@ def main():
         st.subheader(get_testo("home_titolo", lingua))
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**{get_testo('home_punto1', lingua)}**\n- Formulaire complet en 7 étapes\n- Génération PDF automatique")
-            st.markdown(f"**{get_testo('home_punto2', lingua)}**\n- Formulaire rapide\n- Évaluation par RH")
+            st.markdown(f"**{get_testo('home_punto1_titolo', lingua)}**\n- {get_testo('home_punto1_desc1', lingua)}\n- {get_testo('home_punto1_desc2', lingua)}")
+            st.markdown(f"**{get_testo('home_punto2_titolo', lingua)}**\n- {get_testo('home_punto2_desc1', lingua)}\n- {get_testo('home_punto2_desc2', lingua)}")
         with col2:
-            st.markdown(f"**{get_testo('home_punto3', lingua)}**\n- Accès avec code et PIN\n- Visualisation données")
-            st.markdown(f"**{get_testo('home_punto4', lingua)}**\n- Gestion présences\n- Calcul compensi")
+            st.markdown(f"**{get_testo('home_punto3_titolo', lingua)}**\n- {get_testo('home_punto3_desc1', lingua)}\n- {get_testo('home_punto3_desc2', lingua)}")
+            st.markdown(f"**{get_testo('home_punto4_titolo', lingua)}**\n- {get_testo('home_punto4_desc1', lingua)}\n- {get_testo('home_punto4_desc2', lingua)}")
         
         st.markdown("---")
-        st.subheader("🚀 Navigation rapide")
+        st.subheader(get_testo("home_navigation", lingua))
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button(get_testo("candidatura_spontanea", lingua), use_container_width=True, type="primary"):
