@@ -1287,54 +1287,24 @@ def main():
     elif st.session_state.pagina == 'candidatura': pagina_candidatura_spontanea(lingua)
     elif st.session_state.pagina == 'area_lavoratore': pagina_area_lavoratore(lingua)
     elif st.session_state.pagina == 'login_lavoratore':
-    codice = st.text_input(get_testo("codice", lingua), key="login_codice")
-    pin = st.text_input(get_testo("pin", lingua), type="password", key="login_pin")
-    
-    if st.button(get_testo("accedi", lingua), type="primary", key="btn_login_lav"):
-        dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
-        trovato = False
-        codice_operatore_trovato = None
-        
-        if dati and len(dati) > 1:
-            df_temp = pd.DataFrame(dati[1:], columns=dati[0])
-            
-            #  DEBUG: Mostra le colonne disponibili
-            st.write(f"🔍 Colonne trovate: {list(df_temp.columns)}")
-            
-            # Ricerca case-insensitive
-            col_codice = None
-            col_pin = None
-            
-            for col in df_temp.columns:
-                col_lower = str(col).strip().lower()
-                if col_lower in ['codice', 'code', 'id']:
-                    col_codice = col
-                if col_lower in ['pin', 'code_pin', 'pin_accesso']:
-                    col_pin = col
-            
-            if col_codice and col_pin:
-                # Converti entrambi in stringa per confronto sicuro
-                df_temp[col_codice] = df_temp[col_codice].astype(str).str.strip()
-                df_temp[col_pin] = df_temp[col_pin].astype(str).str.strip()
-                
-                match = df_temp[
-                    (df_temp[col_codice] == codice.strip()) & 
-                    (df_temp[col_pin] == pin.strip())
-                ]
-                
-                if not match.empty:
-                    trovato = True
-                    codice_operatore_trovato = match.iloc[0][col_codice]
-        
-        if trovato:
-            st.session_state.logged_in = True
-            st.session_state.user_type = 'lavoratore'
-            st.session_state.codice_operatore = codice_operatore_trovato
-            st.session_state.pin_operatore = pin
-            st.session_state.pagina = 'area_lavoratore'
-            st.rerun()
-        else:
-            st.error(get_testo("codice_errato", lingua))
+        codice = st.text_input(get_testo("codice", lingua), key="login_codice")
+        pin = st.text_input(get_testo("pin", lingua), type="password", key="login_pin")
+        if st.button(get_testo("accedi", lingua), type="primary", key="btn_login_lav"):
+            dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
+            trovato = False
+            if dati and len(dati) > 1:
+                df_temp = pd.DataFrame(dati[1:], columns=dati[0])
+                if 'Codice' in df_temp.columns and 'PIN' in df_temp.columns:
+                    trovato = any((df_temp['Codice'] == codice) & (df_temp['PIN'] == pin))
+            if trovato:
+                st.session_state.logged_in = True
+                st.session_state.user_type = 'lavoratore'
+                st.session_state.codice_operatore = codice
+                st.session_state.pin_operatore = pin
+                st.session_state.pagina = 'area_lavoratore'
+                st.rerun()
+            else:
+                st.error(get_testo("codice_errato", lingua))
     elif st.session_state.pagina == 'login_admin':
         pwd = st.text_input(get_testo("password", lingua), type="password", key="login_pwd")
         if st.button(get_testo("accedi", lingua), type="primary", key="btn_login_admin"):
