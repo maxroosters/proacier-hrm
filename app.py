@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER - HRM - Versione 14.0 FINALE
+PROACIER - HRM - Versione 15.0
 ==========================================
 LISTA MODIFICHE APPLICATE:
-1. ✅ Rimossi TUTTI gli spazi extra nelle chiavi TRADUZIONI ("fr " → "fr", "titolo " → "titolo")
-2. ✅ Fix errore sintassi Python: dati, → **dati (unpacking dizionario)
-3. ✅ Email notifica Operai corretta: ouvriers@proacier.com
-4. ✅ Email notifica Candidature corretta: candidature@proacier.sn
-5. ✅ URL Google Script verificati e corretti
-6. ✅ Layout "wide" e sidebar "expanded" per visualizzazione corretta
-7. ✅ Fix ricerca lavoratore per colonna Codice/PIN
-8. ✅ Asterisco su Telefono principale obbligatorio
-9. ✅ Ottimizzazione MOBILE (font 16px iOS, responsive)
-10. ✅ Bottone ristampa PDF nello spazio lavoratore
+✅ Fix errore sintassi: dati, → **dati (unpacking dizionario)
+✅ Traduzioni senza spazi extra
+✅ URL Google Script corretti
+✅ Layout wide e sidebar expanded
+✅ Fix ricerca lavoratore per colonna Codice/PIN
+✅ Asterisco su Telefono principale
+✅ Ottimizzazione MOBILE
+✅ Bottone ristampa PDF
+✅ Fix candidatura: dati salvati prima validazione
+✅ Email notifica Operai: ouvriers@proacier.com
+✅ Email notifica Candidature: candidature@proacier.sn
 """
 import streamlit as st
 import requests
@@ -32,7 +33,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS
 st.markdown("""
 <style>
 [data-testid="stSidebar"] {background-color: #5EA529 !important;}
@@ -62,11 +62,11 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
         "nuova_assunzione": "📝 Transmission de Données",
-        "candidatura_spontanea": "📄 Candidature Spontanée",
+        "candidatura_spontanea": " Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Travailleur",
         "logout": "Déconnexion",
@@ -200,10 +200,10 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
-        "home_titolo": " À quoi sert cette application?",
+        "home_titolo": "📋 À quoi sert cette application?",
         "home_punto1_titolo": "Transmission de données pour nouveaux travailleurs",
         "home_punto1_desc1": "Formulaire complet en 7 étapes",
         "home_punto1_desc2": "Génération PDF automatique",
@@ -216,13 +216,13 @@ TRADUZIONI = {
         "home_punto4_titolo": "Paiement des journaliers",
         "home_punto4_desc1": "Gestion présences",
         "home_punto4_desc2": "Calcul compensi",
-        "home_navigation": "🚀 Navigation rapide",
+        "home_navigation": " Navigation rapide",
         "giornalieri_titolo": "Déjà travailleur?",
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
         "nuovo_giornaliero_desc": "Transmettez vos données (pas un contrat)",
         "login_btn": "🔐 Connexion à mon espace",
-        "trasmissione_btn": "📝 Transmettre mes données",
+        "trasmissione_btn": " Transmettre mes données",
         "paese_senegal": "Sénégal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -234,10 +234,10 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
         "titolo_vestiario": "Tailles Vêtements",
-        "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
-        "sezione_paga": " Informations Salariales",
-        "sezione_contatti": "📞 Coordonnées (modifiables)",
-        "sezione_famille": "‍👩‍👧‍👦 Famille (modifiable)",
+        "sezione_dati_personali": " Données Personnelles (non modifiables)",
+        "sezione_paga": "💰 Informations Salariales",
+        "sezione_contatti": " Coordonnées (modifiables)",
+        "sezione_famille": "👨‍👩‍👧‍ Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
@@ -258,7 +258,7 @@ TRADUZIONI = {
         "motivo_permesso": "Motif / Détails",
         "invia_richiesta": "📤 Envoyer la demande",
         "richiesta_inviata": "✅ Demande envoyée avec succès ! Vous recevrez une réponse de l'administration.",
-        "lista_richieste": " Mes demandes précédentes",
+        "lista_richieste": "📋 Mes demandes précédentes",
         "stato_richiesta": "Statut",
         "stato_pending": "⏳ En attente",
         "stato_approved": "✅ Approuvée",
@@ -275,7 +275,7 @@ TRADUZIONI = {
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Trasmissione Dati",
-        "candidatura_spontanea": "📄 Candidatura Spontanea",
+        "candidatura_spontanea": " Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
         "logout": "Esci",
@@ -305,7 +305,7 @@ TRADUZIONI = {
         "scarica": "Scarica",
         "ristampa_pdf": "📄 Ristampa PDF credenziali",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": "📋 Leggi le condizioni complete",
+        "leggi_condizioni": " Leggi le condizioni complete",
         "checkbox_confirm": "Ho letto e accetto le condizioni generali e la politica sulla privacy",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -358,7 +358,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -425,13 +425,13 @@ TRADUZIONI = {
         "home_punto4_titolo": "Pagamento giornalieri",
         "home_punto4_desc1": "Gestione presenze",
         "home_punto4_desc2": "Calcolo compensi",
-        "home_navigation": "🚀 Navigazione rapida",
+        "home_navigation": " Navigazione rapida",
         "giornalieri_titolo": "Già lavoratore?",
         "giornalieri_desc": "Accedi al tuo spazio",
         "nuovo_giornaliero_titolo": "Nuovo / Giornaliero?",
         "nuovo_giornaliero_desc": "Trasmetti dati (non contratto)",
         "login_btn": "🔐 Accedi al mio spazio",
-        "trasmissione_btn": "📝 Trasmetti i miei dati",
+        "trasmissione_btn": " Trasmetti i miei dati",
         "paese_senegal": "Senegal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -439,22 +439,22 @@ TRADUZIONI = {
         "paese_guinea": "Guinea",
         "paese_gambia": "Gambia",
         "paese_altro": "Altro paese",
-        "avviso_non_contratto": "️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
+        "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
         "titolo_vestiario": "👕 Taglie Abbigliamento",
         "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
-        "sezione_paga": "💰 Informazioni Salariali",
+        "sezione_paga": " Informazioni Salariali",
         "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "👨‍👩‍‍👦 Famiglia (modificabile)",
-        "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
+        "sezione_famille": "‍👩‍👧‍👦 Famiglia (modificabile)",
+        "sezione_vestiario": " Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
         "paga_amount": "Importo",
         "paga_desc": "Il tuo salario è gestito dall'amministrazione. Per modifiche, contattaci.",
         "salva_modifiche": "💾 Salva modifiche",
         "modifiche_salvate": "✅ Modifiche salvate con successo! Una email di notifica è stata inviata all'amministrazione.",
-        "errore_salvataggio": "❌ Errore durante il salvataggio. Riprova.",
+        "errore_salvataggio": " Errore durante il salvataggio. Riprova.",
         "tipo_permesso": "Tipo di richiesta",
         "opt_permesso": "Permesso (giornata)",
         "opt_vacanza": "Vacanze (più giorni)",
@@ -469,7 +469,7 @@ TRADUZIONI = {
         "richiesta_inviata": "✅ Richiesta inviata con successo! Riceverai una risposta dall'amministrazione.",
         "lista_richieste": "📋 Le mie richieste precedenti",
         "stato_richiesta": "Stato",
-        "stato_pending": " In attesa",
+        "stato_pending": "⏳ In attesa",
         "stato_approved": "✅ Approvata",
         "stato_rejected": "❌ Rifiutata",
         "risposta_admin": "Risposta dell'amministrazione",
@@ -480,11 +480,11 @@ TRADUZIONI = {
         "pdf_identifiants_avviso": "Queste credenziali sono personali e confidenziali. Non condividerle con nessuno. Ti serviranno per accedere al tuo spazio personale.",
     },
     "en": {
-        "titolo": " PROACIER - HUMAN RESOURCES",
+        "titolo": "🏭 PROACIER - HUMAN RESOURCES",
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": "📄 Spontaneous Application",
+        "candidatura_spontanea": " Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -512,7 +512,7 @@ TRADUZIONI = {
         "codice_accesso": "Access code",
         "pin_accesso": "Access PIN",
         "scarica": "Download",
-        "ristampa_pdf": " Reprint PDF credentials",
+        "ristampa_pdf": "📄 Reprint PDF credentials",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
         "leggi_condizioni": "📋 Read full conditions",
         "checkbox_confirm": "I have read and accept the general conditions and privacy policy",
@@ -634,7 +634,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Daily workers payment",
         "home_punto4_desc1": "Attendance management",
         "home_punto4_desc2": "Payment calculation",
-        "home_navigation": "🚀 Quick navigation",
+        "home_navigation": " Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -649,14 +649,14 @@ TRADUZIONI = {
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
         "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
-        "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
+        "avviso_regole_aziendali": " By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
         "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
         "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩‍‍👦 Family (modifiable)",
-        "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
+        "sezione_famille": "👨‍👩👧‍👦 Family (modifiable)",
+        "sezione_vestiario": " Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
@@ -676,11 +676,11 @@ TRADUZIONI = {
         "motivo_permesso": "Reason / Details",
         "invia_richiesta": "📤 Submit request",
         "richiesta_inviata": "✅ Request submitted successfully! You will receive a response from administration.",
-        "lista_richieste": " My previous requests",
+        "lista_richieste": "📋 My previous requests",
         "stato_richiesta": "Status",
-        "stato_pending": "⏳ Pending",
+        "stato_pending": " Pending",
         "stato_approved": "✅ Approved",
-        "stato_rejected": "❌ Rejected",
+        "stato_rejected": " Rejected",
         "risposta_admin": "Administration response",
         "nessuna_richiesta": "No previous requests",
         "data_richiesta": "Request date",
@@ -778,7 +778,6 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(95, 5, f"N° fiche: {dati.get('codice', '')}", 0, 0)
     pdf.cell(0, 5, f"Date: {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
     pdf.ln(2)
-    
     pdf.sezione("1. IDENTITE & FAMILLE")
     pdf.campo_doppio("Nom:", dati.get('cognome', ''), "Prenom(s):", dati.get('nome', ''))
     pdf.campo_doppio("Ne(e) le:", dati.get('data_nascita', ''), "a:", dati.get('luogo_nascita', ''))
@@ -787,29 +786,24 @@ def genera_pdf_lavoratore(dati):
     if dati.get('numero_mogli', 0) > 0:
         pdf.campo("Epouses:", f"{dati.get('numero_mogli')}")
     pdf.ln(1)
-    
     pdf.sezione("2. CONTACT & DOCUMENTS")
     pdf.campo("Adresse:", f"{dati.get('indirizzo', '')}, {dati.get('quartiere', '')}, {dati.get('regione_senegal', '')}")
     pdf.campo_doppio("Tel 1:", dati.get('telefono_1', ''), "Tel 2:", dati.get('telefono_2', ''))
     pdf.campo_doppio("CNI:", dati.get('cni', ''), "CSS:", dati.get('css', ''))
     pdf.ln(1)
-    
     pdf.sezione("3. EXPERIENCE & COMPETENCES")
     pdf.campo("Poste:", dati.get('mansione_1', ''))
     pdf.campo("Competence:", f"{dati.get('categoria_competenza', '')} - {dati.get('dettaglio_competenza', '')}")
     pdf.campo("Permis:", dati.get('patente', ''))
     pdf.ln(1)
-    
     pdf.sezione("4. VETEMENTS & EPI")
     pdf.campo_doppio("Taille T-shirt:", dati.get('taglia_maglia', ''), "Taille Pantalon:", dati.get('taglia_pantaloni', ''))
     pdf.campo_doppio("Pointure:", dati.get('taglia_scarpe', ''), "Taille Gilet:", dati.get('taglia_giacca', ''))
     pdf.ln(1)
-    
     pdf.sezione("5. MEDICAL & URGENCE")
     pdf.campo_doppio("Groupe:", f"{dati.get('gruppo_sanguigno', '')} {dati.get('rh', '')}", "Aptitude:", dati.get('idoneita', ''))
     pdf.campo_doppio("Contact:", dati.get('emergenza_nome', ''), "Tel:", dati.get('emergenza_tel', ''))
     pdf.ln(3)
-    
     pdf.set_font('Helvetica', 'I', 8)
     pdf.multi_cell(0, 4, "Je certifie l'exactitude des informations et accepte les conditions.")
     pdf.ln(5)
@@ -819,7 +813,6 @@ def genera_pdf_lavoratore(dati):
     pdf.set_font('Helvetica', '', 9)
     pdf.cell(95, 15, '', 1, 0)
     pdf.cell(95, 15, '', 1, 1)
-    
     pdf.add_page()
     pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(0, 10, 'CONSENTEMENT DONNEES PERSONNELLES', 0, 1, 'C')
@@ -828,7 +821,6 @@ def genera_pdf_lavoratore(dati):
     pdf.ln(10)
     pdf.cell(0, 6, 'Signature:', 0, 1)
     pdf.cell(0, 20, '', 1, 1)
-    
     pdf.add_page()
     pdf.set_fill_color(255, 243, 205)
     pdf.set_font('Helvetica', 'B', 14)
@@ -837,18 +829,15 @@ def genera_pdf_lavoratore(dati):
     pdf.set_font('Helvetica', '', 11)
     pdf.cell(0, 8, dati.get('pdf_identifiants_desc', 'Conservez precieusement ces identifiants:'), 0, 1, 'C')
     pdf.ln(5)
-    
     pdf.set_font('Helvetica', 'B', 16)
     pdf.cell(0, 12, f"Code d'acces: {dati.get('codice', '___________')}", 0, 1, 'C')
     pdf.ln(3)
     pdf.cell(0, 12, f"PIN: {dati.get('pin', '___________')}", 0, 1, 'C')
     pdf.ln(5)
-    
     pdf.set_font('Helvetica', 'I', 9)
     pdf.set_text_color(150, 0, 0)
     pdf.multi_cell(0, 5, dati.get('pdf_identifiants_avviso', 'Ces identifiants sont personnels et confidentiels.'))
     pdf.set_text_color(0, 0, 0)
-    
     pdf_bytes = pdf.output(dest='S')
     if isinstance(pdf_bytes, str):
         pdf_bytes = pdf_bytes.encode('latin-1', errors='ignore')
@@ -870,20 +859,17 @@ def step_1_personale_famiglia(lingua):
         with ca: anno = st.selectbox(get_testo("anno", lingua), list(range(1950, 2010)), index=st.session_state.dati_form.get('anno', 30), key="s1_a")
         data_nascita_str = f"{giorno:02d}/{mese:02d}/{anno}"
         luogo_nascita = st.text_input(get_testo("luogo_nascita", lingua), value=st.session_state.dati_form.get('luogo_nascita', ''), key="s1_luogo")
-        
         paesi = [get_testo("paese_senegal", lingua), get_testo("paese_mali", lingua), get_testo("paese_burkina", lingua), get_testo("paese_sierra", lingua), get_testo("paese_guinea", lingua), get_testo("paese_gambia", lingua), get_testo("paese_altro", lingua)]
         nazionalita_sel = st.selectbox(get_testo("nazionalita", lingua), paesi, index=0, key="s1_naz")
         if nazionalita_sel == get_testo("paese_altro", lingua):
             nazionalita = st.text_input("Précisez votre nationalité:", key="s1_naz_altro")
         else:
             nazionalita = nazionalita_sel
-        
         paese_origine_sel = st.selectbox(get_testo("paese_origine", lingua), paesi, index=0, key="s1_paese")
         if paese_origine_sel == get_testo("paese_altro", lingua):
             paese_origine = st.text_input("Précisez votre pays:", key="s1_paese_altro")
         else:
             paese_origine = paese_origine_sel
-            
     with col2:
         sesso = st.selectbox(get_testo("sesso", lingua), [get_testo("maschile", lingua), get_testo("femminile", lingua)], key="s1_sesso")
         stato_civile = st.selectbox(get_testo("stato_civile", lingua), [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)], key="s1_stato")
@@ -902,7 +888,6 @@ def step_1_personale_famiglia(lingua):
                 dettagli.append(f"Épouse {i}: {res} ({fig} enfants)")
             dettagli_mogli = " | ".join(dettagli)
         st.info(f"**{get_testo('figli_totale', lingua)}: {figli_totale_calcolato}**")
-    
     return {"cognome": cognome, "nome": nome, "data_nascita": data_nascita_str, "luogo_nascita": luogo_nascita,
             "nazionalita": nazionalita, "paese_origine": paese_origine, "sesso": sesso, "stato_civile": stato_civile,
             "numero_mogli": numero_mogli, "dettagli_mogli": dettagli_mogli, "figli_totale": figli_totale_calcolato}
@@ -932,7 +917,6 @@ def step_2_residenza_documenti(lingua):
             whatsapp = st.checkbox(get_testo("whatsapp", lingua), value=st.session_state.dati_form.get('whatsapp_tel1', False), key="s2_whatsapp")
             telegram = st.checkbox(get_testo("telegram", lingua), value=st.session_state.dati_form.get('telegram_tel1', False), key="s2_telegram")
         signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal_tel1', False), key="s2_signal")
-        
         st.markdown("---")
         st.markdown(f"""<div class="phone-box"><h4>{get_testo('telefono_2', lingua)}</h4></div>""", unsafe_allow_html=True)
         tel2 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2", label_visibility="collapsed")
@@ -944,7 +928,6 @@ def step_2_residenza_documenti(lingua):
             whatsapp2 = st.checkbox(get_testo("whatsapp", lingua) + " 2", value=st.session_state.dati_form.get('whatsapp_tel2', False), key="s2_whatsapp2")
             telegram2 = st.checkbox(get_testo("telegram", lingua) + " 2", value=st.session_state.dati_form.get('telegram_tel2', False), key="s2_telegram2")
         signal2 = st.checkbox(get_testo("signal", lingua) + " 2", value=st.session_state.dati_form.get('signal_tel2', False), key="s2_signal2")
-        
         st.markdown("---")
         st.markdown(f"""<div class="phone-box"><h4>{get_testo('telefono_3', lingua)}</h4></div>""", unsafe_allow_html=True)
         tel3 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3", label_visibility="collapsed")
@@ -956,10 +939,9 @@ def step_2_residenza_documenti(lingua):
             whatsapp3 = st.checkbox(get_testo("whatsapp", lingua) + " 3", value=st.session_state.dati_form.get('whatsapp_tel3', False), key="s2_whatsapp3")
             telegram3 = st.checkbox(get_testo("telegram", lingua) + " 3", value=st.session_state.dati_form.get('telegram_tel3', False), key="s2_telegram3")
         signal3 = st.checkbox(get_testo("signal", lingua) + " 3", value=st.session_state.dati_form.get('signal_tel3', False), key="s2_signal3")
-    
     return {
         "indirizzo": indirizzo, "quartiere": quartiere, "comune": comune, "regione_senegal": regione_senegal,
-        "telefono_1": tel1, "telefono_2": tel2, "telefono_3": tel3, 
+        "telefono_1": tel1, "telefono_2": tel2, "telefono_3": tel3,
         "cni": cni, "nif": nif, "css": css, "cmu": cmu, "ipres": ipres,
         "wave_tel1": wave, "orange_tel1": orange_money, "whatsapp_tel1": whatsapp, "telegram_tel1": telegram, "signal_tel1": signal,
         "wave_tel2": wave2, "orange_tel2": orange_money2, "whatsapp_tel2": whatsapp2, "telegram_tel2": telegram2, "signal_tel2": signal2,
@@ -1060,6 +1042,7 @@ def pagina_area_lavoratore(lingua):
                     st.success("PDF generato! Clicca sul bottone sopra per scaricarlo.")
             else:
                 st.error("❌ Travailleur non trouvé")
+                st.write(f"Codes présents dans la feuille: {df['Codice'].tolist()}")
         else:
             st.error("Colonna 'Codice' non trovata")
     else:
@@ -1087,7 +1070,6 @@ def pagina_registrazione_multi_step(lingua):
     elif step == 5: dati_step = step_5_medico(lingua)
     elif step == 6: dati_step = step_6_emergenza_validazione(lingua)
     elif step == 7: dati_step = step_7_vestiario(lingua)
-    
     st.session_state.dati_form.update(dati_step)
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -1176,7 +1158,6 @@ def pagina_candidatura_spontanea(lingua):
         with col3: c_esperienza = st.number_input(get_testo("esperienza_anno", lingua), min_value=0, max_value=50, value=st.session_state.candidatura_dati.get('esperienza', 0), key="c_exp")
         with col4: c_salario = st.text_input(get_testo("salario_richiesto", lingua), value=st.session_state.candidatura_dati.get('salario', ''), key="c_sal")
         c_note = st.text_area(get_testo("note", lingua), value=st.session_state.candidatura_dati.get('note', ''), key="c_note")
-        
         submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
         if submitted:
             st.session_state.candidatura_dati = {'cognome': c_cognome, 'nome': c_nome, 'email': c_email, 'telefono': c_tel, 'g': g, 'm': m, 'a': a, 'indirizzo': c_indirizzo, 'comune': c_comune, 'regione': c_regione, 'skills': c_skills, 'esperienza': c_esperienza, 'salario': c_salario, 'note': c_note}
