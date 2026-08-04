@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 PROACIER - HRM - Versione 15.0
-==========================================
 LISTA MODIFICHE APPLICATE:
-✅ Fix errore sintassi: dati, → **dati (unpacking dizionario)
-✅ Traduzioni senza spazi extra
+✅ Fix ricerca PIN case-insensitive
+✅ Rimozione obbligo CNI e CSS
+✅ Istruzioni per forzare autenticazione email
 ✅ URL Google Script corretti
+✅ Traduzioni senza spazi extra
 ✅ Layout wide e sidebar expanded
-✅ Fix ricerca lavoratore per colonna Codice/PIN
 ✅ Asterisco su Telefono principale
 ✅ Ottimizzazione MOBILE
 ✅ Bottone ristampa PDF
@@ -62,11 +62,11 @@ PASSWORD_DASHBOARD = st.secrets.get("dashboard_password", "admin123")
 # ============================================
 TRADUZIONI = {
     "fr": {
-        "titolo": " PROACIER - GESTION DES RESSOURCES HUMAINES",
+        "titolo": "🏭 PROACIER - GESTION DES RESSOURCES HUMAINES",
         "sottotitolo": "Système de Recrutement - Sénégal",
         "lingua": "Langue",
-        "nuova_assunzione": "📝 Transmission de Données",
-        "candidatura_spontanea": " Candidature Spontanée",
+        "nuova_assunzione": " Transmission de Données",
+        "candidatura_spontanea": "📄 Candidature Spontanée",
         "dashboard": "Tableau de Bord",
         "area_lavoratore": "Espace Travailleur",
         "logout": "Déconnexion",
@@ -88,7 +88,7 @@ TRADUZIONI = {
         "step_7": "7. Vêtements & EPI",
         "continua": "Continuer →",
         "indietro": "← Retour",
-        "genera_pdf": " J'accepte les conditions",
+        "genera_pdf": "📄 J'accepte les conditions",
         "pdf_generato": "Enregistrement réussi !",
         "conserva_credenziali": "⚠️ CONSERVEZ CES IDENTIFIANTS",
         "codice_accesso": "Code d'accès",
@@ -216,13 +216,13 @@ TRADUZIONI = {
         "home_punto4_titolo": "Paiement des journaliers",
         "home_punto4_desc1": "Gestion présences",
         "home_punto4_desc2": "Calcul compensi",
-        "home_navigation": " Navigation rapide",
+        "home_navigation": "🚀 Navigation rapide",
         "giornalieri_titolo": "Déjà travailleur?",
         "giornalieri_desc": "Accédez à votre espace personnel",
         "nuovo_giornaliero_titolo": "Nouveau / Journalier?",
         "nuovo_giornaliero_desc": "Transmettez vos données (pas un contrat)",
-        "login_btn": "🔐 Connexion à mon espace",
-        "trasmissione_btn": " Transmettre mes données",
+        "login_btn": " Connexion à mon espace",
+        "trasmissione_btn": "📝 Transmettre mes données",
         "paese_senegal": "Sénégal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -234,10 +234,10 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
         "titolo_vestiario": "Tailles Vêtements",
-        "sezione_dati_personali": " Données Personnelles (non modifiables)",
+        "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
         "sezione_paga": "💰 Informations Salariales",
-        "sezione_contatti": " Coordonnées (modifiables)",
-        "sezione_famille": "👨‍👩‍👧‍ Famille (modifiable)",
+        "sezione_contatti": "📞 Coordonnées (modifiables)",
+        "sezione_famille": "👨‍👩‍‍👦 Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
         "sezione_comunicazioni": "💬 Communications & Demandes",
         "paga_type": "Type de paiement",
@@ -258,7 +258,7 @@ TRADUZIONI = {
         "motivo_permesso": "Motif / Détails",
         "invia_richiesta": "📤 Envoyer la demande",
         "richiesta_inviata": "✅ Demande envoyée avec succès ! Vous recevrez une réponse de l'administration.",
-        "lista_richieste": "📋 Mes demandes précédentes",
+        "lista_richieste": " Mes demandes précédentes",
         "stato_richiesta": "Statut",
         "stato_pending": "⏳ En attente",
         "stato_approved": "✅ Approuvée",
@@ -275,7 +275,7 @@ TRADUZIONI = {
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Trasmissione Dati",
-        "candidatura_spontanea": " Candidatura Spontanea",
+        "candidatura_spontanea": "📄 Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
         "logout": "Esci",
@@ -299,13 +299,13 @@ TRADUZIONI = {
         "indietro": "← Indietro",
         "genera_pdf": "📄 Accetto le condizioni",
         "pdf_generato": "Registrazione riuscita!",
-        "conserva_credenziali": "⚠️ CONSERVA QUESTE CREDENZIALI",
+        "conserva_credenziali": "️ CONSERVA QUESTE CREDENZIALI",
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
         "ristampa_pdf": "📄 Ristampa PDF credenziali",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": " Leggi le condizioni complete",
+        "leggi_condizioni": "📋 Leggi le condizioni complete",
         "checkbox_confirm": "Ho letto e accetto le condizioni generali e la politica sulla privacy",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -358,7 +358,7 @@ TRADUZIONI = {
         "categoria_competenza": "Categoria di competenza",
         "dettaglio_competenza": "Dettagli",
         "patente": "Patente di guida",
-        "nota_patente": "️ Sarà richiesta una fotocopia della patente.",
+        "nota_patente": "⚠️ Sarà richiesta una fotocopia della patente.",
         "gruppo_sanguigno": "Gruppo sanguigno",
         "rh": "Rh",
         "allergie": "Allergie",
@@ -409,7 +409,7 @@ TRADUZIONI = {
         "esperienza_anno": "Anni di esperienza",
         "salario_richiesto": "Retribuzione richiesta (FCFA)",
         "note": "Note aggiuntive",
-        "invia_candidatura": "📤 Invia la mia candidatura",
+        "invia_candidatura": " Invia la mia candidatura",
         "candidatura_inviata": "✅ Candidatura inviata con successo!",
         "errore_candidatura": "Compila Cognome, Nome, Email e Telefono.",
         "home_titolo": "📋 A cosa serve questa applicazione?",
@@ -425,13 +425,13 @@ TRADUZIONI = {
         "home_punto4_titolo": "Pagamento giornalieri",
         "home_punto4_desc1": "Gestione presenze",
         "home_punto4_desc2": "Calcolo compensi",
-        "home_navigation": " Navigazione rapida",
+        "home_navigation": "🚀 Navigazione rapida",
         "giornalieri_titolo": "Già lavoratore?",
         "giornalieri_desc": "Accedi al tuo spazio",
         "nuovo_giornaliero_titolo": "Nuovo / Giornaliero?",
         "nuovo_giornaliero_desc": "Trasmetti dati (non contratto)",
-        "login_btn": "🔐 Accedi al mio spazio",
-        "trasmissione_btn": " Trasmetti i miei dati",
+        "login_btn": " Accedi al mio spazio",
+        "trasmissione_btn": "📝 Trasmetti i miei dati",
         "paese_senegal": "Senegal",
         "paese_mali": "Mali",
         "paese_burkina": "Burkina Faso",
@@ -443,18 +443,18 @@ TRADUZIONI = {
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
         "titolo_vestiario": "👕 Taglie Abbigliamento",
-        "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
-        "sezione_paga": " Informazioni Salariali",
-        "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "‍👩‍👧‍👦 Famiglia (modificabile)",
-        "sezione_vestiario": " Vestiario e DPI (modificabili)",
+        "sezione_dati_personali": " Dati Personali (non modificabili)",
+        "sezione_paga": "💰 Informazioni Salariali",
+        "sezione_contatti": " Contatti (modificabili)",
+        "sezione_famille": "👨‍‍👧‍👦 Famiglia (modificabile)",
+        "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
         "paga_amount": "Importo",
         "paga_desc": "Il tuo salario è gestito dall'amministrazione. Per modifiche, contattaci.",
         "salva_modifiche": "💾 Salva modifiche",
         "modifiche_salvate": "✅ Modifiche salvate con successo! Una email di notifica è stata inviata all'amministrazione.",
-        "errore_salvataggio": " Errore durante il salvataggio. Riprova.",
+        "errore_salvataggio": "❌ Errore durante il salvataggio. Riprova.",
         "tipo_permesso": "Tipo di richiesta",
         "opt_permesso": "Permesso (giornata)",
         "opt_vacanza": "Vacanze (più giorni)",
@@ -484,7 +484,7 @@ TRADUZIONI = {
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": " Spontaneous Application",
+        "candidatura_spontanea": "📄 Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -512,7 +512,7 @@ TRADUZIONI = {
         "codice_accesso": "Access code",
         "pin_accesso": "Access PIN",
         "scarica": "Download",
-        "ristampa_pdf": "📄 Reprint PDF credentials",
+        "ristampa_pdf": " Reprint PDF credentials",
         "alert_condizioni": "By clicking, you certify the accuracy of the information and accept the conditions.",
         "leggi_condizioni": "📋 Read full conditions",
         "checkbox_confirm": "I have read and accept the general conditions and privacy policy",
@@ -567,7 +567,7 @@ TRADUZIONI = {
         "categoria_competenza": "Skill category",
         "dettaglio_competenza": "Details",
         "patente": "Driver's license",
-        "nota_patente": "️ A photocopy of the license will be required.",
+        "nota_patente": "⚠️ A photocopy of the license will be required.",
         "gruppo_sanguigno": "Blood type",
         "rh": "Rh",
         "allergie": "Allergies",
@@ -634,7 +634,7 @@ TRADUZIONI = {
         "home_punto4_titolo": "Daily workers payment",
         "home_punto4_desc1": "Attendance management",
         "home_punto4_desc2": "Payment calculation",
-        "home_navigation": " Quick navigation",
+        "home_navigation": "🚀 Quick navigation",
         "giornalieri_titolo": "Already a worker?",
         "giornalieri_desc": "Access your space",
         "nuovo_giornaliero_titolo": "New / Daily worker?",
@@ -649,14 +649,14 @@ TRADUZIONI = {
         "paese_gambia": "Gambia",
         "paese_altro": "Other country",
         "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
-        "avviso_regole_aziendali": " By submitting this form, you accept the company rules and PROACIER's privacy policy.",
+        "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
         "titolo_vestiario": "👕 Clothing Sizes",
         "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
         "sezione_paga": "💰 Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩👧‍👦 Family (modifiable)",
-        "sezione_vestiario": " Clothing & PPE (modifiable)",
+        "sezione_famille": "‍👩‍👧‍👦 Family (modifiable)",
+        "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
         "sezione_comunicazioni": "💬 Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
@@ -678,9 +678,9 @@ TRADUZIONI = {
         "richiesta_inviata": "✅ Request submitted successfully! You will receive a response from administration.",
         "lista_richieste": "📋 My previous requests",
         "stato_richiesta": "Status",
-        "stato_pending": " Pending",
+        "stato_pending": "⏳ Pending",
         "stato_approved": "✅ Approved",
-        "stato_rejected": " Rejected",
+        "stato_rejected": "❌ Rejected",
         "risposta_admin": "Administration response",
         "nessuna_richiesta": "No previous requests",
         "data_richiesta": "Request date",
@@ -901,9 +901,10 @@ def step_2_residenza_documenti(lingua):
         comune = st.text_input(get_testo("comune", lingua), value=st.session_state.dati_form.get('comune', ''), key="s2_com")
         regione_senegal = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"], key="s2_reg")
         st.markdown("---")
-        cni = st.text_input(f"{get_testo('cni', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('cni', ''), key="s2_cni")
+        # ✅ RIMOSSO OBBLIGO CNI e CSS
+        cni = st.text_input(get_testo("cni", lingua), value=st.session_state.dati_form.get('cni', ''), key="s2_cni")
         nif = st.text_input(get_testo("nif", lingua), value=st.session_state.dati_form.get('nif', ''), key="s2_nif")
-        css = st.text_input(f"{get_testo('css', lingua)} {get_testo('obbligatorio', lingua)}", value=st.session_state.dati_form.get('css', ''), key="s2_css")
+        css = st.text_input(get_testo("css", lingua), value=st.session_state.dati_form.get('css', ''), key="s2_css")
         cmu = st.text_input(get_testo("cmu", lingua), value=st.session_state.dati_form.get('cmu', ''), key="s2_cmu")
         ipres = st.text_input(get_testo("ipres", lingua), value=st.session_state.dati_form.get('ipres', ''), key="s2_ipres")
     with col_right:
@@ -1038,7 +1039,7 @@ def pagina_area_lavoratore(lingua):
                 if st.button(get_testo("ristampa_pdf", lingua), type="primary", use_container_width=True):
                     dati_lavoratore = mio_dato.to_dict(orient='records')[0]
                     pdf_bytes = genera_pdf_lavoratore(dati_lavoratore)
-                    st.download_button(label="📥 Scarica PDF", data=pdf_bytes, file_name=f"Proacier_{st.session_state.codice_operatore}.pdf", mime="application/pdf", use_container_width=True)
+                    st.download_button(label=" Scarica PDF", data=pdf_bytes, file_name=f"Proacier_{st.session_state.codice_operatore}.pdf", mime="application/pdf", use_container_width=True)
                     st.success("PDF generato! Clicca sul bottone sopra per scaricarlo.")
             else:
                 st.error("❌ Travailleur non trouvé")
@@ -1083,7 +1084,8 @@ def pagina_registrazione_multi_step(lingua):
                 if step == 1 and (not dati_step.get('cognome') or not dati_step.get('nome')):
                     st.error(get_testo("errore_obbligatori", lingua))
                     return
-                if step == 2 and (not dati_step.get('cni') or not dati_step.get('telefono_1') or not dati_step.get('css')):
+                # ✅ RIMOSSO OBBLIGO CNI e CSS - solo telefono obbligatorio
+                if step == 2 and (not dati_step.get('telefono_1')):
                     st.error(get_testo("errore_obbligatori", lingua))
                     return
                 st.session_state.step += 1
@@ -1099,11 +1101,10 @@ def pagina_registrazione_multi_step(lingua):
 def genera_e_salva_pdf(dati, lingua):
     codice = genera_codice()
     pin = genera_pin()
-    # ✅ FIX SINTASSI: **dati (unpacking dizionario)
     dati_finali = {
         "id": codice, "codice": codice, "pin": pin,
         "data_registrazione": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        **dati,  # ← CORRETTO!
+        **dati,
         "stato_firma": "Da firmare",
         "pdf_identifiants_titolo": get_testo("pdf_identifiants_titolo", lingua),
         "pdf_identifiants_desc": get_testo("pdf_identifiants_desc", lingua),
@@ -1273,10 +1274,32 @@ def main():
         if st.button(get_testo("accedi", lingua), type="primary", key="btn_login_lav"):
             dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
             trovato = False
+            
             if dati and len(dati) > 1:
                 df_temp = pd.DataFrame(dati[1:], columns=dati[0])
-                if 'Codice' in df_temp.columns and 'PIN' in df_temp.columns:
-                    trovato = any((df_temp['Codice'] == codice) & (df_temp['PIN'] == pin))
+                
+                # ✅ FIX: Ricerca case-insensitive per colonne Codice e PIN
+                col_codice = None
+                col_pin = None
+                for col in df_temp.columns:
+                    if str(col).strip().lower() in ['codice', 'code', 'id']:
+                        col_codice = col
+                    if str(col).strip().lower() in ['pin', 'code_pin']:
+                        col_pin = col
+                
+                if col_codice and col_pin:
+                    # Converti in stringa e rimuovi spazi
+                    df_temp[col_codice] = df_temp[col_codice].astype(str).str.strip()
+                    df_temp[col_pin] = df_temp[col_pin].astype(str).str.strip()
+                    
+                    match = df_temp[
+                        (df_temp[col_codice] == codice.strip()) & 
+                        (df_temp[col_pin] == pin.strip())
+                    ]
+                    trovato = not match.empty
+                else:
+                    st.error(f"Colonne non trovate. Colonne disponibili: {list(df_temp.columns)}")
+            
             if trovato:
                 st.session_state.logged_in = True
                 st.session_state.user_type = 'lavoratore'
