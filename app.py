@@ -1150,7 +1150,14 @@ def step_1_personale_famiglia(lingua):
         numero_mogli, dettagli_mogli = 0, ""
         figli_totale_calcolato = 0
         if stato_civile == get_testo("coniugato", lingua):
-            numero_mogli = st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=st.session_state.dati_form.get('numero_mogli', 1), key="s1_mogli")
+            # FIX: Corretto qui!
+            numero_mogli = st.number_input(
+                get_testo("numero_mogli", lingua), 
+                min_value=1, 
+                max_value=4, 
+                value=st.session_state.dati_form.get('numero_mogli', 1), 
+                key="s1_mogli"
+            )
             dettagli = []
             for i in range(1, numero_mogli + 1):
                 st.markdown(f"**Épouse {i}**")
