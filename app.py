@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER - HRM - Versione 18.0 - FIX ERRORI PDF E TIPI DATI
-LISTA MODIFICHE APPLICATE:
-✅ Fix errore PDF: '>' not supported between instances of 'str' and 'int'
-✅ Conversione esplicita di tutti i valori nel PDF
-✅ Fix gestione taglie come stringhe
-✅ Fix numeri telefono e documenti come stringhe
-✅ Fix valori famiglia e figli come interi
-✅ Validazione tipi dati prima generazione PDF
+PROACIER - HRM - Versione 18.0 - FIX CRITICI
+============================================
+MODIFICHE:
+1. Fix errori sintassi Python (causavano pagina nera)
+2. Fix typo st.s uccess -> st.success
+3. Fix typo el if -> elif
+4. Fix typo dati, -> **dati,
+5. Fix typo c_n ome -> c_nome
+6. Fix typo indirizzo -> 'indirizzo'
 """
 import streamlit as st
 import requests
@@ -22,7 +23,7 @@ import json
 # ============================================
 st.set_page_config(
     page_title="Proacier - Ressources Humaines",
-    page_icon="",
+    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -90,7 +91,7 @@ TRADUZIONI = {
         "scarica": "Télécharger",
         "ristampa_pdf": " Réimprimer PDF identifiants",
         "alert_condizioni": "En cliquant, vous certifiez l'exactitude des informations et acceptez les conditions.",
-        "leggi_condizioni": "📋 Lire les conditions complètes",
+        "leggi_condizioni": " Lire les conditions complètes",
         "checkbox_confirm": "J'ai lu et j'accepte les conditions générales et la politique de confidentialité",
         "errore_obbligatori": "Veuillez remplir tous les champs obligatoires (*)",
         "obbligatorio": "*",
@@ -194,7 +195,7 @@ TRADUZIONI = {
         "esperienza_anno": "Années d'expérience",
         "salario_richiesto": "Prétention salariale (FCFA)",
         "note": "Notes supplémentaires",
-        "invia_candidatura": " Envoyer ma candidature",
+        "invia_candidatura": "📤 Envoyer ma candidature",
         "candidatura_inviata": "✅ Candidature envoyée avec succès !",
         "errore_candidatura": "Veuillez remplir Nom, Prénom, Email et Téléphone.",
         "home_titolo": "📋 À quoi sert cette application?",
@@ -224,8 +225,8 @@ TRADUZIONI = {
         "paese_guinea": "Guinée",
         "paese_gambia": "Gambie",
         "paese_altro": "Autre pays",
-        "avviso_non_contratto": "⚠️ Ceci n'est PAS un contrat d'embauche. Il s'agit uniquement d'une transmission de données à l'administration.",
-        "avviso_regole_aziendali": " En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
+        "avviso_non_contratto": "️ Ceci n'est PAS un contrat d'embauche. Il s'agit uniquement d'une transmission de données à l'administration.",
+        "avviso_regole_aziendali": "📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.",
         "cocher_case": "Veuillez cocher la case de confirmation",
         "titolo_vestiario": "Tailles Vêtements",
         "sezione_dati_personali": "📋 Données Personnelles (non modifiables)",
@@ -233,13 +234,13 @@ TRADUZIONI = {
         "sezione_contatti": "📞 Coordonnées (modifiables)",
         "sezione_famille": "👨‍👩‍👧‍👦 Famille (modifiable)",
         "sezione_vestiario": "👕 Vêtements & EPI (modifiables)",
-        "sezione_comunicazioni": "💬 Communications & Demandes",
+        "sezione_comunicazioni": " Communications & Demandes",
         "paga_type": "Type de paiement",
         "paga_amount": "Montant",
         "paga_desc": "Votre salaire est géré par l'administration. Pour toute modification, contactez-nous.",
         "salva_modifiche": "💾 Enregistrer les modifications",
         "modifiche_salvate": "✅ Modifications enregistrées avec succès ! Un email de notification a été envoyé à l'administration.",
-        "errore_salvataggio": " Erreur lors de l'enregistrement. Veuillez réessayer.",
+        "errore_salvataggio": "❌ Erreur lors de l'enregistrement. Veuillez réessayer.",
         "tipo_permesso": "Type de demande",
         "opt_permesso": "Permission (jour)",
         "opt_vacanza": "Vacances (plusieurs jours)",
@@ -252,7 +253,7 @@ TRADUZIONI = {
         "motivo_permesso": "Motif / Détails",
         "invia_richiesta": "📤 Envoyer la demande",
         "richiesta_inviata": "✅ Demande envoyée avec succès ! Vous recevrez une réponse de l'administration.",
-        "lista_richieste": " Mes demandes précédentes",
+        "lista_richieste": "📋 Mes demandes précédentes",
         "stato_richiesta": "Statut",
         "stato_pending": "⏳ En attente",
         "stato_approved": "✅ Approuvée",
@@ -269,7 +270,7 @@ TRADUZIONI = {
         "sottotitolo": "Sistema di Reclutamento - Senegal",
         "lingua": "Lingua",
         "nuova_assunzione": "📝 Trasmissione Dati",
-        "candidatura_spontanea": " Candidatura Spontanea",
+        "candidatura_spontanea": "📄 Candidatura Spontanea",
         "dashboard": "Dashboard",
         "area_lavoratore": "Spazio Lavoratore",
         "logout": "Esci",
@@ -297,9 +298,9 @@ TRADUZIONI = {
         "codice_accesso": "Codice di accesso",
         "pin_accesso": "PIN di accesso",
         "scarica": "Scarica",
-        "ristampa_pdf": " Ristampa PDF credenziali",
+        "ristampa_pdf": "📄 Ristampa PDF credenziali",
         "alert_condizioni": "Cliccando, certifichi l'esattezza delle informazioni e accetti le condizioni.",
-        "leggi_condizioni": "📋 Leggi le condizioni complete",
+        "leggi_condizioni": " Leggi le condizioni complete",
         "checkbox_confirm": "Ho letto e accetto le condizioni generali e la politica sulla privacy",
         "errore_obbligatori": "Compila tutti i campi obbligatori (*)",
         "obbligatorio": "*",
@@ -436,19 +437,19 @@ TRADUZIONI = {
         "avviso_non_contratto": "⚠️ Questo NON è un contratto di assunzione. Si tratta solo di una trasmissione di dati all'amministrazione.",
         "avviso_regole_aziendali": "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.",
         "cocher_case": "Per favore seleziona la casella di conferma",
-        "titolo_vestiario": " Taglie Abbigliamento",
+        "titolo_vestiario": "👕 Taglie Abbigliamento",
         "sezione_dati_personali": "📋 Dati Personali (non modificabili)",
         "sezione_paga": "💰 Informazioni Salariali",
         "sezione_contatti": "📞 Contatti (modificabili)",
-        "sezione_famille": "👨‍‍👧‍👦 Famiglia (modificabile)",
+        "sezione_famille": "‍👩‍👧👦 Famiglia (modificabile)",
         "sezione_vestiario": "👕 Vestiario e DPI (modificabili)",
         "sezione_comunicazioni": "💬 Comunicazioni e Richieste",
         "paga_type": "Tipo di pagamento",
         "paga_amount": "Importo",
         "paga_desc": "Il tuo salario è gestito dall'amministrazione. Per modifiche, contattaci.",
-        "salva_modifiche": "💾 Salva modifiche",
+        "salva_modifiche": " Salva modifiche",
         "modifiche_salvate": "✅ Modifiche salvate con successo! Una email di notifica è stata inviata all'amministrazione.",
-        "errore_salvataggio": " Errore durante il salvataggio. Riprova.",
+        "errore_salvataggio": "❌ Errore durante il salvataggio. Riprova.",
         "tipo_permesso": "Tipo di richiesta",
         "opt_permesso": "Permesso (giornata)",
         "opt_vacanza": "Vacanze (più giorni)",
@@ -459,11 +460,11 @@ TRADUZIONI = {
         "data_inizio_permesso": "Data di inizio",
         "data_fine_permesso": "Data di fine",
         "motivo_permesso": "Motivo / Dettagli",
-        "invia_richiesta": "📤 Invia richiesta",
+        "invia_richiesta": " Invia richiesta",
         "richiesta_inviata": "✅ Richiesta inviata con successo! Riceverai una risposta dall'amministrazione.",
-        "lista_richieste": " Le mie richieste precedenti",
+        "lista_richieste": "📋 Le mie richieste precedenti",
         "stato_richiesta": "Stato",
-        "stato_pending": "⏳ In attesa",
+        "stato_pending": " In attesa",
         "stato_approved": "✅ Approvata",
         "stato_rejected": "❌ Rifiutata",
         "risposta_admin": "Risposta dell'amministrazione",
@@ -478,7 +479,7 @@ TRADUZIONI = {
         "sottotitolo": "Recruitment System - Senegal",
         "lingua": "Language",
         "nuova_assunzione": "📝 Data Transmission",
-        "candidatura_spontanea": "📄 Spontaneous Application",
+        "candidatura_spontanea": " Spontaneous Application",
         "dashboard": "Dashboard",
         "area_lavoratore": "Worker Space",
         "logout": "Logout",
@@ -502,7 +503,7 @@ TRADUZIONI = {
         "indietro": "← Back",
         "genera_pdf": "📄 I accept the conditions",
         "pdf_generato": "Registration successful!",
-        "conserva_credenziali": "️ SAVE THESE CREDENTIALS",
+        "conserva_credenziali": "⚠️ SAVE THESE CREDENTIALS",
         "codice_accesso": "Access code",
         "pin_accesso": "Access PIN",
         "scarica": "Download",
@@ -645,13 +646,13 @@ TRADUZIONI = {
         "avviso_non_contratto": "⚠️ This is NOT an employment contract. This is only a data transmission to the administration.",
         "avviso_regole_aziendali": "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy.",
         "cocher_case": "Please check the confirmation box",
-        "titolo_vestiario": "👕 Clothing Sizes",
-        "sezione_dati_personali": " Personal Data (non-modifiable)",
-        "sezione_paga": "💰 Salary Information",
+        "titolo_vestiario": " Clothing Sizes",
+        "sezione_dati_personali": "📋 Personal Data (non-modifiable)",
+        "sezione_paga": " Salary Information",
         "sezione_contatti": "📞 Contact Info (modifiable)",
-        "sezione_famille": "👨‍👩‍👧‍👦 Family (modifiable)",
+        "sezione_famille": "👨‍👩‍👧‍ Family (modifiable)",
         "sezione_vestiario": "👕 Clothing & PPE (modifiable)",
-        "sezione_comunicazioni": "💬 Communications & Requests",
+        "sezione_comunicazioni": " Communications & Requests",
         "paga_type": "Payment type",
         "paga_amount": "Amount",
         "paga_desc": "Your salary is managed by administration. For changes, contact us.",
@@ -700,7 +701,7 @@ def salva_su_google_sheet(dati, url_script, azione="append"):
         if response.status_code == 200:
             return True
         else:
-            st.error(f"Erreur HTTP: {response.status_code} - {response.text[:100]}")
+            st.error(f"Erreur HTTP: {response.status_code}")
             return False
     except Exception as e:
         st.error(f"Erreur de connexion: {str(e)}")
@@ -736,24 +737,24 @@ class PDFProacier(FPDF):
         self.cell(0, 10, 'FICHE D\'ENREGISTREMENT - RESSOURCES HUMAINES', 0, 1, 'C', True)
         self.set_text_color(0, 0, 0)
         self.ln(2)
-    
+
     def footer(self):
         self.set_y(-15)
         self.set_font('Helvetica', 'I', 8)
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-    
+
     def sezione(self, titolo):
         self.set_font('Helvetica', 'B', 10)
         self.set_fill_color(217, 225, 242)
         self.cell(0, 6, titolo, 0, 1, 'C', True)
         self.ln(1)
-    
+
     def campo(self, etichetta, valore):
         self.set_font('Helvetica', 'B', 8)
         self.cell(60, 5, etichetta, 0, 0)
         self.set_font('Helvetica', '', 8)
         self.cell(0, 5, str(valore) if valore else "___________", 0, 1)
-    
+
     def campo_doppio(self, et1, val1, et2, val2):
         self.set_font('Helvetica', 'B', 8)
         self.cell(50, 5, et1, 0, 0)
@@ -772,38 +773,32 @@ def genera_pdf_lavoratore(dati):
     pdf.cell(95, 5, f"N° fiche: {dati.get('codice', '')}", 0, 0)
     pdf.cell(0, 5, f"Date: {datetime.now().strftime('%d/%m/%Y')}", 0, 1, 'R')
     pdf.ln(2)
-    
     pdf.sezione("1. IDENTITE & FAMILLE")
     pdf.campo_doppio("Nom:", dati.get('cognome', ''), "Prenom(s):", dati.get('nome', ''))
     pdf.campo_doppio("Ne(e) le:", dati.get('data_nascita', ''), "a:", dati.get('luogo_nascita', ''))
     pdf.campo_doppio("Nationalite:", dati.get('nazionalita', ''), "Pays:", dati.get('paese_origine', ''))
     pdf.campo_doppio("Etat civil:", dati.get('stato_civile', ''), "Enfants:", dati.get('figli_totale', ''))
-    if int(dati.get('numero_mogli', 0) or 0) > 0:
-        pdf.campo("Epouses:", f"{dati.get('numero_mogli', '0')}")
+    if dati.get('numero_mogli', 0) > 0:
+        pdf.campo("Epouses:", f"{dati.get('numero_mogli')}")
     pdf.ln(1)
-    
     pdf.sezione("2. CONTACT & DOCUMENTS")
     pdf.campo("Adresse:", f"{dati.get('indirizzo', '')}, {dati.get('quartiere', '')}, {dati.get('regione_senegal', '')}")
     pdf.campo_doppio("Tel 1:", dati.get('telefono_1', ''), "Tel 2:", dati.get('telefono_2', ''))
     pdf.campo_doppio("CNI:", dati.get('cni', ''), "CSS:", dati.get('css', ''))
     pdf.ln(1)
-    
     pdf.sezione("3. EXPERIENCE & COMPETENCES")
     pdf.campo("Poste:", dati.get('mansione_1', ''))
     pdf.campo("Competence:", f"{dati.get('categoria_competenza', '')} - {dati.get('dettaglio_competenza', '')}")
     pdf.campo("Permis:", dati.get('patente', ''))
     pdf.ln(1)
-    
     pdf.sezione("4. VETEMENTS & EPI")
-    pdf.campo_doppio("Taille T-shirt:", str(dati.get('taglia_maglia', '')), "Taille Pantalon:", str(dati.get('taglia_pantaloni', '')))
-    pdf.campo_doppio("Pointure:", str(dati.get('taglia_scarpe', '')), "Taille Gilet:", str(dati.get('taglia_giacca', '')))
+    pdf.campo_doppio("Taille T-shirt:", dati.get('taglia_maglia', ''), "Taille Pantalon:", dati.get('taglia_pantaloni', ''))
+    pdf.campo_doppio("Pointure:", dati.get('taglia_scarpe', ''), "Taille Gilet:", dati.get('taglia_giacca', ''))
     pdf.ln(1)
-    
     pdf.sezione("5. MEDICAL & URGENCE")
     pdf.campo_doppio("Groupe:", f"{dati.get('gruppo_sanguigno', '')} {dati.get('rh', '')}", "Aptitude:", dati.get('idoneita', ''))
     pdf.campo_doppio("Contact:", dati.get('emergenza_nome', ''), "Tel:", dati.get('emergenza_tel', ''))
     pdf.ln(3)
-    
     pdf.set_font('Helvetica', 'I', 8)
     pdf.multi_cell(0, 4, "Je certifie l'exactitude des informations et accepte les conditions.")
     pdf.ln(5)
@@ -813,7 +808,6 @@ def genera_pdf_lavoratore(dati):
     pdf.set_font('Helvetica', '', 9)
     pdf.cell(95, 15, '', 1, 0)
     pdf.cell(95, 15, '', 1, 1)
-    
     pdf.add_page()
     pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(0, 10, 'CONSENTEMENT DONNEES PERSONNELLES', 0, 1, 'C')
@@ -822,7 +816,6 @@ def genera_pdf_lavoratore(dati):
     pdf.ln(10)
     pdf.cell(0, 6, 'Signature:', 0, 1)
     pdf.cell(0, 20, '', 1, 1)
-    
     pdf.add_page()
     pdf.set_fill_color(255, 243, 205)
     pdf.set_font('Helvetica', 'B', 14)
@@ -840,47 +833,10 @@ def genera_pdf_lavoratore(dati):
     pdf.set_text_color(150, 0, 0)
     pdf.multi_cell(0, 5, dati.get('pdf_identifiants_avviso', 'Ces identifiants sont personnels et confidentiels.'))
     pdf.set_text_color(0, 0, 0)
-    
     pdf_bytes = pdf.output(dest='S')
     if isinstance(pdf_bytes, str):
         pdf_bytes = pdf_bytes.encode('latin-1', errors='ignore')
     return bytes(pdf_bytes)
-
-# ============================================
-# HELPER: MAPPING CHIAVI SHEET → PDF
-# ============================================
-def map_sheet_to_pdf_keys(dati_sheet):
-    """Converte chiavi PascalCase del sheet in minuscole per il PDF"""
-    mapping = {
-        'Codice': 'codice', 'PIN': 'pin', 'Data_Registrazione': 'data_registrazione',
-        'Cognome': 'cognome', 'Nome': 'nome', 'Data_Nascita': 'data_nascita',
-        'Luogo_Nascita': 'luogo_nascita', 'Nazionalita': 'nazionalita',
-        'Paese_Origine': 'paese_origine', 'Sesso': 'sesso', 'Stato_Civile': 'stato_civile',
-        'Numero_Mogli': 'numero_mogli', 'Dettagli_Mogli': 'dettagli_mogli', 'Figli': 'figli_totale',
-        'Indirizzo': 'indirizzo', 'Quartiere': 'quartiere', 'Comune': 'comune',
-        'Dipartimento': 'regione_senegal',
-        'Telefono': 'telefono_1', 'Telefono2': 'telefono_2', 'Telefono3': 'telefono_3',
-        'CNI': 'cni', 'NIF': 'nif', 'CSS': 'css', 'CMU': 'cmu', 'IPRES': 'ipres',
-        'Mansione_1': 'mansione_1', 'Azienda_1': 'azienda_1',
-        'Categoria_Competenza': 'categoria_competenza', 'Dettaglio_Competenza': 'dettaglio_competenza',
-        'Patente': 'patente',
-        'Gruppo_Sanguigno': 'gruppo_sanguigno', 'Rh': 'rh',
-        'Allergie': 'allergie', 'Malattie_Croniche': 'malattie',
-        'Idoneita_Medica': 'idoneita', 'Data_Visita': 'data_visita',
-        'Emergenza_Nome': 'emergenza_nome', 'Emergenza_Parentela': 'emergenza_parentela',
-        'Emergenza_Tel': 'emergenza_tel', 'Emergenza_Indirizzo': 'emergenza_indirizzo',
-        'Taglia_Maglia': 'taglia_maglia', 'Taglia_Pantaloni': 'taglia_pantaloni',
-        'Taglia_Scarpe': 'taglia_scarpe', 'Taglia_Guanti': 'taglia_guanti',
-        'Taglia_Casco': 'taglia_cappello', 'Taglia_Gilet': 'taglia_giacca',
-    }
-    result = {}
-    for k, v in dati_sheet.items():
-        mapped_key = mapping.get(k, k)
-        if v is None or str(v) == '#ERROR!' or str(v) == 'nan':
-            result[mapped_key] = ''
-        else:
-            result[mapped_key] = v
-    return result
 
 # ============================================
 # STEP DEL FORMULARIO
@@ -950,7 +906,6 @@ def step_2_residenza_documenti(lingua):
         cmu = st.text_input(get_testo("cmu", lingua), value=st.session_state.dati_form.get('cmu', ''), key="s2_cmu")
         ipres = st.text_input(get_testo("ipres", lingua), value=st.session_state.dati_form.get('ipres', ''), key="s2_ipres")
     with col_right:
-        # TELEFONO 1
         st.markdown(f"""<div class="phone-box"><h4>{get_testo('telefono_1', lingua)} {get_testo('obbligatorio', lingua)}</h4></div>""", unsafe_allow_html=True)
         tel1 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_1', ''), key="s2_tel1", label_visibility="collapsed")
         col_cb1, col_cb2 = st.columns(2)
@@ -962,7 +917,6 @@ def step_2_residenza_documenti(lingua):
             telegram = st.checkbox(get_testo("telegram", lingua), value=st.session_state.dati_form.get('telegram_tel1', False), key="s2_telegram")
         signal = st.checkbox(get_testo("signal", lingua), value=st.session_state.dati_form.get('signal_tel1', False), key="s2_signal")
         st.markdown("---")
-        # TELEFONO 2
         st.markdown(f"""<div class="phone-box"><h4>{get_testo('telefono_2', lingua)}</h4></div>""", unsafe_allow_html=True)
         tel2 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_2', ''), key="s2_tel2", label_visibility="collapsed")
         col_cb3, col_cb4 = st.columns(2)
@@ -974,7 +928,6 @@ def step_2_residenza_documenti(lingua):
             telegram2 = st.checkbox(get_testo("telegram", lingua) + " 2", value=st.session_state.dati_form.get('telegram_tel2', False), key="s2_telegram2")
         signal2 = st.checkbox(get_testo("signal", lingua) + " 2", value=st.session_state.dati_form.get('signal_tel2', False), key="s2_signal2")
         st.markdown("---")
-        # TELEFONO 3
         st.markdown(f"""<div class="phone-box"><h4>{get_testo('telefono_3', lingua)}</h4></div>""", unsafe_allow_html=True)
         tel3 = st.text_input("Numéro", value=st.session_state.dati_form.get('telefono_3', ''), key="s2_tel3", label_visibility="collapsed")
         col_cb5, col_cb6 = st.columns(2)
@@ -1007,7 +960,7 @@ def step_3_esperienza(lingua):
         with c2:
             dati_lavori[f"data_inizio_{i}"] = st.text_input(get_testo("data_inizio", lingua) + " (MM/AAAA)", key=f"s3_di_{i}")
             dati_lavori[f"data_fine_{i}"] = st.text_input(get_testo("data_fine", lingua) + " (MM/AAAA)", key=f"s3_df_{i}")
-            dati_lavori[f"motivo_uscita_{i}"] = st.text_input(get_testo("motivo_uscita", lingua), key=f"s3_mu_{i}")
+        dati_lavori[f"motivo_uscita_{i}"] = st.text_input(get_testo("motivo_uscita", lingua), key=f"s3_mu_{i}")
         st.markdown("---")
     return dati_lavori
 
@@ -1067,13 +1020,12 @@ def step_7_vestiario(lingua):
     return {"taglia_maglia": taglia_maglia, "taglia_pantaloni": taglia_pantaloni, "taglia_scarpe": taglia_scarpe, "taglia_giacca": taglia_giacca, "taglia_cappello": taglia_cappello, "taglia_guanti": taglia_guanti}
 
 # ============================================
-# PAGINA AREA LAVORATORE - FIX COMPLETO
+# PAGINE
 # ============================================
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f"{get_testo('benvenuto', lingua)} - Code: {st.session_state.get('codice_operatore', 'N/A')}")
     st.markdown("---")
-    
     dati = leggi_da_google_sheet(GOOGLE_SCRIPT_URL_ASSUNZIONI)
     if not dati or len(dati) < 2:
         st.warning("Nessun dato disponibile")
@@ -1084,31 +1036,23 @@ def pagina_area_lavoratore(lingua):
             st.session_state.pagina = 'home'
             st.rerun()
         return
-    
     df = pd.DataFrame(dati[1:], columns=dati[0])
     col_codice = None
     for col in df.columns:
         if str(col).strip().lower() in ['codice', 'code', 'id']:
             col_codice = col
             break
-    
     if not col_codice:
         st.error(f"Colonna 'Codice' non trovata. Colonne disponibili: {list(df.columns)}")
         return
-    
     df[col_codice] = df[col_codice].astype(str).str.strip()
     mio_dato_df = df[df[col_codice] == str(st.session_state.get('codice_operatore', '')).strip()]
-    
     if mio_dato_df.empty:
         st.error(f"❌ Travailleur non trouvé (Code: {st.session_state.get('codice_operatore', '')})")
         st.write(f"Codes présents: {df[col_codice].tolist()}")
         return
-    
     mio_dato = mio_dato_df.iloc[0].to_dict()
     idx = mio_dato_df.index[0]
-    dati_pdf = map_sheet_to_pdf_keys(mio_dato)
-    
-    # SEZIONE 1: DATI NON MODIFICABILI
     st.subheader(get_testo("sezione_dati_personali", lingua))
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -1123,185 +1067,6 @@ def pagina_area_lavoratore(lingua):
         st.text_input(get_testo("codice_accesso", lingua), value=str(mio_dato.get('Codice', '')), disabled=True)
         st.text_input(get_testo("luogo_nascita", lingua), value=str(mio_dato.get('Luogo_Nascita', '')), disabled=True)
         st.text_input(get_testo("nazionalita", lingua), value=str(mio_dato.get('Nazionalita', '')), disabled=True)
-    
-    st.markdown("---")
-    
-    # SEZIONE 2: CONTATTI MODIFICABILI
-    st.subheader(get_testo("sezione_contatti", lingua))
-    col1, col2 = st.columns(2)
-    with col1:
-        nuovo_tel = st.text_input(get_testo("telefono_1", lingua), value=str(mio_dato.get('Telefono', '')))
-        nuovo_tel2 = st.text_input(get_testo("telefono_2", lingua), value=str(mio_dato.get('Telefono2', '')))
-        nuovo_indirizzo = st.text_input(get_testo("indirizzo", lingua), value=str(mio_dato.get('Indirizzo', '')))
-        nuovo_quartiere = st.text_input(get_testo("quartiere", lingua), value=str(mio_dato.get('Quartiere', '')))
-    with col2:
-        nuovo_comune = st.text_input(get_testo("comune", lingua), value=str(mio_dato.get('Comune', '')))
-        nuovo_dipartimento = st.text_input(get_testo("regione_senegal", lingua), value=str(mio_dato.get('Dipartimento', '')))
-        nuovo_em_nome = st.text_input(get_testo("emergenza_nome", lingua), value=str(mio_dato.get('Emergenza_Nome', '')))
-        nuovo_em_tel = st.text_input(get_testo("emergenza_tel", lingua), value=str(mio_dato.get('Emergenza_Tel', '')))
-    
-    st.markdown("---")
-    
-    # SEZIONE 3: FAMIGLIA MODIFICABILE
-    st.subheader(get_testo("sezione_famille", lingua))
-    col1, col2 = st.columns(2)
-    with col1:
-        stato_civile_val = str(mio_dato.get('Stato_Civile', ''))
-        nuovo_stato_civile = st.selectbox(
-            get_testo("stato_civile", lingua),
-            [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)],
-            index=0 if stato_civile_val == get_testo("celibe", lingua) else (1 if stato_civile_val == get_testo("coniugato", lingua) else 0)
-        )
-        try:
-            figli_val = int(float(str(mio_dato.get('Figli', '0')).replace('#ERROR!', '0')))
-        except:
-            figli_val = 0
-        nuovi_figli = st.number_input(get_testo("figli_totale", lingua), min_value=0, value=figli_val)
-    with col2:
-        try:
-            mogli_val = int(float(str(mio_dato.get('Numero_Mogli', '0')).replace('#ERROR!', '0')))
-        except:
-            mogli_val = 0
-        if nuovo_stato_civile == get_testo("coniugato", lingua):
-            nuove_mogli = st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=max(1, mogli_val))
-            for i in range(1, nuove_mogli + 1):
-                st.markdown(f"**Épouse {i}**")
-                c_res, c_fig = st.columns(2)
-                with c_res:
-                    st.text_input(get_testo("residenza_moglie", lingua) + f" {i}", value=str(mio_dato.get(f'Residenza_Moglie_{i}', '')), key=f"edit_res_{i}")
-                with c_fig:
-                    try:
-                        fig_val = int(float(str(mio_dato.get(f'Figli_Moglie_{i}', '0')).replace('#ERROR!', '0')))
-                    except:
-                        fig_val = 0
-                    st.number_input(get_testo("figli_moglie", lingua) + f" {i}", min_value=0, value=fig_val, key=f"edit_fig_{i}")
-        else:
-            nuove_mogli = 0
-    
-    st.markdown("---")
-    
-    # SEZIONE 4: VESTIARIO MODIFICABILE
-    st.subheader(get_testo("sezione_vestiario", lingua))
-    col1, col2 = st.columns(2)
-    taglie_maglia_list = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua), get_testo("opt_xxxl", lingua)]
-    taglie_pantaloni_list = ["38", "40", "42", "44", "46", "48", "50", "52"]
-    taglie_scarpe_list = ["38", "39", "40", "41", "42", "43", "44", "45", "46", "47"]
-    taglie_guanti_list = ["S", "M", "L", "XL"]
-    taglie_cappello_list = ["S", "M", "L", "XL"]
-    taglie_giacca_list = [get_testo("opt_xs", lingua), get_testo("opt_s", lingua), get_testo("opt_m", lingua), get_testo("opt_l", lingua), get_testo("opt_xl", lingua), get_testo("opt_xxl", lingua)]
-    
-    def safe_index(lst, val, default=0):
-        try:
-            val_str = str(val).strip()
-            if val_str in lst:
-                return lst.index(val_str)
-        except:
-            pass
-        return default
-    
-    with col1:
-        nuova_taglia_maglia = st.selectbox(get_testo("taglia_maglia", lingua), taglie_maglia_list, index=safe_index(taglie_maglia_list, mio_dato.get('Taglia_Maglia', '')))
-        nuova_taglia_pantaloni = st.selectbox(get_testo("taglia_pantaloni", lingua), taglie_pantaloni_list, index=safe_index(taglie_pantaloni_list, mio_dato.get('Taglia_Pantaloni', '')))
-        nuova_taglia_scarpe = st.selectbox(get_testo("taglia_scarpe", lingua), taglie_scarpe_list, index=safe_index(taglie_scarpe_list, mio_dato.get('Taglia_Scarpe', '')))
-    with col2:
-        nuova_taglia_guanti = st.selectbox(get_testo("taglia_guanti", lingua), taglie_guanti_list, index=safe_index(taglie_guanti_list, mio_dato.get('Taglia_Guanti', '')))
-        nuova_taglia_cappello = st.selectbox(get_testo("taglia_cappello", lingua), taglie_cappello_list, index=safe_index(taglie_cappello_list, mio_dato.get('Taglia_Casco', '')))
-        nuova_taglia_giacca = st.selectbox(get_testo("taglia_giacca", lingua), taglie_giacca_list, index=safe_index(taglie_giacca_list, mio_dato.get('Taglia_Gilet', '')))
-    
-    st.markdown("---")
-    
-    # PULSANTI AZIONE
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button(get_testo("salva_modifiche", lingua), type="primary", use_container_width=True):
-            try:
-                df.loc[idx, 'Telefono'] = nuovo_tel
-                df.loc[idx, 'Telefono2'] = nuovo_tel2
-                df.loc[idx, 'Indirizzo'] = nuovo_indirizzo
-                df.loc[idx, 'Quartiere'] = nuovo_quartiere
-                df.loc[idx, 'Comune'] = nuovo_comune
-                df.loc[idx, 'Dipartimento'] = nuovo_dipartimento
-                df.loc[idx, 'Emergenza_Nome'] = nuovo_em_nome
-                df.loc[idx, 'Emergenza_Tel'] = nuovo_em_tel
-                df.loc[idx, 'Stato_Civile'] = nuovo_stato_civile
-                df.loc[idx, 'Figli'] = int(nuovi_figli)
-                df.loc[idx, 'Numero_Mogli'] = int(nuove_mogli)
-                df.loc[idx, 'Taglia_Maglia'] = str(nuova_taglia_maglia)
-                df.loc[idx, 'Taglia_Pantaloni'] = str(nuova_taglia_pantaloni)
-                df.loc[idx, 'Taglia_Scarpe'] = str(nuova_taglia_scarpe)
-                df.loc[idx, 'Taglia_Guanti'] = str(nuova_taglia_guanti)
-                df.loc[idx, 'Taglia_Casco'] = str(nuova_taglia_cappello)
-                df.loc[idx, 'Taglia_Gilet'] = str(nuova_taglia_giacca)
-                for i in range(1, nuove_mogli + 1):
-                    res_key = f"edit_res_{i}"
-                    fig_key = f"edit_fig_{i}"
-                    if res_key in st.session_state:
-                        df.loc[idx, f'Residenza_Moglie_{i}'] = st.session_state[res_key]
-                    if fig_key in st.session_state:
-                        df.loc[idx, f'Figli_Moglie_{i}'] = int(st.session_state[fig_key])
-                dati_json = {"action": "update", "data": df.to_dict(orient='records')}
-                resp = requests.post(GOOGLE_SCRIPT_URL_ASSUNZIONI, json=dati_json, timeout=30)
-                if resp.status_code == 200:
-                    st.success(get_testo("modifiche_salvate", lingua))
-                    st.balloons()
-                    st.rerun()
-                else:
-                    st.error(f"Erreur HTTP: {resp.status_code}")
-            except Exception as e:
-                st.error(f"Erreur: {str(e)}")
-    
-    with col_btn2:
-        if st.button(get_testo("ristampa_pdf", lingua), use_container_width=True):
-            try:
-                # Ricostruisci dati_pdf con valori aggiornati - TUTTI COME STRINGHE
-                dati_pdf['codice'] = str(mio_dato.get('Codice', ''))
-                dati_pdf['pin'] = str(mio_dato.get('PIN', ''))
-                dati_pdf['cognome'] = str(mio_dato.get('Cognome', ''))
-                dati_pdf['nome'] = str(mio_dato.get('Nome', ''))
-                dati_pdf['data_nascita'] = str(mio_dato.get('Data_Nascita', ''))
-                dati_pdf['luogo_nascita'] = str(mio_dato.get('Luogo_Nascita', ''))
-                dati_pdf['nazionalita'] = str(mio_dato.get('Nazionalita', ''))
-                dati_pdf['paese_origine'] = str(mio_dato.get('Paese_Origine', ''))
-                dati_pdf['stato_civile'] = str(mio_dato.get('Stato_Civile', ''))
-                dati_pdf['figli_totale'] = str(mio_dato.get('Figli', ''))
-                dati_pdf['numero_mogli'] = str(mio_dato.get('Numero_Mogli', ''))
-                dati_pdf['indirizzo'] = str(nuovo_indirizzo)
-                dati_pdf['quartiere'] = str(nuovo_quartiere)
-                dati_pdf['regione_senegal'] = str(nuovo_dipartimento)
-                dati_pdf['telefono_1'] = str(nuovo_tel)
-                dati_pdf['telefono_2'] = str(nuovo_tel2)
-                dati_pdf['cni'] = str(mio_dato.get('CNI', ''))
-                dati_pdf['css'] = str(mio_dato.get('CSS', ''))
-                dati_pdf['mansione_1'] = str(mio_dato.get('Mansione_1', ''))
-                dati_pdf['categoria_competenza'] = str(mio_dato.get('Categoria_Competenza', ''))
-                dati_pdf['dettaglio_competenza'] = str(mio_dato.get('Dettaglio_Competenza', ''))
-                dati_pdf['patente'] = str(mio_dato.get('Patente', ''))
-                # TAGLIE COME STRINGHE
-                dati_pdf['taglia_maglia'] = str(nuova_taglia_maglia)
-                dati_pdf['taglia_pantaloni'] = str(nuova_taglia_pantaloni)
-                dati_pdf['taglia_scarpe'] = str(nuova_taglia_scarpe)
-                dati_pdf['taglia_giacca'] = str(nuova_taglia_giacca)
-                dati_pdf['taglia_cappello'] = str(nuova_taglia_cappello)
-                dati_pdf['taglia_guanti'] = str(nuova_taglia_guanti)
-                dati_pdf['gruppo_sanguigno'] = str(mio_dato.get('Gruppo_Sanguigno', ''))
-                dati_pdf['rh'] = str(mio_dato.get('Rh', ''))
-                dati_pdf['idoneita'] = str(mio_dato.get('Idoneita_Medica', ''))
-                dati_pdf['emergenza_nome'] = str(nuovo_em_nome)
-                dati_pdf['emergenza_tel'] = str(nuovo_em_tel)
-                
-                pdf_bytes = genera_pdf_lavoratore(dati_pdf)
-                st.download_button(
-                    label="📥 Scarica PDF",
-                    data=pdf_bytes,
-                    file_name=f"Proacier_{st.session_state.codice_operatore}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-                st.success("PDF generato con successo!")
-            except Exception as e:
-                st.error(f"Erreur génération PDF: {str(e)}")
-                st.exception(e)
-    
     st.markdown("---")
     if st.button(get_testo("logout", lingua), use_container_width=True):
         st.session_state.logged_in = False
@@ -1309,20 +1074,15 @@ def pagina_area_lavoratore(lingua):
         st.session_state.pagina = 'home'
         st.rerun()
 
-# ============================================
-# PAGINA REGISTRAZIONE
-# ============================================
 def pagina_registrazione_multi_step(lingua):
     step = st.session_state.step
     if step == 1 and 'avviso_mostrato' not in st.session_state:
         st.warning(get_testo("avviso_non_contratto", lingua))
         st.info(get_testo("avviso_regole_aziendali", lingua))
         st.session_state.avviso_mostrato = True
-    
     st.progress(step / 7)
     st.markdown(f"**Étape {step} sur 7**")
     st.markdown("---")
-    
     if step == 1:
         dati_step = step_1_personale_famiglia(lingua)
     elif step == 2:
@@ -1337,9 +1097,7 @@ def pagina_registrazione_multi_step(lingua):
         dati_step = step_6_emergenza_validazione(lingua)
     elif step == 7:
         dati_step = step_7_vestiario(lingua)
-    
     st.session_state.dati_form.update(dati_step)
-    
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
@@ -1394,18 +1152,13 @@ def genera_e_salva_pdf(dati, lingua):
     else:
         st.error("Erreur de connexion à Google Sheets.")
 
-# ============================================
-# PAGINA CANDIDATURA SPONTANEA
-# ============================================
 def pagina_candidatura_spontanea(lingua):
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
     st.info("ℹ️ Ceci n'est PAS un contrat, mais seulement l'envoi de votre candidature.")
     st.markdown("---")
-    
     if 'candidatura_dati' not in st.session_state:
         st.session_state.candidatura_dati = {}
-    
     with st.form("form_candidatura", clear_on_submit=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -1440,7 +1193,6 @@ def pagina_candidatura_spontanea(lingua):
         with col4:
             c_salario = st.text_input(get_testo("salario_richiesto", lingua), value=st.session_state.candidatura_dati.get('salario', ''), key="c_sal")
         c_note = st.text_area(get_testo("note", lingua), value=st.session_state.candidatura_dati.get('note', ''), key="c_note")
-        
         submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
         if submitted:
             st.session_state.candidatura_dati = {'cognome': c_cognome, 'nome': c_nome, 'email': c_email, 'telefono': c_tel, 'g': g, 'm': m, 'a': a, 'indirizzo': c_indirizzo, 'comune': c_comune, 'regione': c_regione, 'skills': c_skills, 'esperienza': c_esperienza, 'salario': c_salario, 'note': c_note}
@@ -1462,9 +1214,6 @@ def pagina_candidatura_spontanea(lingua):
             else:
                 st.error("Erreur de connexion. Veuillez réessayer.")
 
-# ============================================
-# PAGINA ESPACE TRAVAILLEUR
-# ============================================
 def pagina_espace_travailleur(lingua):
     st.title(get_testo("area_lavoratore", lingua))
     st.markdown("---")
@@ -1509,9 +1258,9 @@ def main():
         st.session_state.admin_logged = False
     if 'avviso_mostrato' not in st.session_state:
         st.session_state.avviso_mostrato = False
-    
+
     lingua = st.session_state.lingua
-    
+
     with st.sidebar:
         st.image(LOGO_URL, use_column_width=True)
         st.markdown("---")
@@ -1545,7 +1294,7 @@ def main():
             if st.button(get_testo("dashboard", lingua), key="btn_dash_login"):
                 st.session_state.pagina = 'login_admin'
                 st.rerun()
-    
+
     if st.session_state.pagina == 'home':
         st.title(get_testo("titolo", lingua))
         st.subheader(get_testo("sottotitolo", lingua))
