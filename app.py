@@ -263,9 +263,9 @@ def leggi_foglio(nome_foglio):
     headers = [str(h).strip() for h in data[0]]
     records = [dict(zip(headers, row)) for row in data[1:]]
     return headers, records
-        headers = [str(h).strip() for h in data[0]]
-        records = [dict(zip(headers, row)) for row in data[1:]]
-        return headers, records
+    headers = [str(h).strip() for h in data[0]]
+    records = [dict(zip(headers, row)) for row in data[1:]]
+    return headers, records
     except Exception as e:
         st.error(f"Erreur de connexion: {e}")
         return [], []
