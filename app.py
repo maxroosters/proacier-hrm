@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.4 - FILE COMPLETO
-✅ Candidatura senza st.form: tendine live + hint formazione + anti-doppione
-✅ Registrazione: pannello credenziali sostituisce il bottone (niente freeze/doppioni)
-✅ Parser mogli robusto: situazione esistente visibile e modificabile
+PROACIER HRM - v20.5 - FILE COMPLETO
+✅ Badge versione in sidebar (verifica deploy)
+✅ Valori canonici (stato civile, sesso, idoneita, categoria, studi, paesi) tradotti solo a video
+✅ Anti-doppione registrazione: pannello + impronta dati
+✅ Mogli precompilate e modificabili / PDF mogli a capo / sezione medica
 """
 import streamlit as st
 import requests
@@ -11,6 +12,8 @@ import random
 import re
 from datetime import datetime
 from fpdf import FPDF
+
+VERSIONE = "v20.5"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -102,6 +105,7 @@ T = {
 "nuova_registrazione": ("🆕 Nouvelle inscription", "🆕 Nuova registrazione", "🆕 New registration"),
 "nouvelle_candidature": ("🆕 Nouvelle candidature", "🆕 Nuova candidatura", "🆕 New application"),
 "candidatura_gia_inviata": ("ℹ️ Candidature déjà envoyée avec ces coordonnées.", "ℹ️ Candidatura già inviata con questi dati.", "ℹ️ Application already submitted with these details."),
+"reg_gia": ("ℹ️ Enregistrement déjà effectué pour ces données.", "ℹ️ Registrazione già effettuata con questi dati.", "ℹ️ Registration already completed with these data."),
 "cognome": ("Nom", "Cognome", "Surname"),
 "nome": ("Prénom(s)", "Nome", "First Name"),
 "data_nascita": ("Date de naissance", "Data di nascita", "Date of birth"),
@@ -112,13 +116,7 @@ T = {
 "nazionalita": ("Nationalité", "Nazionalità", "Nationality"),
 "paese_origine": ("Pays d'origine", "Paese di origine", "Country of origin"),
 "sesso": ("Sexe", "Sesso", "Gender"),
-"maschile": ("Masculin", "Maschile", "Male"),
-"femminile": ("Féminin", "Femminile", "Female"),
 "stato_civile": ("État civil", "Stato civile", "Marital status"),
-"celibe": ("Célibataire", "Celibe/Nubile", "Single"),
-"coniugato": ("Marié(e)", "Coniugato/a", "Married"),
-"divorziato": ("Divorcé(e)", "Divorziato/a", "Divorced"),
-"vedovo": ("Veuf/Veuve", "Vedovo/a", "Widowed"),
 "numero_mogli": ("Nombre d'épouses", "Numero di mogli", "Number of wives"),
 "figli_totale": ("Nombre total d'enfants", "Numero totale di figli", "Total number of children"),
 "residenza_moglie": ("Lieu de résidence de l'épouse", "Residenza della moglie", "Wife's residence"),
@@ -152,20 +150,11 @@ T = {
 "allergie": ("Allergies", "Allergie", "Allergies"),
 "malattie": ("Maladies chroniques", "Malattie croniche", "Chronic diseases"),
 "idoneita": ("Aptitude médicale", "Idoneità medica", "Medical fitness"),
-"apte": ("Apte", "Apto", "Fit"),
-"restriction": ("Apte avec restriction", "Apto con restrizioni", "Fit with restrictions"),
-"inapte": ("Inapte", "Inapto", "Unfit"),
 "data_visita": ("Date visite", "Data visita", "Visit date"),
 "emergenza_nome": ("Contact urgence (Nom)", "Contatto emergenza (Nome)", "Emergency contact (Name)"),
 "emergenza_parentela": ("Lien", "Parentela", "Relationship"),
 "emergenza_tel": ("Tél urgence", "Tel emergenza", "Emergency phone"),
 "emergenza_indirizzo": ("Adresse urgence", "Indirizzo emergenza", "Emergency address"),
-"cat_edilizia": ("Bâtiment", "Edilizia", "Construction"),
-"cat_contabilita": ("Comptabilité", "Contabilità", "Accounting"),
-"cat_meccanica": ("Mécanique", "Meccanica", "Mechanics"),
-"cat_elettrico": ("Électricité", "Elettrico", "Electrical"),
-"cat_agricoltura": ("Agriculture", "Agricoltura", "Agriculture"),
-"cat_altro": ("Autre", "Altro", "Other"),
 "titolo_vestiario": ("Tailles Vêtements & EPI", "Taglie Abbigliamento e DPI", "Clothing & PPE Sizes"),
 "taglia_maglia": ("Taille t-shirt/polo", "Taglia t-shirt/polo", "T-shirt/polo size"),
 "taglia_pantaloni": ("Taille pantalon", "Taglia pantalone", "Pants size"),
@@ -173,13 +162,6 @@ T = {
 "taglia_giacca": ("Taille veste/gilet", "Taglia giacca/gilet", "Jacket/vest size"),
 "taglia_cappello": ("Taille casque/casquette", "Taglia casco/cappellino", "Helmet/cap size"),
 "taglia_guanti": ("Taille gants", "Taglia guanti", "Gloves size"),
-"paese_senegal": ("Sénégal", "Senegal", "Senegal"),
-"paese_mali": ("Mali", "Mali", "Mali"),
-"paese_burkina": ("Burkina Faso", "Burkina Faso", "Burkina Faso"),
-"paese_sierra": ("Sierra Leone", "Sierra Leone", "Sierra Leone"),
-"paese_guinea": ("Guinée", "Guinea", "Guinea"),
-"paese_gambia": ("Gambie", "Gambia", "Gambia"),
-"paese_altro": ("Autre pays", "Altro paese", "Other country"),
 "titolo_candidatura": ("CANDIDATURE SPONTANÉE", "CANDIDATURA SPONTANEA", "SPONTANEOUS APPLICATION"),
 "sottotitolo_candidatura": ("Rejoignez l'équipe PROACIER.", "Unisciti al team PROACIER.", "Join the PROACIER team."),
 "email": ("Adresse Email", "Indirizzo Email", "Email Address"),
@@ -187,10 +169,6 @@ T = {
 "mansione_richiesta": ("Poste recherché", "Ruolo richiesto", "Desired position"),
 "altro_specifica": ("Précisez le rôle souhaité", "Specifica il ruolo desiderato", "Specify the desired role"),
 "studi": ("Niveau d'études", "Titolo di studio", "Education level"),
-"opt_media": ("École moyenne", "Licenza media", "Middle school"),
-"opt_diploma": ("Baccalauréat / Diplôme", "Diploma", "High school / Diploma"),
-"opt_laurea": ("Université / Licence", "Laurea", "University / Degree"),
-"opt_prof": ("Formation professionnelle", "Formazione professionale", "Vocational training"),
 "hint_prof": ("💡 Précisez votre formation (métier appris, certificat...) dans les notes supplémentaires.", "💡 Specifica la tua formazione (mestiere imparato, certificato...) nelle note aggiuntive.", "💡 Please specify your training (trade learned, certificate...) in the additional notes."),
 "skills": ("Compétences / Skills", "Competenze / Skills", "Skills / Competencies"),
 "esperienza_anno": ("Années d'expérience", "Anni di esperienza", "Years of experience"),
@@ -203,7 +181,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍👩‍👧‍👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍‍👦 Family (modifiable)"),
+"sezione_famille": ("👨‍‍👧👦 Famille (modifiable)", "👨‍‍‍👦 Famiglia (modificabile)", "👨‍‍👧‍👦 Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -220,6 +198,41 @@ def get_testo(chiave, lingua="fr"):
     if not t:
         return chiave
     return t[LINGUE.get(lingua, 0)]
+
+# ============================================================
+# OPZIONI CANONICHE (salvate come codice, tradotte a video)
+# ============================================================
+OPZ = {
+"sesso": [("M", "Masculin", "Maschile", "Male"), ("F", "Féminin", "Femminile", "Female")],
+"stato_civile": [("celibe", "Célibataire", "Celibe/Nubile", "Single"), ("coniugato", "Marié(e)", "Coniugato/a", "Married"), ("divorziato", "Divorcé(e)", "Divorziato/a", "Divorced"), ("vedovo", "Veuf/Veuve", "Vedovo/a", "Widowed")],
+"idoneita": [("apte", "Apte", "Apto", "Fit"), ("restriction", "Apte avec restriction", "Apto con restrizioni", "Fit with restrictions"), ("inapte", "Inapte", "Inapto", "Unfit")],
+"categoria": [("edilizia", "Bâtiment", "Edilizia", "Construction"), ("contabilita", "Comptabilité", "Contabilità", "Accounting"), ("meccanica", "Mécanique", "Meccanica", "Mechanics"), ("elettrico", "Électricité", "Elettrico", "Electrical"), ("agricoltura", "Agriculture", "Agricoltura", "Agriculture"), ("altro_cat", "Autre", "Altro", "Other")],
+"studi": [("media", "École moyenne", "Licenza media", "Middle school"), ("diploma", "Baccalauréat / Diplôme", "Diploma", "High school / Diploma"), ("laurea", "Université / Licence", "Laurea", "University / Degree"), ("prof", "Formation professionnelle", "Formazione professionale", "Vocational training")],
+"paesi": [("SN", "Sénégal", "Senegal", "Senegal"), ("ML", "Mali", "Mali", "Mali"), ("BF", "Burkina Faso", "Burkina Faso", "Burkina Faso"), ("SL", "Sierra Leone", "Sierra Leone", "Sierra Leone"), ("GN", "Guinée", "Guinea", "Guinea"), ("GM", "Gambie", "Gambia", "Gambia"), ("AUTRE", "Autre pays", "Altro paese", "Other country")],
+}
+
+def etichetta(tipo, valore, lingua="fr"):
+    v = s_str(valore)
+    if not v:
+        return ""
+    for o in OPZ.get(tipo, []):
+        if v in o:
+            return o[LINGUE.get(lingua, 0) + 1]
+    return v
+
+def select_canonico(tipo, lingua, label, key, saved=None):
+    codes = [o[0] for o in OPZ[tipo]]
+    idx = 0
+    sv = s_str(saved)
+    if sv:
+        if sv in codes:
+            idx = codes.index(sv)
+        else:
+            for o in OPZ[tipo]:
+                if sv in o[1:]:
+                    idx = codes.index(o[0])
+                    break
+    return st.selectbox(label, codes, index=idx, format_func=lambda c: etichetta(tipo, c, lingua), key=key)
 
 # ============================================================
 # AREE AZIENDALI (candidatura a 2 tendine)
@@ -391,8 +404,8 @@ def genera_pdf_lavoratore(d):
     pdf.sezione("1. IDENTITE & FAMILLE")
     pdf.campo_doppio("Nom:", d.get("cognome"), "Prenom(s):", d.get("nome"))
     pdf.campo_doppio("Ne(e) le:", formatta_data(d.get("data_nascita")), "a:", d.get("luogo_nascita"))
-    pdf.campo_doppio("Nationalite:", d.get("nazionalita"), "Pays:", d.get("paese_origine"))
-    pdf.campo_doppio("Etat civil:", d.get("stato_civile"), "Enfants:", d.get("figli_totale"))
+    pdf.campo_doppio("Nationalite:", etichetta("paesi", d.get("nazionalita"), "fr"), "Pays:", etichetta("paesi", d.get("paese_origine"), "fr"))
+    pdf.campo_doppio("Etat civil:", etichetta("stato_civile", d.get("stato_civile"), "fr"), "Enfants:", d.get("figli_totale"))
     if s_int(d.get("numero_mogli")) > 0:
         pdf.set_font("Helvetica", "B", 8)
         pdf.cell(60, 5, "Epouses:", 0, 0)
@@ -407,7 +420,7 @@ def genera_pdf_lavoratore(d):
     pdf.ln(1)
     pdf.sezione("3. EXPERIENCE & COMPETENCES")
     pdf.campo("Poste:", d.get("mansione_1"))
-    pdf.campo("Competence:", f"{s_str(d.get('categoria_competenza'))} - {s_str(d.get('dettaglio_competenza'))}")
+    pdf.campo("Competence:", f"{etichetta('categoria', d.get('categoria_competenza'), 'fr')} - {s_str(d.get('dettaglio_competenza'))}")
     pdf.campo("Permis:", d.get("patente"))
     pdf.ln(1)
     pdf.sezione("4. VETEMENTS & EPI")
@@ -416,7 +429,7 @@ def genera_pdf_lavoratore(d):
     pdf.campo_doppio("Casque:", d.get("taglia_cappello"), "Gants:", d.get("taglia_guanti"))
     pdf.ln(1)
     pdf.sezione("5. MEDICAL & URGENCE")
-    pdf.campo_doppio("Groupe:", f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", "Aptitude:", d.get("idoneita"))
+    pdf.campo_doppio("Groupe:", f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", "Aptitude:", etichetta("idoneita", d.get("idoneita"), "fr"))
     pdf.campo_doppio("Urgence:", d.get("emergenza_nome"), "Tel:", d.get("emergenza_tel"))
     pdf.ln(3)
     pdf.set_font("Helvetica", "I", 8)
@@ -461,9 +474,6 @@ def genera_pdf_lavoratore(d):
 # ============================================================
 # STEP DEL FORMULARIO
 # ============================================================
-def lista_paesi(lingua):
-    return [get_testo(k, lingua) for k in ("paese_senegal", "paese_mali", "paese_burkina", "paese_sierra", "paese_guinea", "paese_gambia", "paese_altro")]
-
 def box_telefono(lingua, n, obbligatorio=False):
     st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
     tel = st.text_input(f"Numero {n}", value=st.session_state.dati_form.get(f"telefono_{n}", ""), key=f"s2_tel{n}", label_visibility="collapsed")
@@ -487,16 +497,17 @@ def step_1(lingua):
         mese = m.selectbox(get_testo("mese", lingua), list(range(1, 13)), key="s1_m")
         anno = a.selectbox(get_testo("anno", lingua), list(range(1950, 2010)), index=30, key="s1_a")
         luogo = st.text_input(get_testo("luogo_nascita", lingua), value=st.session_state.dati_form.get("luogo_nascita", ""), key="s1_luo")
-        paesi = lista_paesi(lingua)
-        naz_sel = st.selectbox(get_testo("nazionalita", lingua), paesi, key="s1_naz")
-        naz = st.text_input("Précisez:", key="s1_naz_a") if naz_sel == get_testo("paese_altro", lingua) else naz_sel
-        por_sel = st.selectbox(get_testo("paese_origine", lingua), paesi, key="s1_pae")
-        por = st.text_input("Précisez:", key="s1_pae_a") if por_sel == get_testo("paese_altro", lingua) else por_sel
+        naz = select_canonico("paesi", lingua, get_testo("nazionalita", lingua), "s1_naz", saved=st.session_state.dati_form.get("nazionalita"))
+        if naz == "AUTRE":
+            naz = st.text_input("Précisez:", key="s1_naz_a")
+        por = select_canonico("paesi", lingua, get_testo("paese_origine", lingua), "s1_pae", saved=st.session_state.dati_form.get("paese_origine"))
+        if por == "AUTRE":
+            por = st.text_input("Précisez:", key="s1_pae_a")
     with c2:
-        sesso = st.selectbox(get_testo("sesso", lingua), [get_testo("maschile", lingua), get_testo("femminile", lingua)], key="s1_ses")
-        stato_civile = st.selectbox(get_testo("stato_civile", lingua), [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)], key="s1_sta")
+        sesso = select_canonico("sesso", lingua, get_testo("sesso", lingua), "s1_ses", saved=st.session_state.dati_form.get("sesso"))
+        stato_civile = select_canonico("stato_civile", lingua, get_testo("stato_civile", lingua), "s1_sta", saved=st.session_state.dati_form.get("stato_civile"))
         numero_mogli, dettagli_mogli, figli_tot = 0, "", 0
-        if stato_civile == get_testo("coniugato", lingua):
+        if stato_civile == "coniugato":
             numero_mogli = st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=1, key="s1_mog")
             det = []
             for i in range(1, numero_mogli + 1):
@@ -556,8 +567,7 @@ def step_3(lingua):
 def step_4(lingua):
     st.subheader(get_testo("step_4", lingua))
     st.info(get_testo("nota_competenze", lingua))
-    cats = [get_testo(k, lingua) for k in ("cat_edilizia", "cat_contabilita", "cat_meccanica", "cat_elettrico", "cat_agricoltura", "cat_altro")]
-    categoria = st.selectbox(get_testo("categoria_competenza", lingua), cats, key="s4_cat")
+    categoria = select_canonico("categoria", lingua, get_testo("categoria_competenza", lingua), "s4_cat", saved=st.session_state.dati_form.get("categoria_competenza"))
     dettaglio = st.text_area(get_testo("dettaglio_competenza", lingua), key="s4_det")
     patente = st.text_input(get_testo("patente", lingua), key="s4_pat")
     st.caption(get_testo("nota_patente", lingua))
@@ -572,7 +582,7 @@ def step_5(lingua):
         allergie = st.text_area(get_testo("allergie", lingua), key="s5_all")
     with c2:
         malattie = st.text_area(get_testo("malattie", lingua), key="s5_mal")
-        idoneita = st.selectbox(get_testo("idoneita", lingua), [get_testo("apte", lingua), get_testo("restriction", lingua), get_testo("inapte", lingua)], key="s5_ido")
+        idoneita = select_canonico("idoneita", lingua, get_testo("idoneita", lingua), "s5_ido", saved=st.session_state.dati_form.get("idoneita"))
         data_visita = st.text_input(f'{get_testo("data_visita", lingua)} (GG/MM/AAAA)', key="s5_dat")
     return {"gruppo_sanguigno": gruppo, "rh": rh, "allergie": allergie, "malattie": malattie,
             "idoneita": idoneita, "data_visita": data_visita}
@@ -606,7 +616,7 @@ def step_7(lingua):
             "taglia_giacca": tg, "taglia_cappello": tc, "taglia_guanti": tgu}
 
 # ============================================================
-# PAGINA REGISTRAZIONE MULTI-STEP (con pannello successo)
+# PAGINA REGISTRAZIONE MULTI-STEP (pannello successo + impronta)
 # ============================================================
 def pannello_successo(lingua):
     u = st.session_state.ultimo_salvataggio
@@ -621,6 +631,7 @@ def pannello_successo(lingua):
     st.markdown("---")
     if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
         st.session_state.ultimo_salvataggio = None
+        st.session_state.reg_fp = None
         st.session_state.dati_form = {}
         st.session_state.step = 1
         st.session_state.avviso_mostrato = False
@@ -669,6 +680,10 @@ def genera_e_salva(dati, lingua):
     if not dati.get("cognome") or not dati.get("nome"):
         st.warning(get_testo("errore_obbligatori", lingua))
         return
+    fp = "|".join([s_str(dati.get("cognome")).lower(), s_str(dati.get("nome")).lower(), s_str(dati.get("telefono_1"))])
+    if st.session_state.get("reg_fp") == fp:
+        st.info(get_testo("reg_gia", lingua))
+        return
     codice = genera_codice()
     pin = genera_pin()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -678,6 +693,7 @@ def genera_e_salva(dati, lingua):
     with st.spinner(get_testo("saving", lingua)):
         ok, msg = salva_append("DIPENDENTI", row, "codice", codice)
     if ok:
+        st.session_state.reg_fp = fp
         st.session_state.ultimo_salvataggio = {"codice": codice, "pin": pin,
                                                "pdf": genera_pdf_lavoratore(row)}
         st.session_state.dati_form = {}
@@ -718,8 +734,8 @@ def pagina_candidatura(lingua):
             mansione = st.selectbox(get_testo("mansione_richiesta", lingua), area["ruoli"], key="c_mansione")
         else:
             mansione = st.text_input(get_testo("altro_specifica", lingua), key="c_man_libera")
-        c_studi = st.selectbox(get_testo("studi", lingua), [get_testo("opt_media", lingua), get_testo("opt_diploma", lingua), get_testo("opt_laurea", lingua), get_testo("opt_prof", lingua)], key="c_studi")
-        if c_studi == get_testo("opt_prof", lingua):
+        c_studi = select_canonico("studi", lingua, get_testo("studi", lingua), "c_studi")
+        if c_studi == "prof":
             st.caption(get_testo("hint_prof", lingua))
     c_skills = st.text_area(get_testo("skills", lingua), key="c_skills")
     c3, c4 = st.columns(2)
@@ -752,7 +768,7 @@ def pagina_candidatura(lingua):
                 else:
                     st.error(f"Erreur: {msg}")
     if st.session_state.get("cand_fp") and st.button(get_testo("nouvelle_candidature", lingua), use_container_width=True, key="btn_cand_new"):
-        for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_mansione", "c_man_libera", "c_settore", "c_settore_prev"):
+        for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_mansione", "c_man_libera", "c_settore", "c_settore_prev", "c_studi"):
             st.session_state.pop(k, None)
         st.session_state.cand_fp = None
         st.rerun()
@@ -783,13 +799,13 @@ def pagina_area_lavoratore(lingua):
     c2.text_input(get_testo("ipres", lingua), value=s_str(mio.get("ipres")), disabled=True)
     c3.text_input(get_testo("codice_accesso", lingua), value=s_str(mio.get("codice")), disabled=True)
     c3.text_input(get_testo("luogo_nascita", lingua), value=s_str(mio.get("luogo_nascita")), disabled=True)
-    c3.text_input(get_testo("nazionalita", lingua), value=s_str(mio.get("nazionalita")), disabled=True)
+    c3.text_input(get_testo("nazionalita", lingua), value=etichetta("paesi", mio.get("nazionalita"), lingua), disabled=True)
     st.markdown("---")
     st.subheader("🩺 " + get_testo("sezione_medica", lingua))
     c1, c2, c3 = st.columns(3)
     c1.text_input(get_testo("gruppo_sanguigno", lingua), value=s_str(mio.get("gruppo_sanguigno")), disabled=True)
     c1.text_input(get_testo("rh", lingua), value=s_str(mio.get("rh")), disabled=True)
-    c2.text_input(get_testo("idoneita", lingua), value=s_str(mio.get("idoneita")), disabled=True)
+    c2.text_input(get_testo("idoneita", lingua), value=etichetta("idoneita", mio.get("idoneita"), lingua), disabled=True)
     c2.text_input(get_testo("data_visita", lingua), value=formatta_data(mio.get("data_visita")), disabled=True)
     c3.text_input(get_testo("allergie", lingua), value=s_str(mio.get("allergie")), disabled=True)
     c3.text_input(get_testo("malattie", lingua), value=s_str(mio.get("malattie")), disabled=True)
@@ -819,19 +835,15 @@ def pagina_area_lavoratore(lingua):
         n_em_tel = st.text_input(get_testo("emergenza_tel", lingua), value=s_str(mio.get("emergenza_tel")))
     st.markdown("---")
     st.subheader(get_testo("sezione_famille", lingua))
-    stati = [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)]
-    val_stato = s_str(mio.get("stato_civile"))
-    idx_stato = stati.index(val_stato) if val_stato in stati else 0
+    n_stato = select_canonico("stato_civile", lingua, get_testo("stato_civile", lingua), "ar_stato", saved=mio.get("stato_civile"))
     c1, c2 = st.columns(2)
-    with c1:
-        n_stato = st.selectbox(get_testo("stato_civile", lingua), stati, index=idx_stato)
     with c2:
         n_mogli = 0
-        if n_stato == get_testo("coniugato", lingua):
+        if n_stato == "coniugato":
             n_mogli = int(st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=max(1, s_int(mio.get("numero_mogli")))))
     esistenti = parse_mogli(mio.get("dettagli_mogli"))
     det, figli_tot = [], 0
-    if n_stato == get_testo("coniugato", lingua):
+    if n_stato == "coniugato":
         for i in range(1, n_mogli + 1):
             st.markdown(f"**Épouse {i}**")
             cr, cf = st.columns(2)
@@ -898,7 +910,7 @@ def pagina_area_lavoratore(lingua):
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
-                 "ultimo_salvataggio": None, "cand_fp": None}.items():
+                 "ultimo_salvataggio": None, "cand_fp": None, "reg_fp": None}.items():
         if k not in st.session_state:
             st.session_state[k] = v
     lingua = st.session_state.lingua
@@ -907,6 +919,7 @@ def main():
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
+        st.caption(VERSIONE)
         st.markdown("---")
         sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"],
                            index={"fr": 0, "it": 1, "en": 2}[lingua])
@@ -978,6 +991,7 @@ def main():
             st.session_state.dati_form = {}
             st.session_state.avviso_mostrato = False
             st.session_state.ultimo_salvataggio = None
+            st.session_state.reg_fp = None
             st.rerun()
 
     elif st.session_state.pagina == "registrazione":
