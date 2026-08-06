@@ -609,7 +609,7 @@ def genera_e_salva(dati, lingua):
     row = dict(dati)
     row.update({"id": codice, "codice": codice, "pin": pin, "data_registrazione": now,
                 "stato_firma": "Da firmare", "timestamp": now, "turno": ""})
-        ok, msg = salva_append("DIPENDENTI", row, "codice", codice)
+    ok, msg = salva_append("DIPENDENTI", row, "codice", codice)
     if ok:
         st.success(f'✅ {get_testo("pdf_generato", lingua)}')
         pdf_bytes = genera_pdf_lavoratore(row)
