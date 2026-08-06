@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.5 - FILE COMPLETO
-✅ Badge versione in sidebar (verifica deploy)
-✅ Valori canonici (stato civile, sesso, idoneita, categoria, studi, paesi) tradotti solo a video
-✅ Anti-doppione registrazione: pannello + impronta dati
-✅ Mogli precompilate e modificabili / PDF mogli a capo / sezione medica
+PROACIER HRM - v20.6 - FILE COMPLETO
+✅ Anti-duplicato LATO FOGLIO (stessi dati + stesso giorno = stesse credenziali)
+✅ Figli totali campo manuale nell'area lavoratore (le mogli non li cancellano)
+✅ Cache letture 30s + scrittura update in un colpo solo = molto più veloce
 """
 import streamlit as st
 import requests
@@ -13,7 +12,7 @@ import re
 from datetime import datetime
 from fpdf import FPDF
 
-VERSIONE = "v20.5"
+VERSIONE = "v20.6"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -105,7 +104,7 @@ T = {
 "nuova_registrazione": ("🆕 Nouvelle inscription", "🆕 Nuova registrazione", "🆕 New registration"),
 "nouvelle_candidature": ("🆕 Nouvelle candidature", "🆕 Nuova candidatura", "🆕 New application"),
 "candidatura_gia_inviata": ("ℹ️ Candidature déjà envoyée avec ces coordonnées.", "ℹ️ Candidatura già inviata con questi dati.", "ℹ️ Application already submitted with these details."),
-"reg_gia": ("ℹ️ Enregistrement déjà effectué pour ces données.", "ℹ️ Registrazione già effettuata con questi dati.", "ℹ️ Registration already completed with these data."),
+"reg_gia": ("ℹ️ Travailleur déjà enregistré aujourd'hui avec ces données. Voici ses identifiants.", "ℹ️ Lavoratore già registrato oggi con questi dati. Ecco le sue credenziali.", "ℹ️ Worker already registered today with these details. Here are the credentials."),
 "cognome": ("Nom", "Cognome", "Surname"),
 "nome": ("Prénom(s)", "Nome", "First Name"),
 "data_nascita": ("Date de naissance", "Data di nascita", "Date of birth"),
@@ -119,6 +118,7 @@ T = {
 "stato_civile": ("État civil", "Stato civile", "Marital status"),
 "numero_mogli": ("Nombre d'épouses", "Numero di mogli", "Number of wives"),
 "figli_totale": ("Nombre total d'enfants", "Numero totale di figli", "Total number of children"),
+"somma_mogli": ("Somme des enfants des épouses", "Somma figli dichiarati per moglie", "Sum of children declared per wife"),
 "residenza_moglie": ("Lieu de résidence de l'épouse", "Residenza della moglie", "Wife's residence"),
 "figli_moglie": ("Enfants avec cette épouse", "Figli con questa moglie", "Children with this wife"),
 "indirizzo": ("Adresse actuelle", "Indirizzo attuale", "Current address"),
@@ -181,7 +181,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍‍👧👦 Famille (modifiable)", "👨‍‍‍👦 Famiglia (modificabile)", "👨‍‍👧‍👦 Family (modifiable)"),
+"sezione_famille": ("👨‍👩‍‍👦 Famille (modifiable)", "👨‍👩‍‍👦 Famiglia (modificabile)", "👨‍👩‍👧‍👦 Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -297,7 +297,7 @@ def parse_mogli(s):
     return out
 
 # ============================================================
-# RETE: POST unificato con auto-verifica
+# RETE: POST unificato + CACHE letture 30s
 # ============================================================
 def _post_json(payload):
     try:
@@ -316,7 +316,17 @@ def _post_json(payload):
     except Exception as e:
         return False, str(e)
 
-def leggi_foglio(nome_foglio):
+def _svuota_cache(nome_foglio):
+    cache = st.session_state.get("_cache", {})
+    cache.pop(nome_foglio, None)
+    st.session_state["_cache"] = cache
+
+def leggi_foglio(nome_foglio, force=False):
+    cache = st.session_state.get("_cache", {})
+    if not force and nome_foglio in cache:
+        ts, h, recs = cache[nome_foglio]
+        if (datetime.now() - ts).total_seconds() < 30:
+            return h, recs
     data = None
     try:
         r = requests.post(CONFIG["url_api"], json={"sheet": nome_foglio, "action": "read"}, timeout=60)
@@ -342,21 +352,30 @@ def leggi_foglio(nome_foglio):
         return [], []
     headers = [str(h).strip() for h in data[0]]
     records = [dict(zip(headers, row)) for row in data[1:]]
+    cache[nome_foglio] = (datetime.now(), headers, records)
+    st.session_state["_cache"] = cache
     return headers, records
 
 def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
     ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "row": row})
-    if not ok and chiave_id:
+    if ok:
+        _svuota_cache(nome_foglio)
+        return True, "ok"
+    if chiave_id:
         try:
-            _, recs = leggi_foglio(nome_foglio)
+            _, recs = leggi_foglio(nome_foglio, force=True)
             if any(s_str(r.get(chiave_id)) == s_str(valore_id) for r in recs):
+                _svuota_cache(nome_foglio)
                 return True, "ok (verificato sul foglio)"
         except Exception:
             pass
     return ok, msg
 
 def salva_update(nome_foglio, row_index, row):
-    return _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
+    ok, msg = _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
+    if ok:
+        _svuota_cache(nome_foglio)
+    return ok, msg
 
 # ============================================================
 # GENERATORE PDF
@@ -616,11 +635,14 @@ def step_7(lingua):
             "taglia_giacca": tg, "taglia_cappello": tc, "taglia_guanti": tgu}
 
 # ============================================================
-# PAGINA REGISTRAZIONE MULTI-STEP (pannello successo + impronta)
+# PAGINA REGISTRAZIONE (pannello successo + anti-duplicato lato foglio)
 # ============================================================
 def pannello_successo(lingua):
     u = st.session_state.ultimo_salvataggio
-    st.success(f'✅ {get_testo("pdf_generato", lingua)}')
+    if u.get("dup"):
+        st.info(get_testo("reg_gia", lingua))
+    else:
+        st.success(f'✅ {get_testo("pdf_generato", lingua)}')
     st.warning(get_testo("conserva_credenziali", lingua))
     c1, c2 = st.columns(2)
     c1.info(f'**{get_testo("codice_accesso", lingua)}:** {u["codice"]}')
@@ -676,6 +698,17 @@ def pagina_registrazione(lingua):
             else:
                 st.warning(get_testo("cocher_case", lingua))
 
+def trova_duplicato(dati):
+    oggi = datetime.now().strftime("%d/%m/%Y")
+    _, recs = leggi_foglio("DIPENDENTI", force=True)
+    for r in recs:
+        if (s_str(r.get("cognome")).lower() == s_str(dati.get("cognome")).lower()
+                and s_str(r.get("nome")).lower() == s_str(dati.get("nome")).lower()
+                and s_str(r.get("telefono_1")) == s_str(dati.get("telefono_1"))
+                and s_str(r.get("data_registrazione")).startswith(oggi)):
+            return r
+    return None
+
 def genera_e_salva(dati, lingua):
     if not dati.get("cognome") or not dati.get("nome"):
         st.warning(get_testo("errore_obbligatori", lingua))
@@ -683,6 +716,15 @@ def genera_e_salva(dati, lingua):
     fp = "|".join([s_str(dati.get("cognome")).lower(), s_str(dati.get("nome")).lower(), s_str(dati.get("telefono_1"))])
     if st.session_state.get("reg_fp") == fp:
         st.info(get_testo("reg_gia", lingua))
+        return
+    with st.spinner(get_testo("saving", lingua)):
+        dup = trova_duplicato(dati)
+    if dup:
+        st.session_state.reg_fp = fp
+        st.session_state.ultimo_salvataggio = {"codice": s_str(dup.get("codice")), "pin": s_str(dup.get("pin")),
+                                               "pdf": genera_pdf_lavoratore(dup), "dup": True}
+        st.session_state.dati_form = {}
+        st.rerun()
         return
     codice = genera_codice()
     pin = genera_pin()
@@ -774,7 +816,7 @@ def pagina_candidatura(lingua):
         st.rerun()
 
 # ============================================================
-# AREA LAVORATORE
+# AREA LAVORATORE (figli totali = campo manuale)
 # ============================================================
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
@@ -842,7 +884,7 @@ def pagina_area_lavoratore(lingua):
         if n_stato == "coniugato":
             n_mogli = int(st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=max(1, s_int(mio.get("numero_mogli")))))
     esistenti = parse_mogli(mio.get("dettagli_mogli"))
-    det, figli_tot = [], 0
+    det, somma_mogli = [], 0
     if n_stato == "coniugato":
         for i in range(1, n_mogli + 1):
             st.markdown(f"**Épouse {i}**")
@@ -850,14 +892,12 @@ def pagina_area_lavoratore(lingua):
             old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
             res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
             fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
-            figli_tot += fig
+            somma_mogli += fig
             det.append(f"Épouse {i}: {res} ({fig} enfants)")
-        dettagli = " | ".join(det)
-        st.info(f'ℹ️ {get_testo("figli_totale", lingua)}: {figli_tot} (calculé automatiquement)')
-        n_figli = figli_tot
-    else:
-        dettagli = ""
-        n_figli = int(st.number_input(get_testo("figli_totale", lingua), min_value=0, value=s_int(mio.get("figli_totale")), key="ar_fig_tot"))
+    dettagli = " | ".join(det)
+    st.info(f'ℹ️ {get_testo("somma_mogli", lingua)}: {somma_mogli}')
+    n_figli = int(st.number_input(get_testo("figli_totale", lingua), min_value=0,
+                                  value=s_int(mio.get("figli_totale")), key="ar_fig_tot"))
     st.markdown("---")
     st.subheader(get_testo("sezione_vestiario", lingua))
     xs = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
@@ -910,7 +950,7 @@ def pagina_area_lavoratore(lingua):
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
-                 "ultimo_salvataggio": None, "cand_fp": None, "reg_fp": None}.items():
+                 "ultimo_salvataggio": None, "cand_fp": None, "reg_fp": None, "_cache": {}}.items():
         if k not in st.session_state:
             st.session_state[k] = v
     lingua = st.session_state.lingua
