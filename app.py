@@ -676,7 +676,7 @@ def pagina_candidatura(lingua):
                        "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
                        "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
                        "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
-                    ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
+                ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
                 if ok:
                     st.success(get_testo("candidatura_inviata", lingua))
                     st.balloons()
@@ -771,7 +771,7 @@ def pagina_area_lavoratore(lingua):
                    "figli_totale": int(n_figli), "numero_mogli": int(n_mogli),
                    "taglia_maglia": n_tm, "taglia_pantaloni": n_tp, "taglia_scarpe": n_ts,
                    "taglia_giacca": n_tg, "taglia_cappello": n_tc, "taglia_guanti": n_tgu}
-                ok, msg = salva_update("DIPENDENTI", mio_idx, upd)
+            ok, msg = salva_update("DIPENDENTI", mio_idx, upd)
             if ok:
                 st.success(get_testo("modifiche_salvate", lingua))
                 st.rerun()
