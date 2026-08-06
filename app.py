@@ -250,19 +250,36 @@ def leggi_foglio(nome_foglio):
         st.error(f"Erreur de connexion: {e}")
         return [], []
 
-def salva_append(nome_foglio, row):
+def _post_json(payload):
     try:
-        r = requests.post(CONFIG["url_api"], json={"sheet": nome_foglio, "action": "append", "row": row}, timeout=30)
-        return r.status_code == 200 and r.json().get("status") == "success"
-    except Exception:
-        return False
+        r = requests.post(CONFIG["url_api"], json=payload, timeout=60)
+        if r.status_code == 200:
+            try:
+                j = r.json()
+                if isinstance(j, dict):
+                    if j.get("status") == "success":
+                        return True, "ok"
+                    return False, j.get("message", "Errore server")
+                return False, "Risposta inattesa"
+            except Exception:
+                return False, "Risposta non JSON"
+        return False, f"HTTP {r.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
+    ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "row": row})
+    if not ok and chiave_id:
+        try:
+            _, recs = leggi_foglio(nome_foglio)
+            if any(s_str(r.get(chiave_id)) == s_str(valore_id) for r in recs):
+                return True, "ok (verificato sul foglio)"
+        except Exception:
+            pass
+    return ok, msg
 
 def salva_update(nome_foglio, row_index, row):
-    try:
-        r = requests.post(CONFIG["url_api"], json={"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row}, timeout=30)
-        return r.status_code == 200 and r.json().get("status") == "success"
-    except Exception:
-        return False
+    return _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
 
 def s_str(v):
     if v is None:
@@ -592,7 +609,8 @@ def genera_e_salva(dati, lingua):
     row = dict(dati)
     row.update({"id": codice, "codice": codice, "pin": pin, "data_registrazione": now,
                 "stato_firma": "Da firmare", "timestamp": now, "turno": ""})
-    if salva_append("DIPENDENTI", row):
+        ok, msg = salva_append("DIPENDENTI", row, "codice", codice)
+    if ok:
         st.success(f'✅ {get_testo("pdf_generato", lingua)}')
         pdf_bytes = genera_pdf_lavoratore(row)
         st.warning(get_testo("conserva_credenziali", lingua))
@@ -607,7 +625,7 @@ def genera_e_salva(dati, lingua):
         st.session_state.dati_form = {}
         st.session_state.avviso_mostrato = False
     else:
-        st.error("Erreur de connexion à Google Sheets.")
+        st.error(f"Erreur: {msg}")
 
 # ============================================================
 # PAGINA CANDIDATURA (2 tendine: settore -> ruolo)
@@ -658,11 +676,12 @@ def pagina_candidatura(lingua):
                        "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
                        "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
                        "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
-                if salva_append("CANDIDATURE", row):
+                    ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
+                if ok:
                     st.success(get_testo("candidatura_inviata", lingua))
                     st.balloons()
                 else:
-                    st.error("Erreur de connexion. Veuillez réessayer.")
+                    st.error(f"Erreur: {msg}")
 
 # ============================================================
 # AREA LAVORATORE
@@ -752,11 +771,12 @@ def pagina_area_lavoratore(lingua):
                    "figli_totale": int(n_figli), "numero_mogli": int(n_mogli),
                    "taglia_maglia": n_tm, "taglia_pantaloni": n_tp, "taglia_scarpe": n_ts,
                    "taglia_giacca": n_tg, "taglia_cappello": n_tc, "taglia_guanti": n_tgu}
-            if salva_update("DIPENDENTI", mio_idx, upd):
+                ok, msg = salva_update("DIPENDENTI", mio_idx, upd)
+            if ok:
                 st.success(get_testo("modifiche_salvate", lingua))
                 st.rerun()
             else:
-                st.error(get_testo("errore_salvataggio", lingua))
+                st.error(f"{get_testo('errore_salvataggio', lingua)} ({msg})")
     with c2:
         pdf_bytes = genera_pdf_lavoratore(mio)
         st.download_button(label=get_testo("ristampa_pdf", lingua), data=pdf_bytes,
