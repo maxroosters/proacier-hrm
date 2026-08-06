@@ -237,12 +237,32 @@ def genera_pin():
     return str(random.randint(1000, 9999))
 
 def leggi_foglio(nome_foglio):
-    """Ritorna (headers, records) oppure ([], [])"""
+    data = None
     try:
-        r = requests.get(CONFIG["url_api"], params={"sheet": nome_foglio}, timeout=30)
-        data = r.json()
-        if isinstance(data, dict) or not data:
+        r = requests.post(CONFIG["url_api"], json={"sheet": nome_foglio, "action": "read"}, timeout=60)
+        if r.status_code == 200:
+            try:
+                j = r.json()
+                if isinstance(j, list) and j:
+                    data = j
+            except Exception:
+                data = None
+    except Exception:
+        data = None
+    if data is None:
+        try:
+            r2 = requests.get(CONFIG["url_api"], params={"sheet": nome_foglio}, timeout=60)
+            j2 = r2.json()
+            if isinstance(j2, list) and j2:
+                data = j2
+        except Exception as e:
+            st.error(f"Erreur de connexion: {e}")
             return [], []
+    if not data:
+        return [], []
+    headers = [str(h).strip() for h in data[0]]
+    records = [dict(zip(headers, row)) for row in data[1:]]
+    return headers, records
         headers = [str(h).strip() for h in data[0]]
         records = [dict(zip(headers, row)) for row in data[1:]]
         return headers, records
