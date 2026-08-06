@@ -14,7 +14,7 @@ from fpdf import FPDF
 # CONFIGURAZIONE CENTRALE
 # ============================================================
 CONFIG = {
-    "url_api": "INCOLLA_QUI_URL_WEB_APP_EXEC",  # <-- URL del deploy Apps Script v2
+    "url_api": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",  # <-- URL del deploy Apps Script v2
     "email_ouvriers": "ouvriers@proacier.sn",
     "email_candidature": "candidature@proacier.sn",
     "prefisso_codice": "THS",
