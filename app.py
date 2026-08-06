@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.3 - FILE COMPLETO
-✅ Anti-doppione + spinner / ✅ Mogli modificabili una a una / ✅ PDF mogli a capo
-✅ Sezione medica / ✅ Reset tendina ruolo / ✅ Hint formazione professionale
+PROACIER HRM - v20.4 - FILE COMPLETO
+✅ Candidatura senza st.form: tendine live + hint formazione + anti-doppione
+✅ Registrazione: pannello credenziali sostituisce il bottone (niente freeze/doppioni)
+✅ Parser mogli robusto: situazione esistente visibile e modificabile
 """
 import streamlit as st
 import requests
@@ -98,6 +99,9 @@ T = {
 "errore_obbligatori": ("Veuillez remplir tous les champs obligatoires (*)", "Compila tutti i campi obbligatori (*)", "Please fill in all required fields (*)"),
 "avviso_non_contratto": ("⚠️ Ceci n'est PAS un contrat d'embauche. Uniquement une transmission de données à l'administration.", "⚠️ Questo NON è un contratto di assunzione. Solo una trasmissione di dati all'amministrazione.", "⚠️ This is NOT an employment contract. Only a data transmission to the administration."),
 "avviso_regole_aziendali": ("📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.", "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.", "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy."),
+"nuova_registrazione": ("🆕 Nouvelle inscription", "🆕 Nuova registrazione", "🆕 New registration"),
+"nouvelle_candidature": ("🆕 Nouvelle candidature", "🆕 Nuova candidatura", "🆕 New application"),
+"candidatura_gia_inviata": ("ℹ️ Candidature déjà envoyée avec ces coordonnées.", "ℹ️ Candidatura già inviata con questi dati.", "ℹ️ Application already submitted with these details."),
 "cognome": ("Nom", "Cognome", "Surname"),
 "nome": ("Prénom(s)", "Nome", "First Name"),
 "data_nascita": ("Date de naissance", "Data di nascita", "Date of birth"),
@@ -199,7 +203,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍‍ Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍👧‍ Family (modifiable)"),
+"sezione_famille": ("👨‍👩‍👧‍👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍‍👦 Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -267,8 +271,16 @@ def formatta_data(v):
 
 def parse_mogli(s):
     out = []
-    for m in re.finditer(r"Épouse \d+: ([^(]*)\((\d+) enfants\)", s_str(s)):
-        out.append({"res": m.group(1).strip(), "fig": int(m.group(2))})
+    s = s_str(s)
+    if not s:
+        return out
+    chunks = [c.strip() for c in s.split("|") if c.strip()]
+    for c in chunks:
+        m = re.search(r"\((\d+)\s*enfants?\)", c)
+        fig = int(m.group(1)) if m else 0
+        res = re.sub(r"\(.*?\)", "", c)
+        res = re.sub(r"^Épouse\s*\d+\s*:\s*", "", res).strip()
+        out.append({"res": res, "fig": fig})
     return out
 
 # ============================================================
@@ -594,9 +606,30 @@ def step_7(lingua):
             "taglia_giacca": tg, "taglia_cappello": tc, "taglia_guanti": tgu}
 
 # ============================================================
-# PAGINA REGISTRAZIONE MULTI-STEP
+# PAGINA REGISTRAZIONE MULTI-STEP (con pannello successo)
 # ============================================================
+def pannello_successo(lingua):
+    u = st.session_state.ultimo_salvataggio
+    st.success(f'✅ {get_testo("pdf_generato", lingua)}')
+    st.warning(get_testo("conserva_credenziali", lingua))
+    c1, c2 = st.columns(2)
+    c1.info(f'**{get_testo("codice_accesso", lingua)}:** {u["codice"]}')
+    c2.info(f'**{get_testo("pin_accesso", lingua)}:** {u["pin"]}')
+    st.download_button(label=f'📥 {get_testo("scarica", lingua)} PDF', data=u["pdf"],
+                       file_name=f'Proacier_{u["codice"]}.pdf', mime="application/pdf",
+                       use_container_width=True, key="btn_dl_ok")
+    st.markdown("---")
+    if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
+        st.session_state.ultimo_salvataggio = None
+        st.session_state.dati_form = {}
+        st.session_state.step = 1
+        st.session_state.avviso_mostrato = False
+        st.rerun()
+
 def pagina_registrazione(lingua):
+    if st.session_state.get("ultimo_salvataggio"):
+        pannello_successo(lingua)
+        return
     step = st.session_state.step
     if step == 1 and not st.session_state.avviso_mostrato:
         st.warning(get_testo("avviso_non_contratto", lingua))
@@ -633,13 +666,9 @@ def pagina_registrazione(lingua):
                 st.warning(get_testo("cocher_case", lingua))
 
 def genera_e_salva(dati, lingua):
-    if st.session_state.get("save_lock", False):
-        st.warning(get_testo("saving", lingua))
-        return
     if not dati.get("cognome") or not dati.get("nome"):
         st.warning(get_testo("errore_obbligatori", lingua))
         return
-    st.session_state.save_lock = True
     codice = genera_codice()
     pin = genera_pin()
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -649,70 +678,63 @@ def genera_e_salva(dati, lingua):
     with st.spinner(get_testo("saving", lingua)):
         ok, msg = salva_append("DIPENDENTI", row, "codice", codice)
     if ok:
-        st.success(f'✅ {get_testo("pdf_generato", lingua)}')
-        pdf_bytes = genera_pdf_lavoratore(row)
-        st.warning(get_testo("conserva_credenziali", lingua))
-        c1, c2 = st.columns(2)
-        c1.info(f'**{get_testo("codice_accesso", lingua)}:** {codice}')
-        c2.info(f'**{get_testo("pin_accesso", lingua)}:** {pin}')
-        st.download_button(label=f'📥 {get_testo("scarica", lingua)} PDF', data=pdf_bytes,
-                           file_name=f"Proacier_{codice}.pdf", mime="application/pdf",
-                           use_container_width=True, key="btn_dl")
-        st.balloons()
-        st.session_state.step = 1
+        st.session_state.ultimo_salvataggio = {"codice": codice, "pin": pin,
+                                               "pdf": genera_pdf_lavoratore(row)}
         st.session_state.dati_form = {}
-        st.session_state.avviso_mostrato = False
-        st.session_state.save_lock = False
+        st.rerun()
     else:
-        st.session_state.save_lock = False
         st.error(f"Erreur: {msg}")
 
 # ============================================================
-# PAGINA CANDIDATURA (2 tendine con reset)
+# PAGINA CANDIDATURA (widget live, senza st.form)
 # ============================================================
 def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
     st.markdown("---")
-    with st.form("form_candidatura"):
-        c1, c2 = st.columns(2)
-        with c1:
-            c_cognome = st.text_input(f'{get_testo("cognome", lingua)} *')
-            c_nome = st.text_input(f'{get_testo("nome", lingua)} *')
-            c_email = st.text_input(f'{get_testo("email", lingua)} *')
-            c_tel = st.text_input(f'{get_testo("telefono_1", lingua)} *')
-            st.markdown(f'**{get_testo("data_nascita", lingua)}**')
-            g, m, a = st.columns(3)
-            cg = g.selectbox(get_testo("giorno", lingua), list(range(1, 32)))
-            cm = m.selectbox(get_testo("mese", lingua), list(range(1, 13)))
-            ca = a.selectbox(get_testo("anno", lingua), list(range(1960, 2010)), index=30)
-        with c2:
-            c_ind = st.text_input(get_testo("indirizzo", lingua))
-            c_com = st.text_input(get_testo("comune", lingua))
-            c_reg = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"])
-            labels = [ar["label"][idx] for ar in AREE_AZIENDALI]
-            settore = st.selectbox(get_testo("settore_richiesto", lingua), labels)
-            area = AREE_AZIENDALI[labels.index(settore)]
-            if st.session_state.get("c_settore_prev") != settore:
-                st.session_state.pop("c_mansione", None)
-                st.session_state.c_settore_prev = settore
-            if area["ruoli"]:
-                mansione = st.selectbox(get_testo("mansione_richiesta", lingua), area["ruoli"], key="c_mansione")
-            else:
-                mansione = st.text_input(get_testo("altro_specifica", lingua))
-            c_studi = st.selectbox(get_testo("studi", lingua), [get_testo("opt_media", lingua), get_testo("opt_diploma", lingua), get_testo("opt_laurea", lingua), get_testo("opt_prof", lingua)])
-            if c_studi == get_testo("opt_prof", lingua):
-                st.caption(get_testo("hint_prof", lingua))
-        c_skills = st.text_area(get_testo("skills", lingua))
-        c3, c4 = st.columns(2)
-        c_exp = c3.number_input(get_testo("esperienza_anno", lingua), min_value=0, max_value=50, value=0)
-        c_sal = c4.text_input(get_testo("salario_richiesto", lingua))
-        c_note = st.text_area(get_testo("note", lingua))
-        submitted = st.form_submit_button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True)
-        if submitted:
-            if not c_cognome or not c_nome or not c_email or not c_tel:
-                st.error(get_testo("errore_candidatura", lingua))
+    c1, c2 = st.columns(2)
+    with c1:
+        c_cognome = st.text_input(f'{get_testo("cognome", lingua)} *', key="c_cognome")
+        c_nome = st.text_input(f'{get_testo("nome", lingua)} *', key="c_nome")
+        c_email = st.text_input(f'{get_testo("email", lingua)} *', key="c_email")
+        c_tel = st.text_input(f'{get_testo("telefono_1", lingua)} *', key="c_tel")
+        st.markdown(f'**{get_testo("data_nascita", lingua)}**')
+        g, m, a = st.columns(3)
+        cg = g.selectbox(get_testo("giorno", lingua), list(range(1, 32)), key="c_g")
+        cm = m.selectbox(get_testo("mese", lingua), list(range(1, 13)), key="c_m")
+        ca = a.selectbox(get_testo("anno", lingua), list(range(1960, 2010)), index=30, key="c_a")
+    with c2:
+        c_ind = st.text_input(get_testo("indirizzo", lingua), key="c_ind")
+        c_com = st.text_input(get_testo("comune", lingua), key="c_com")
+        c_reg = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"], key="c_reg")
+        labels = [ar["label"][idx] for ar in AREE_AZIENDALI]
+        settore = st.selectbox(get_testo("settore_richiesto", lingua), labels, key="c_settore")
+        area = AREE_AZIENDALI[labels.index(settore)]
+        if st.session_state.get("c_settore_prev") != settore:
+            st.session_state.pop("c_mansione", None)
+            st.session_state["c_settore_prev"] = settore
+        if area["ruoli"]:
+            mansione = st.selectbox(get_testo("mansione_richiesta", lingua), area["ruoli"], key="c_mansione")
+        else:
+            mansione = st.text_input(get_testo("altro_specifica", lingua), key="c_man_libera")
+        c_studi = st.selectbox(get_testo("studi", lingua), [get_testo("opt_media", lingua), get_testo("opt_diploma", lingua), get_testo("opt_laurea", lingua), get_testo("opt_prof", lingua)], key="c_studi")
+        if c_studi == get_testo("opt_prof", lingua):
+            st.caption(get_testo("hint_prof", lingua))
+    c_skills = st.text_area(get_testo("skills", lingua), key="c_skills")
+    c3, c4 = st.columns(2)
+    c_exp = c3.number_input(get_testo("esperienza_anno", lingua), min_value=0, max_value=50, value=0, key="c_exp")
+    c_sal = c4.text_input(get_testo("salario_richiesto", lingua), key="c_sal")
+    c_note = st.text_area(get_testo("note", lingua), key="c_note")
+    st.markdown("---")
+    if st.button(get_testo("invia_candidatura", lingua), type="primary", use_container_width=True, key="btn_cand_invia"):
+        if not c_cognome or not c_nome or not c_email or not c_tel:
+            st.error(get_testo("errore_candidatura", lingua))
+        else:
+            fp = "|".join([c_cognome.strip().lower(), c_nome.strip().lower(),
+                           c_email.strip().lower(), c_tel.strip()])
+            if st.session_state.get("cand_fp") == fp:
+                st.info(get_testo("candidatura_gia_inviata", lingua))
             else:
                 row = {"id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
                        "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -724,10 +746,16 @@ def pagina_candidatura(lingua):
                 with st.spinner(get_testo("saving", lingua)):
                     ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
                 if ok:
+                    st.session_state.cand_fp = fp
                     st.success(get_testo("candidatura_inviata", lingua))
                     st.balloons()
                 else:
                     st.error(f"Erreur: {msg}")
+    if st.session_state.get("cand_fp") and st.button(get_testo("nouvelle_candidature", lingua), use_container_width=True, key="btn_cand_new"):
+        for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_mansione", "c_man_libera", "c_settore", "c_settore_prev"):
+            st.session_state.pop(k, None)
+        st.session_state.cand_fp = None
+        st.rerun()
 
 # ============================================================
 # AREA LAVORATORE
@@ -870,7 +898,7 @@ def pagina_area_lavoratore(lingua):
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
-                 "save_lock": False}.items():
+                 "ultimo_salvataggio": None, "cand_fp": None}.items():
         if k not in st.session_state:
             st.session_state[k] = v
     lingua = st.session_state.lingua
@@ -949,6 +977,7 @@ def main():
             st.session_state.step = 1
             st.session_state.dati_form = {}
             st.session_state.avviso_mostrato = False
+            st.session_state.ultimo_salvataggio = None
             st.rerun()
 
     elif st.session_state.pagina == "registrazione":
