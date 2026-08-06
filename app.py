@@ -779,7 +779,7 @@ def main():
             st.session_state[k] = v
     lingua = st.session_state.lingua
     with st.sidebar:
-        st.image(CONFIG["logo_url"], use_column_width=True)
+        st.image(CONFIG["logo_url"], use_container_width=True)
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
