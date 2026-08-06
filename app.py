@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.0 - RICOSTRUZIONE PULITA
-✅ Zero spazi extra / ✅ Sintassi verificata / ✅ Sheet DIPENDENTI-CANDIDATURE-SALARI
-✅ Candidatura con 2 tendine (7 aree) / ✅ PDF sicuro / ✅ Senza pandas
+PROACIER HRM - v20.2 - FILE COMPLETO
+✅ st.image fix / ✅ lettura via POST / ✅ salvataggi auto-verificati
+✅ Zero spazi extra / ✅ Senza pandas / ✅ Sintassi verificata
 """
 import streamlit as st
 import requests
@@ -14,7 +14,7 @@ from fpdf import FPDF
 # CONFIGURAZIONE CENTRALE
 # ============================================================
 CONFIG = {
-    "url_api": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",  # <-- URL del deploy Apps Script v2
+    "url_api": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
     "email_ouvriers": "ouvriers@proacier.sn",
     "email_candidature": "candidature@proacier.sn",
     "prefisso_codice": "THS",
@@ -40,7 +40,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# TRADUZIONI (fr, it, en) - formato compatto a tupla
+# TRADUZIONI (fr, it, en) - formato tupla compatto
 # ============================================================
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 T = {
@@ -196,7 +196,7 @@ T = {
 "sezione_dati_personali": ("📋 Données Personnelles (non modifiables)", "📋 Dati Personali (non modificabili)", "📋 Personal Data (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍👩‍👧‍ Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍👧👦 Family (modifiable)"),
+"sezione_famille": ("👨👩‍‍👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍👩‍👧‍ Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -228,13 +228,58 @@ AREE_AZIENDALI = [
 ]
 
 # ============================================================
-# HELPERS
+# HELPERS DATI
 # ============================================================
 def genera_codice():
     return f"{CONFIG['prefisso_codice']}-{datetime.now().year}-{random.randint(1000, 9999)}"
 
 def genera_pin():
     return str(random.randint(1000, 9999))
+
+def s_str(v):
+    if v is None:
+        return ""
+    s = str(v)
+    if s in ("nan", "None", "#ERROR!"):
+        return ""
+    return s.strip()
+
+def s_int(v):
+    try:
+        return int(float(s_str(v) or 0))
+    except Exception:
+        return 0
+
+def formatta_data(v):
+    s = s_str(v)
+    if not s:
+        return ""
+    if "T" in s:
+        s = s.split("T")[0]
+        p = s.split("-")
+        if len(p) == 3:
+            return f"{p[2]}/{p[1]}/{p[0]}"
+    return s
+
+# ============================================================
+# RETE: POST unificato (scrittura + lettura) con auto-verifica
+# ============================================================
+def _post_json(payload):
+    try:
+        r = requests.post(CONFIG["url_api"], json=payload, timeout=60)
+        if r.status_code == 200:
+            try:
+                j = r.json()
+                if isinstance(j, dict):
+                    if j.get("status") == "success":
+                        return True, "ok"
+                    return False, j.get("message", "Errore server")
+                return False, "Risposta inattesa"
+            except Exception:
+                return False, "Risposta non JSON"
+        return False, f"HTTP {r.status_code}"
+    except Exception as e:
+        return False, str(e)
 
 def leggi_foglio(nome_foglio):
     data = None
@@ -263,29 +308,6 @@ def leggi_foglio(nome_foglio):
     headers = [str(h).strip() for h in data[0]]
     records = [dict(zip(headers, row)) for row in data[1:]]
     return headers, records
-    headers = [str(h).strip() for h in data[0]]
-    records = [dict(zip(headers, row)) for row in data[1:]]
-    return headers, records
-    except Exception as e:
-        st.error(f"Erreur de connexion: {e}")
-        return [], []
-
-def _post_json(payload):
-    try:
-        r = requests.post(CONFIG["url_api"], json=payload, timeout=60)
-        if r.status_code == 200:
-            try:
-                j = r.json()
-                if isinstance(j, dict):
-                    if j.get("status") == "success":
-                        return True, "ok"
-                    return False, j.get("message", "Errore server")
-                return False, "Risposta inattesa"
-            except Exception:
-                return False, "Risposta non JSON"
-        return False, f"HTTP {r.status_code}"
-    except Exception as e:
-        return False, str(e)
 
 def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
     ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "row": row})
@@ -301,33 +323,8 @@ def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
 def salva_update(nome_foglio, row_index, row):
     return _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
 
-def s_str(v):
-    if v is None:
-        return ""
-    s = str(v)
-    if s in ("nan", "None", "#ERROR!"):
-        return ""
-    return s.strip()
-
-def s_int(v):
-    try:
-        return int(float(s_str(v) or 0))
-    except Exception:
-        return 0
-
-def formatta_data(v):
-    s = s_str(v)
-    if not s:
-        return ""
-    if "T" in s:
-        s = s.split("T")[0]
-        p = s.split("-")
-        if len(p) == 3:
-            return f"{p[2]}/{p[1]}/{p[0]}"
-    return s
-
 # ============================================================
-# GENERATORE PDF (tutti valori come stringa = zero TypeError)
+# GENERATORE PDF
 # ============================================================
 class PDFProacier(FPDF):
     def header(self):
@@ -648,7 +645,7 @@ def genera_e_salva(dati, lingua):
         st.error(f"Erreur: {msg}")
 
 # ============================================================
-# PAGINA CANDIDATURA (2 tendine: settore -> ruolo)
+# PAGINA CANDIDATURA (2 tendine)
 # ============================================================
 def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
@@ -757,8 +754,11 @@ def pagina_area_lavoratore(lingua):
     st.markdown("---")
     st.subheader(get_testo("sezione_famille", lingua))
     c1, c2 = st.columns(2)
+    stati = [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)]
+    val_stato = s_str(mio.get("stato_civile"))
+    idx_stato = stati.index(val_stato) if val_stato in stati else 0
     with c1:
-        n_stato = st.selectbox(get_testo("stato_civile", lingua), [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)], index=max(0, [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)].index(s_str(mio.get("stato_civile"))) if s_str(mio.get("stato_civile")) in [get_testo("celibe", lingua), get_testo("coniugato", lingua), get_testo("divorziato", lingua), get_testo("vedovo", lingua)] else 0))
+        n_stato = st.selectbox(get_testo("stato_civile", lingua), stati, index=idx_stato)
         n_figli = st.number_input(get_testo("figli_totale", lingua), min_value=0, value=s_int(mio.get("figli_totale")))
     with c2:
         n_mogli = 0
