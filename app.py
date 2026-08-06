@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.6 - FILE COMPLETO
-✅ Anti-duplicato LATO FOGLIO (stessi dati + stesso giorno = stesse credenziali)
-✅ Figli totali campo manuale nell'area lavoratore (le mogli non li cancellano)
-✅ Cache letture 30s + scrittura update in un colpo solo = molto più veloce
+PROACIER HRM - v20.7 - FILE COMPLETO
+✅ PDF Ristampa coerente con i valori a video
+✅ Tendina mansione si resetta al cambio area (chiave per area)
+✅ Anti-duplicato candidature lato foglio
+✅ Bottone Home in sidebar
 """
 import streamlit as st
 import requests
@@ -12,7 +13,7 @@ import re
 from datetime import datetime
 from fpdf import FPDF
 
-VERSIONE = "v20.6"
+VERSIONE = "v20.7"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -51,6 +52,7 @@ T = {
 "titolo": ("🏭 PROACIER - GESTION DES RESSOURCES HUMAINES", "🏭 PROACIER - GESTIONE RISORSE UMANE", "🏭 PROACIER - HUMAN RESOURCES"),
 "sottotitolo": ("Système de Recrutement - Sénégal", "Sistema di Reclutamento - Senegal", "Recruitment System - Senegal"),
 "lingua": ("Langue", "Lingua", "Language"),
+"home": ("🏠 Accueil", "🏠 Home", "🏠 Home"),
 "candidatura_spontanea": ("📄 Candidature Spontanée", "📄 Candidatura Spontanea", "📄 Spontaneous Application"),
 "dashboard": ("Tableau de Bord", "Dashboard", "Dashboard"),
 "area_lavoratore": ("Espace Travailleur", "Spazio Lavoratore", "Worker Space"),
@@ -181,7 +183,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍👩‍‍👦 Famille (modifiable)", "👨‍👩‍‍👦 Famiglia (modificabile)", "👨‍👩‍👧‍👦 Family (modifiable)"),
+"sezione_famille": ("👨‍‍‍👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍👧👦 Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -376,6 +378,29 @@ def salva_update(nome_foglio, row_index, row):
     if ok:
         _svuota_cache(nome_foglio)
     return ok, msg
+
+def trova_duplicato_reg(dati):
+    oggi = datetime.now().strftime("%d/%m/%Y")
+    _, recs = leggi_foglio("DIPENDENTI", force=True)
+    for r in recs:
+        if (s_str(r.get("cognome")).lower() == s_str(dati.get("cognome")).lower()
+                and s_str(r.get("nome")).lower() == s_str(dati.get("nome")).lower()
+                and s_str(r.get("telefono_1")) == s_str(dati.get("telefono_1"))
+                and s_str(r.get("data_registrazione")).startswith(oggi)):
+            return r
+    return None
+
+def trova_duplicato_cand(cognome, nome, email, tel):
+    oggi = datetime.now().strftime("%d/%m/%Y")
+    _, recs = leggi_foglio("CANDIDATURE", force=True)
+    for r in recs:
+        if (s_str(r.get("cognome")).lower() == s_str(cognome).lower()
+                and s_str(r.get("nome")).lower() == s_str(nome).lower()
+                and s_str(r.get("email")).lower() == s_str(email).lower()
+                and s_str(r.get("telefono")) == s_str(tel)
+                and s_str(r.get("data_candidatura")).startswith(oggi)):
+            return r
+    return None
 
 # ============================================================
 # GENERATORE PDF
@@ -698,17 +723,6 @@ def pagina_registrazione(lingua):
             else:
                 st.warning(get_testo("cocher_case", lingua))
 
-def trova_duplicato(dati):
-    oggi = datetime.now().strftime("%d/%m/%Y")
-    _, recs = leggi_foglio("DIPENDENTI", force=True)
-    for r in recs:
-        if (s_str(r.get("cognome")).lower() == s_str(dati.get("cognome")).lower()
-                and s_str(r.get("nome")).lower() == s_str(dati.get("nome")).lower()
-                and s_str(r.get("telefono_1")) == s_str(dati.get("telefono_1"))
-                and s_str(r.get("data_registrazione")).startswith(oggi)):
-            return r
-    return None
-
 def genera_e_salva(dati, lingua):
     if not dati.get("cognome") or not dati.get("nome"):
         st.warning(get_testo("errore_obbligatori", lingua))
@@ -718,7 +732,7 @@ def genera_e_salva(dati, lingua):
         st.info(get_testo("reg_gia", lingua))
         return
     with st.spinner(get_testo("saving", lingua)):
-        dup = trova_duplicato(dati)
+        dup = trova_duplicato_reg(dati)
     if dup:
         st.session_state.reg_fp = fp
         st.session_state.ultimo_salvataggio = {"codice": s_str(dup.get("codice")), "pin": s_str(dup.get("pin")),
@@ -744,7 +758,7 @@ def genera_e_salva(dati, lingua):
         st.error(f"Erreur: {msg}")
 
 # ============================================================
-# PAGINA CANDIDATURA (widget live, senza st.form)
+# PAGINA CANDIDATURA (tendine live + anti-duplicato lato foglio)
 # ============================================================
 def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
@@ -768,14 +782,12 @@ def pagina_candidatura(lingua):
         c_reg = st.selectbox(get_testo("regione_senegal", lingua), ["Thiès", "Tivaouane", "Mbour", "Dakar", "Saint-Louis", "Ziguinchor", "Kolda", "Tambacounda", "Kaolack", "Fatick", "Kédougou", "Kaffrine", "Louga", "Matam", "Autre"], key="c_reg")
         labels = [ar["label"][idx] for ar in AREE_AZIENDALI]
         settore = st.selectbox(get_testo("settore_richiesto", lingua), labels, key="c_settore")
-        area = AREE_AZIENDALI[labels.index(settore)]
-        if st.session_state.get("c_settore_prev") != settore:
-            st.session_state.pop("c_mansione", None)
-            st.session_state["c_settore_prev"] = settore
+        area_idx = labels.index(settore)
+        area = AREE_AZIENDALI[area_idx]
         if area["ruoli"]:
-            mansione = st.selectbox(get_testo("mansione_richiesta", lingua), area["ruoli"], key="c_mansione")
+            mansione = st.selectbox(get_testo("mansione_richiesta", lingua), area["ruoli"], key=f"c_man_{area_idx}")
         else:
-            mansione = st.text_input(get_testo("altro_specifica", lingua), key="c_man_libera")
+            mansione = st.text_input(get_testo("altro_specifica", lingua), key=f"c_man_libera_{area_idx}")
         c_studi = select_canonico("studi", lingua, get_testo("studi", lingua), "c_studi")
         if c_studi == "prof":
             st.caption(get_testo("hint_prof", lingua))
@@ -794,29 +806,38 @@ def pagina_candidatura(lingua):
             if st.session_state.get("cand_fp") == fp:
                 st.info(get_testo("candidatura_gia_inviata", lingua))
             else:
-                row = {"id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
-                       "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                       "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
-                       "data_nascita": f"{cg:02d}/{cm:02d}/{ca}", "indirizzo": c_ind, "comune": c_com,
-                       "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
-                       "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
-                       "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
                 with st.spinner(get_testo("saving", lingua)):
-                    ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
-                if ok:
+                    dup = trova_duplicato_cand(c_cognome, c_nome, c_email, c_tel)
+                if dup:
                     st.session_state.cand_fp = fp
-                    st.success(get_testo("candidatura_inviata", lingua))
-                    st.balloons()
+                    st.info(get_testo("candidatura_gia_inviata", lingua))
                 else:
-                    st.error(f"Erreur: {msg}")
+                    row = {"id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
+                           "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                           "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
+                           "data_nascita": f"{cg:02d}/{cm:02d}/{ca}", "indirizzo": c_ind, "comune": c_com,
+                           "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
+                           "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
+                           "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
+                    with st.spinner(get_testo("saving", lingua)):
+                        ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
+                    if ok:
+                        st.session_state.cand_fp = fp
+                        st.success(get_testo("candidatura_inviata", lingua))
+                        st.balloons()
+                    else:
+                        st.error(f"Erreur: {msg}")
     if st.session_state.get("cand_fp") and st.button(get_testo("nouvelle_candidature", lingua), use_container_width=True, key="btn_cand_new"):
-        for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_mansione", "c_man_libera", "c_settore", "c_settore_prev", "c_studi"):
+        for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_studi"):
             st.session_state.pop(k, None)
+        for k in list(st.session_state.keys()):
+            if k.startswith("c_man_"):
+                st.session_state.pop(k, None)
         st.session_state.cand_fp = None
         st.rerun()
 
 # ============================================================
-# AREA LAVORATORE (figli totali = campo manuale)
+# AREA LAVORATORE (PDF coerente con i valori a video)
 # ============================================================
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
@@ -916,6 +937,13 @@ def pagina_area_lavoratore(lingua):
     st.markdown("---")
     st.info(get_testo("sezione_comunicazioni", lingua))
     st.markdown("---")
+    dati_visti = dict(mio)
+    dati_visti.update({"stato_civile": n_stato, "numero_mogli": n_mogli, "dettagli_mogli": dettagli,
+                       "figli_totale": n_figli, "telefono_1": n_tel1, "telefono_2": n_tel2,
+                       "telefono_3": n_tel3, "indirizzo": n_ind, "quartiere": n_qua, "comune": n_com,
+                       "regione_senegal": n_reg, "emergenza_nome": n_em_nome, "emergenza_tel": n_em_tel,
+                       "taglia_maglia": n_tm, "taglia_pantaloni": n_tp, "taglia_scarpe": n_ts,
+                       "taglia_giacca": n_tg, "taglia_cappello": n_tc, "taglia_guanti": n_tgu})
     c1, c2 = st.columns(2)
     with c1:
         if st.button(get_testo("salva_modifiche", lingua), type="primary", use_container_width=True):
@@ -933,7 +961,7 @@ def pagina_area_lavoratore(lingua):
             else:
                 st.error(f"{get_testo('errore_salvataggio', lingua)} ({msg})")
     with c2:
-        pdf_bytes = genera_pdf_lavoratore(mio)
+        pdf_bytes = genera_pdf_lavoratore(dati_visti)
         st.download_button(label=get_testo("ristampa_pdf", lingua), data=pdf_bytes,
                            file_name=f"Proacier_{mio.get('codice')}.pdf", mime="application/pdf",
                            use_container_width=True)
@@ -956,6 +984,9 @@ def main():
     lingua = st.session_state.lingua
     with st.sidebar:
         st.image(CONFIG["logo_url"], use_container_width=True)
+        if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
+            st.session_state.pagina = "home"
+            st.rerun()
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
