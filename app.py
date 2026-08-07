@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.8 - FILE COMPLETO
-✅ FASE 5: Dashboard Admin Pagina 1 (righe espandibili, turni, salari, visite mediche, PDF)
-✅ Tutto ciò che funzionava in v20.7 resta identico
+PROACIER HRM - v20.9 - FILE COMPLETO
+✅ Storico visite mediche (tab VISITE_MEDICHE) + form admin con esiti/restrizioni
+✅ Avvisi dashboard: visite da rinnovare (≤30gg) e idoneità limitate
+✅ Tutto ciò che funzionava in v20.8 resta identico
 """
 import streamlit as st
 import requests
 import random
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from fpdf import FPDF
 
-VERSIONE = "v20.8"
+VERSIONE = "v20.9"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -181,7 +182,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍‍👧👦 Famille (modifiable)", "👨‍‍‍👦 Famiglia (modificabile)", "👨‍‍‍👦 Family (modifiable)"),
+"sezione_famille": ("👨‍👩‍👧‍👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍👧‍👦 Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -200,6 +201,15 @@ T = {
 "dash_p2": ("2 - Présences & Paies", "2 - Presenze & Paghe", "2 - Attendance & Payroll"),
 "dash_p2_todo": ("Page 2 (présences & paies) disponible avec la FASE 6.", "Pagina 2 (presenze e paghe) disponibile con la FASE 6.", "Page 2 (attendance & payroll) coming with PHASE 6."),
 "sez_admin": ("🛠️ Gestion administrative", "🛠️ Gestione amministrativa", "🛠️ Administrative management"),
+"storico_visite": ("Historique des visites médicales", "Storico visite mediche", "Medical visit history"),
+"nuova_visita": ("Nouvelle visite médicale", "Nuova visita medica", "New medical visit"),
+"tipo_visita": ("Type de visite", "Tipo di visita", "Visit type"),
+"esito": ("Résultat médical", "Esito medico", "Medical outcome"),
+"restrizioni": ("Restrictions", "Restrizioni", "Restrictions"),
+"prossimo_controllo": ("Prochain contrôle", "Prossimo controllo", "Next check"),
+"nessuna_visita": ("Aucune visite enregistrée", "Nessuna visita registrata", "No visits recorded"),
+"visite_scadute": ("Visites médicales à renouveler (≤30 jours ou scadute)", "Visite mediche da rinnovare (≤30 giorni o scadute)", "Medical visits to renew (≤30 days or expired)"),
+"idoneita_parziale": ("Aptitude avec restriction / inaptitude", "Idoneità con restrizione o inidoneità", "Restricted fitness / unfitness"),
 }
 
 def get_testo(chiave, lingua="fr"):
@@ -218,6 +228,7 @@ OPZ = {
 "categoria": [("edilizia", "Bâtiment", "Edilizia", "Construction"), ("contabilita", "Comptabilité", "Contabilità", "Accounting"), ("meccanica", "Mécanique", "Meccanica", "Mechanics"), ("elettrico", "Électricité", "Elettrico", "Electrical"), ("agricoltura", "Agriculture", "Agricoltura", "Agriculture"), ("altro_cat", "Autre", "Altro", "Other")],
 "studi": [("media", "École moyenne", "Licenza media", "Middle school"), ("diploma", "Baccalauréat / Diplôme", "Diploma", "High school / Diploma"), ("laurea", "Université / Licence", "Laurea", "University / Degree"), ("prof", "Formation professionnelle", "Formazione professionale", "Vocational training")],
 "paesi": [("SN", "Sénégal", "Senegal", "Senegal"), ("ML", "Mali", "Mali", "Mali"), ("BF", "Burkina Faso", "Burkina Faso", "Burkina Faso"), ("SL", "Sierra Leone", "Sierra Leone", "Sierra Leone"), ("GN", "Guinée", "Guinea", "Guinea"), ("GM", "Gambie", "Gambia", "Gambia"), ("AUTRE", "Autre pays", "Altro paese", "Other country")],
+"tipo_visita": [("assunzione", "Visite d'embauche", "Visita di assunzione", "Hiring visit"), ("periodica", "Visite périodique", "Visita periodica", "Periodic visit"), ("straordinaria", "Visite extraordinaire", "Visita straordinaria", "Extraordinary visit")],
 }
 
 def etichetta(tipo, valore, lingua="fr"):
@@ -242,6 +253,23 @@ def select_canonico(tipo, lingua, label, key, saved=None):
                     idx = codes.index(o[0])
                     break
     return st.selectbox(label, codes, index=idx, format_func=lambda c: etichetta(tipo, c, lingua), key=key)
+
+def norm_idoneita(v):
+    v = s_str(v)
+    if v in ("apte", "Apte", "Apto", "Fit"):
+        return "apte"
+    if v in ("restriction", "Apte avec restriction", "Apto con restrizioni", "Fit with restrictions"):
+        return "restriction"
+    if v in ("inapte", "Inapte", "Inapto", "Unfit"):
+        return "inapte"
+    return v
+
+def data_ord(s):
+    m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})", s_str(s))
+    if not m:
+        return None
+    d, mo, y = map(int, m.groups())
+    return (y, mo, d)
 
 # ============================================================
 # AREE AZIENDALI (candidatura a 2 tendine)
@@ -980,7 +1008,7 @@ def pagina_area_lavoratore(lingua):
         st.rerun()
 
 # ============================================================
-# DASHBOARD ADMIN - FASE 5 (Pagina 1 completa)
+# DASHBOARD ADMIN - FASE 5 (Pagina 1 + storico visite mediche)
 # ============================================================
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
@@ -992,6 +1020,7 @@ def pagina_dashboard(lingua):
     _, recs_dip = leggi_foglio("DIPENDENTI")
     _, recs_sal = leggi_foglio("SALARI")
     _, recs_turni = leggi_foglio("TURNI")
+    _, recs_vis = leggi_foglio("VISITE_MEDICHE")
     turni_codes = [s_str(r.get("codice_turno")) for r in recs_turni
                    if s_str(r.get("codice_turno")) and s_str(r.get("ora_inizio"))]
     if not turni_codes:
@@ -1001,6 +1030,32 @@ def pagina_dashboard(lingua):
     c2.metric(get_testo("turni_assegnati", lingua), sum(1 for r in recs_dip if s_str(r.get("turno"))))
     c3.metric(get_testo("salari_attivi", lingua), sum(1 for r in recs_sal
               if s_str(r.get("codice_lavoratore")) and not s_str(r.get("data_fine_validita"))))
+    # ---- AVVISI MEDICI ----
+    ultime = {}
+    for v in recs_vis:
+        cod = s_str(v.get("codice_lavoratore"))
+        if not cod:
+            continue
+        o = data_ord(v.get("data_visita"))
+        if cod not in ultime or (o and (ultime[cod][0] is None or o > ultime[cod][0])):
+            ultime[cod] = (o, v)
+    lim = datetime.now() + timedelta(days=30)
+    lim_t = (lim.year, lim.month, lim.day)
+    scaduti, restritti = [], []
+    for r in recs_dip:
+        cod = s_str(r.get("codice"))
+        nome = f"{s_str(r.get('cognome'))} {s_str(r.get('nome'))}"
+        u = ultime.get(cod)
+        if u:
+            pc = data_ord(u[1].get("prossimo_controllo"))
+            if pc and pc <= lim_t:
+                scaduti.append(f"{nome} ({cod}) → {s_str(u[1].get('prossimo_controllo'))}")
+        if norm_idoneita(r.get("idoneita")) in ("restriction", "inapte"):
+            restritti.append(f"{nome} ({cod})")
+    if scaduti:
+        st.warning("⚠️ " + get_testo("visite_scadute", lingua) + ": " + "; ".join(scaduti))
+    if restritti:
+        st.error("🩺 " + get_testo("idoneita_parziale", lingua) + ": " + "; ".join(restritti))
     st.markdown("---")
     cerca = st.text_input(get_testo("cerca_dip", lingua), key="adm_cerca")
     mostrati = []
@@ -1072,6 +1127,46 @@ def pagina_dashboard(lingua):
                 st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r),
                                    file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
                                    use_container_width=True, key=f"adm_pdf_{cod}")
+            # ---- STORICO VISITE MEDICHE ----
+            st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
+            mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == cod]
+            mie_vis.sort(key=lambda v: data_ord(v.get("data_visita")) or (0, 0, 0), reverse=True)
+            if mie_vis:
+                for v in mie_vis:
+                    riga = (f"- **{s_str(v.get('data_visita'))}** ({etichetta('tipo_visita', v.get('tipo_visita'), lingua)}) "
+                            f"— {etichetta('idoneita', v.get('idoneita'), lingua)} — {s_str(v.get('esito'))}")
+                    if s_str(v.get("restrizioni")):
+                        riga += f" — ⛔ {s_str(v.get('restrizioni'))}"
+                    if s_str(v.get("prossimo_controllo")):
+                        riga += f" — ➡️ {s_str(v.get('prossimo_controllo'))}"
+                    st.markdown(riga)
+            else:
+                st.caption(get_testo("nessuna_visita", lingua))
+            with st.expander("➕ " + get_testo("nuova_visita", lingua)):
+                v1, v2 = st.columns(2)
+                with v1:
+                    n_data_vis = st.text_input(get_testo("data_visita", lingua),
+                                               value=datetime.now().strftime("%d/%m/%Y"), key=f"adm_visdata_{cod}")
+                    n_tipo = st.selectbox(get_testo("tipo_visita", lingua), [o[0] for o in OPZ["tipo_visita"]],
+                                          format_func=lambda c: etichetta("tipo_visita", c, lingua), key=f"adm_vistipo_{cod}")
+                    n_ido2 = st.selectbox(get_testo("idoneita", lingua), [o[0] for o in OPZ["idoneita"]],
+                                          format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_visido_{cod}")
+                with v2:
+                    n_restr = st.text_input(get_testo("restrizioni", lingua), key=f"adm_visrestr_{cod}")
+                    n_pross = st.text_input(get_testo("prossimo_controllo", lingua) + " (GG/MM/AAAA)", key=f"adm_vispros_{cod}")
+                    n_esito = st.text_area(get_testo("esito", lingua), key=f"adm_visesito_{cod}")
+                if st.button(get_testo("salva_modifiche", lingua), key=f"adm_vissave_{cod}"):
+                    okv, mv = salva_append("VISITE_MEDICHE", {
+                        "codice_lavoratore": cod, "data_visita": n_data_vis, "tipo_visita": n_tipo,
+                        "idoneita": n_ido2, "restrizioni": n_restr, "esito": n_esito,
+                        "prossimo_controllo": n_pross, "registrato_da": "admin",
+                        "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")})
+                    okd, md = salva_update("DIPENDENTI", i, {"idoneita": n_ido2, "data_visita": n_data_vis})
+                    if okv and okd:
+                        st.success(get_testo("modifiche_salvate", lingua))
+                        st.rerun()
+                    else:
+                        st.error(f"{get_testo('errore_salvataggio', lingua)} ({mv} {md})")
 
 # ============================================================
 # MAIN
