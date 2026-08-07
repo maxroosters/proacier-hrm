@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.11 - FILE COMPLETO
-✅ Home = logout (privacy) / ✅ Promemoria + storico visite nello spazio lavoratore
-✅ "Salva il mio accesso" con link personale + auto-login / ✅ Tipo paga tradotto
-✅ Include tutto v20.10: form senza ricaricamenti, read_all, paginazione
+PROACIER HRM - v20.12 - FILE COMPLETO
+✅ PDF generato nella lingua scelta (FR/IT/EN) in tutti i punti (registrazione, lavoratore, admin)
+✅ Include tutto v20.11: Home=logout, promemoria visite, link personale, paga tradotta,
+   form senza ricaricamenti, read_all, paginazione
 """
 import streamlit as st
 import requests
@@ -12,7 +12,7 @@ import re
 from datetime import datetime, timedelta
 from fpdf import FPDF
 
-VERSIONE = "v20.11"
+VERSIONE = "v20.12"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -185,7 +185,7 @@ T = {
 "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
 "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
 "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-"sezione_famille": ("👨‍👩‍‍ Famille (modifiable)", "‍👩👧‍ Famiglia (modificabile)", "👨‍👩‍‍ Family (modifiable)"),
+"sezione_famille": ("👨‍👩‍‍ Famille (modifiable)", "‍‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍👧‍ Family (modifiable)"),
 "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
 "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
 "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -217,6 +217,49 @@ T = {
 "form_hint": ("ℹ️ Les modifications ne sont enregistrées QU'EN cliquant sur le bouton Enregistrer.", "ℹ️ Le modifiche vengono salvate SOLO cliccando sul pulsante Salva.", "ℹ️ Changes are saved ONLY when clicking the Save button."),
 "mogli_hint": ("Après modification du nombre d'épouses, enregistrez pour afficher les champs des nouvelles épouses.", "Dopo aver cambiato il numero di mogli, salva per visualizzare i campi delle nuove mogli.", "After changing the number of wives, save to display the fields of the new wives."),
 "mostra_altri": ("➕ Afficher 15 de plus", "➕ Mostrane altri 15", "➕ Show 15 more"),
+"pdf_titolo": ("FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES", "SCHEDA DI REGISTRAZIONE - RISORSE UMANE", "REGISTRATION FORM - HUMAN RESOURCES"),
+"pdf_nfiche": ("N° fiche:", "N° scheda:", "File No.:"),
+"pdf_data": ("Date:", "Data:", "Date:"),
+"pdf_sez1": ("1. IDENTITE & FAMILLE", "1. IDENTITA' E FAMIGLIA", "1. IDENTITY & FAMILY"),
+"pdf_nom": ("Nom:", "Cognome:", "Surname:"),
+"pdf_prenoms": ("Prenom(s):", "Nome:", "First name(s):"),
+"pdf_ne_le": ("Ne(e) le:", "Nato/a il:", "Born on:"),
+"pdf_a": ("a:", "a:", "at:"),
+"pdf_nationalite": ("Nationalite:", "Nazionalita':", "Nationality:"),
+"pdf_pays": ("Pays:", "Paese:", "Country:"),
+"pdf_etat_civil": ("Etat civil:", "Stato civile:", "Marital status:"),
+"pdf_enfants": ("Enfants:", "Figli:", "Children:"),
+"pdf_epouses": ("Epouses:", "Mogli:", "Wives:"),
+"pdf_sez2": ("2. CONTACT & DOCUMENTS", "2. CONTATTI E DOCUMENTI", "2. CONTACT & DOCUMENTS"),
+"pdf_adresse": ("Adresse:", "Indirizzo:", "Address:"),
+"pdf_tel1": ("Tel 1:", "Tel 1:", "Phone 1:"),
+"pdf_tel2": ("Tel 2:", "Tel 2:", "Phone 2:"),
+"pdf_sez3": ("3. EXPERIENCE & COMPETENCES", "3. ESPERIENZA E COMPETENZE", "3. EXPERIENCE & SKILLS"),
+"pdf_poste": ("Poste:", "Mansione:", "Position:"),
+"pdf_competence": ("Competence:", "Competenza:", "Skill:"),
+"pdf_permis": ("Permis:", "Patente:", "License:"),
+"pdf_sez4": ("4. VETEMENTS & EPI", "4. ABBIGLIAMENTO E DPI", "4. CLOTHING & PPE"),
+"pdf_tshirt": ("T-shirt:", "T-shirt:", "T-shirt:"),
+"pdf_pantalon": ("Pantalon:", "Pantalone:", "Pants:"),
+"pdf_pointure": ("Pointure:", "Numero scarpe:", "Shoe size:"),
+"pdf_gilet": ("Gilet:", "Gilet:", "Vest:"),
+"pdf_casque": ("Casque:", "Casco:", "Helmet:"),
+"pdf_gants": ("Gants:", "Guanti:", "Gloves:"),
+"pdf_sez5": ("5. MEDICAL & URGENCE", "5. MEDICO E EMERGENZA", "5. MEDICAL & EMERGENCY"),
+"pdf_groupe": ("Groupe:", "Gruppo:", "Blood type:"),
+"pdf_aptitude": ("Aptitude:", "Idoneita':", "Fitness:"),
+"pdf_urgence": ("Urgence:", "Emergenza:", "Emergency:"),
+"pdf_tel": ("Tel:", "Tel:", "Phone:"),
+"pdf_certifie": ("Je certifie l'exactitude des informations et accepte les conditions.", "Certifico l'esattezza delle informazioni e accetto le condizioni.", "I certify the accuracy of the information and accept the conditions."),
+"pdf_candidat": ("CANDIDAT", "CANDIDATO", "CANDIDATE"),
+"pdf_employeur": ("EMPLOYEUR", "DATORE DI LAVORO", "EMPLOYER"),
+"pdf_consent_titolo": ("CONSENTEMENT DONNEES PERSONNELLES", "CONSENSO DATI PERSONALI", "PERSONAL DATA CONSENT"),
+"pdf_consent_testo": ("Conformement a la Loi n° 2008-12 du 25 janvier 2008 (Senegal).", "Conforme alla Legge n° 2008-12 del 25 gennaio 2008 (Senegal).", "In accordance with Law No. 2008-12 of 25 January 2008 (Senegal)."),
+"pdf_signature": ("Signature:", "Firma:", "Signature:"),
+"pdf_id_titolo": ("IDENTIFIANTS DE CONNEXION", "CREDENZIALI DI ACCESSO", "LOGIN CREDENTIALS"),
+"pdf_id_desc": ("Conservez precieusement ces identifiants:", "Conserva con cura queste credenziali:", "Keep these credentials safe:"),
+"pdf_id_code": ("Code d'acces:", "Codice di accesso:", "Access code:"),
+"pdf_id_avviso": ("Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne.", "Queste credenziali sono personali e riservate. Non condividerle con nessuno.", "These credentials are personal and confidential. Do not share them with anyone."),
 }
 
 def get_testo(chiave, lingua="fr"):
@@ -479,14 +522,15 @@ def trova_duplicato_cand(cognome, nome, email, tel):
     return None
 
 # ============================================================
-# GENERATORE PDF
+# GENERATORE PDF (tradotto nella lingua scelta)
 # ============================================================
 class PDFProacier(FPDF):
+    titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
     def header(self):
         self.set_font("Helvetica", "B", 13)
         self.set_fill_color(94, 165, 41)
         self.set_text_color(255, 255, 255)
-        self.cell(0, 10, "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES", 0, 1, "C", True)
+        self.cell(0, 10, self.titolo, 0, 1, "C", True)
         self.set_text_color(0, 0, 0)
         self.ln(2)
     def footer(self):
@@ -513,78 +557,79 @@ class PDFProacier(FPDF):
         self.set_font("Helvetica", "", 8)
         self.cell(0, 5, s_str(v2) or "______", 0, 1)
 
-def genera_pdf_lavoratore(d):
+def genera_pdf_lavoratore(d, lingua="fr"):
     pdf = PDFProacier()
+    pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(95, 5, f"N° fiche: {s_str(d.get('codice'))}", 0, 0)
-    pdf.cell(0, 5, f"Date: {datetime.now().strftime('%d/%m/%Y')}", 0, 1, "R")
+    pdf.cell(95, 5, f"{get_testo('pdf_nfiche', lingua)} {s_str(d.get('codice'))}", 0, 0)
+    pdf.cell(0, 5, f"{get_testo('pdf_data', lingua)} {datetime.now().strftime('%d/%m/%Y')}", 0, 1, "R")
     pdf.ln(2)
-    pdf.sezione("1. IDENTITE & FAMILLE")
-    pdf.campo_doppio("Nom:", d.get("cognome"), "Prenom(s):", d.get("nome"))
-    pdf.campo_doppio("Ne(e) le:", formatta_data(d.get("data_nascita")), "a:", d.get("luogo_nascita"))
-    pdf.campo_doppio("Nationalite:", etichetta("paesi", d.get("nazionalita"), "fr"), "Pays:", etichetta("paesi", d.get("paese_origine"), "fr"))
-    pdf.campo_doppio("Etat civil:", etichetta("stato_civile", d.get("stato_civile"), "fr"), "Enfants:", d.get("figli_totale"))
+    pdf.sezione(get_testo("pdf_sez1", lingua))
+    pdf.campo_doppio(get_testo("pdf_nom", lingua), d.get("cognome"), get_testo("pdf_prenoms", lingua), d.get("nome"))
+    pdf.campo_doppio(get_testo("pdf_ne_le", lingua), formatta_data(d.get("data_nascita")), get_testo("pdf_a", lingua), d.get("luogo_nascita"))
+    pdf.campo_doppio(get_testo("pdf_nationalite", lingua), etichetta("paesi", d.get("nazionalita"), lingua), get_testo("pdf_pays", lingua), etichetta("paesi", d.get("paese_origine"), lingua))
+    pdf.campo_doppio(get_testo("pdf_etat_civil", lingua), etichetta("stato_civile", d.get("stato_civile"), lingua), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
     if s_int(d.get("numero_mogli")) > 0:
         pdf.set_font("Helvetica", "B", 8)
-        pdf.cell(60, 5, "Epouses:", 0, 0)
+        pdf.cell(60, 5, get_testo("pdf_epouses", lingua), 0, 0)
         pdf.set_font("Helvetica", "", 8)
         pdf.multi_cell(0, 4, s_str(d.get("dettagli_mogli")))
     pdf.ln(1)
-    pdf.sezione("2. CONTACT & DOCUMENTS")
-    pdf.campo("Adresse:", f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
-    pdf.campo_doppio("Tel 1:", d.get("telefono_1"), "Tel 2:", d.get("telefono_2"))
+    pdf.sezione(get_testo("pdf_sez2", lingua))
+    pdf.campo(get_testo("pdf_adresse", lingua), f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
+    pdf.campo_doppio(get_testo("pdf_tel1", lingua), d.get("telefono_1"), get_testo("pdf_tel2", lingua), d.get("telefono_2"))
     pdf.campo_doppio("CNI:", d.get("cni"), "CSS:", d.get("css"))
     pdf.campo_doppio("NIF:", d.get("nif"), "IPRES:", d.get("ipres"))
     pdf.ln(1)
-    pdf.sezione("3. EXPERIENCE & COMPETENCES")
-    pdf.campo("Poste:", d.get("mansione_1"))
-    pdf.campo("Competence:", f"{etichetta('categoria', d.get('categoria_competenza'), 'fr')} - {s_str(d.get('dettaglio_competenza'))}")
-    pdf.campo("Permis:", d.get("patente"))
+    pdf.sezione(get_testo("pdf_sez3", lingua))
+    pdf.campo(get_testo("pdf_poste", lingua), d.get("mansione_1"))
+    pdf.campo(get_testo("pdf_competence", lingua), f"{etichetta('categoria', d.get('categoria_competenza'), lingua)} - {s_str(d.get('dettaglio_competenza'))}")
+    pdf.campo(get_testo("pdf_permis", lingua), d.get("patente"))
     pdf.ln(1)
-    pdf.sezione("4. VETEMENTS & EPI")
-    pdf.campo_doppio("T-shirt:", d.get("taglia_maglia"), "Pantalon:", d.get("taglia_pantaloni"))
-    pdf.campo_doppio("Pointure:", d.get("taglia_scarpe"), "Gilet:", d.get("taglia_giacca"))
-    pdf.campo_doppio("Casque:", d.get("taglia_cappello"), "Gants:", d.get("taglia_guanti"))
+    pdf.sezione(get_testo("pdf_sez4", lingua))
+    pdf.campo_doppio(get_testo("pdf_tshirt", lingua), d.get("taglia_maglia"), get_testo("pdf_pantalon", lingua), d.get("taglia_pantaloni"))
+    pdf.campo_doppio(get_testo("pdf_pointure", lingua), d.get("taglia_scarpe"), get_testo("pdf_gilet", lingua), d.get("taglia_giacca"))
+    pdf.campo_doppio(get_testo("pdf_casque", lingua), d.get("taglia_cappello"), get_testo("pdf_gants", lingua), d.get("taglia_guanti"))
     pdf.ln(1)
-    pdf.sezione("5. MEDICAL & URGENCE")
-    pdf.campo_doppio("Groupe:", f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", "Aptitude:", etichetta("idoneita", d.get("idoneita"), "fr"))
-    pdf.campo_doppio("Urgence:", d.get("emergenza_nome"), "Tel:", d.get("emergenza_tel"))
+    pdf.sezione(get_testo("pdf_sez5", lingua))
+    pdf.campo_doppio(get_testo("pdf_groupe", lingua), f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", get_testo("pdf_aptitude", lingua), etichetta("idoneita", d.get("idoneita"), lingua))
+    pdf.campo_doppio(get_testo("pdf_urgence", lingua), d.get("emergenza_nome"), get_testo("pdf_tel", lingua), d.get("emergenza_tel"))
     pdf.ln(3)
     pdf.set_font("Helvetica", "I", 8)
-    pdf.multi_cell(0, 4, "Je certifie l'exactitude des informations et accepte les conditions.")
+    pdf.multi_cell(0, 4, get_testo("pdf_certifie", lingua))
     pdf.ln(5)
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(95, 6, "CANDIDAT", 1, 0, "C")
-    pdf.cell(95, 6, "EMPLOYEUR", 1, 1, "C")
+    pdf.cell(95, 6, get_testo("pdf_candidat", lingua), 1, 0, "C")
+    pdf.cell(95, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(95, 15, "", 1, 0)
     pdf.cell(95, 15, "", 1, 1)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 10, "CONSENTEMENT DONNEES PERSONNELLES", 0, 1, "C")
+    pdf.cell(0, 10, get_testo("pdf_consent_titolo", lingua), 0, 1, "C")
     pdf.set_font("Helvetica", "", 9)
-    pdf.multi_cell(0, 5, "Conformement a la Loi n° 2008-12 du 25 janvier 2008 (Senegal).")
+    pdf.multi_cell(0, 5, get_testo("pdf_consent_testo", lingua))
     pdf.ln(10)
-    pdf.cell(0, 6, "Signature:", 0, 1)
+    pdf.cell(0, 6, get_testo("pdf_signature", lingua), 0, 1)
     pdf.cell(0, 20, "", 1, 1)
     pdf.add_page()
     pdf.set_fill_color(255, 243, 205)
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "IDENTIFIANTS DE CONNEXION", 0, 1, "C", True)
+    pdf.cell(0, 10, get_testo("pdf_id_titolo", lingua), 0, 1, "C", True)
     pdf.ln(5)
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, "Conservez precieusement ces identifiants:", 0, 1, "C")
+    pdf.cell(0, 8, get_testo("pdf_id_desc", lingua), 0, 1, "C")
     pdf.ln(5)
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 12, f"Code d'acces: {s_str(d.get('codice')) or '___________'}", 0, 1, "C")
+    pdf.cell(0, 12, f"{get_testo('pdf_id_code', lingua)} {s_str(d.get('codice')) or '___________'}", 0, 1, "C")
     pdf.ln(3)
     pdf.cell(0, 12, f"PIN: {s_str(d.get('pin')) or '___________'}", 0, 1, "C")
     pdf.ln(5)
     pdf.set_font("Helvetica", "I", 9)
     pdf.set_text_color(150, 0, 0)
-    pdf.multi_cell(0, 5, "Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne.")
+    pdf.multi_cell(0, 5, get_testo("pdf_id_avviso", lingua))
     pdf.set_text_color(0, 0, 0)
     out = pdf.output(dest="S")
     if isinstance(out, str):
@@ -812,7 +857,7 @@ def genera_e_salva(dati, lingua):
     if dup:
         st.session_state.reg_fp = fp
         st.session_state.ultimo_salvataggio = {"codice": s_str(dup.get("codice")), "pin": s_str(dup.get("pin")),
-                                               "pdf": genera_pdf_lavoratore(dup), "dup": True}
+                                               "pdf": genera_pdf_lavoratore(dup, lingua), "dup": True}
         st.session_state.dati_form = {}
         st.rerun()
         return
@@ -827,7 +872,7 @@ def genera_e_salva(dati, lingua):
     if ok:
         st.session_state.reg_fp = fp
         st.session_state.ultimo_salvataggio = {"codice": codice, "pin": pin,
-                                               "pdf": genera_pdf_lavoratore(row)}
+                                               "pdf": genera_pdf_lavoratore(row, lingua)}
         st.session_state.dati_form = {}
         st.rerun()
     else:
@@ -1015,7 +1060,7 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
                 somma_mogli += fig
                 det.append(f"Épouse {i}: {res} ({fig} enfants)")
         dettagli = " | ".join(det)
@@ -1061,7 +1106,7 @@ def pagina_area_lavoratore(lingua):
             st.query_params.update({"code": s_str(mio.get("codice")), "pin": s_str(mio.get("pin"))})
             st.info(get_testo("link_hint", lingua))
     with c2:
-        pdf_bytes = genera_pdf_lavoratore(dict(mio))
+        pdf_bytes = genera_pdf_lavoratore(dict(mio), lingua)
         st.download_button(label=get_testo("ristampa_pdf", lingua), data=pdf_bytes,
                            file_name=f"Proacier_{mio.get('codice')}.pdf", mime="application/pdf",
                            use_container_width=True)
@@ -1188,7 +1233,7 @@ def pagina_dashboard(lingua):
                     st.rerun()
                 else:
                     st.error(f"{get_testo('errore_salvataggio', lingua)} ({m1} {m2})")
-            st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r),
+            st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
                                file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
                                use_container_width=True, key=f"adm_pdf_{cod}")
             st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
@@ -1259,7 +1304,6 @@ def main():
                  "adm_limit": 15}.items():
         if k not in st.session_state:
             st.session_state[k] = v
-    # AUTO-LOGIN da link personale (?code=...&pin=...)
     if not st.session_state.logged_in:
         try:
             qp = st.query_params
