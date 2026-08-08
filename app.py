@@ -39,7 +39,9 @@ CONFIG = {
 # "test"       = foglio Proacier_SANDBOX_HRM (bolla di prova)
 # Dopo il cambio: push su GitHub → Streamlit si ri-deploya da solo.
 # ============================================================
-AMBIENTE = "produzione"
+
+# AMBIENTE = "produzione"
+AMBIENTE = "test"
 CONFIG["url_api"] = CONFIG["url_api_produzione"] if AMBIENTE == "produzione" else CONFIG["url_api_test"]
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
