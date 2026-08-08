@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.15 - FILE COMPLETO
-✅ SANDBOX: switch AMBIENTE ("produzione" / "test") con due URL Apps Script
-✅ Promemoria festività configurabile (CONFIG: promemoria_festivita_giorni_prima)
-   mostrato in Home, Spazio Lavoratore e Dashboard
-✅ Include tutto v20.14: codice THS-AAAA-NNNN sequenziale assoluto, PIN unico,
-   FASE 6 (fase6_paghe.py), link personale copiabile, PDF tradotto FR/IT/EN
-Richiede API Apps Script v6.1 su ENTRAMBI gli script (produzione + sandbox).
+PROACIER HRM - v20.16 - FILE COMPLETO
+✅ Switch ambiente PRODUZIONE/TEST nella dashboard admin (sessione, default produzione)
+✅ Login admin = username + password + ricordami (link copiabile)
+✅ Bacheca operai: festività SENZA consiglio direzione (consiglio solo admin)
+✅ Bacheca AVVISI della direzione (flag urgente) + invio automatico al canale Telegram
+✅ Blocco Telegram (installa + entra nel canale) alla registrazione e nello spazio lavoratore
+✅ Include tutto v20.15: codici THS sequenziali assoluti, PIN unico, FASE 6, promemoria festività
+Richiede: Apps Script v6.1 (entrambi gli script) + nuovo foglio AVVISI + chiavi CONFIG telegram.
 """
 import sys
 import streamlit as st
@@ -17,7 +18,7 @@ from datetime import datetime, timedelta, date
 from fpdf import FPDF
 import fase6_paghe
 
-VERSIONE = "v20.15"
+VERSIONE = "v20.16"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -28,21 +29,11 @@ CONFIG = {
     "email_ouvriers": "ouvriers@proacier.sn",
     "email_candidature": "candidature@proacier.sn",
     "prefisso_codice": "THS",
+    "user_admin": "admin",
     "password_admin": "admin123",
     "logo_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/logo.png",
     "base_url": "https://hrm.proacier.sn",
 }
-
-# ============================================================
-# SWITCH AMBIENTE  ←←← CAMBIA QUI PER TESTARE
-# "produzione" = foglio Proacier_Database_HRM (dati veri)
-# "test"       = foglio Proacier_SANDBOX_HRM (bolla di prova)
-# Dopo il cambio: push su GitHub → Streamlit si ri-deploya da solo.
-# ============================================================
-
-# AMBIENTE = "produzione"
-AMBIENTE = "test"
-CONFIG["url_api"] = CONFIG["url_api_produzione"] if AMBIENTE == "produzione" else CONFIG["url_api_test"]
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
                    layout="wide", initial_sidebar_state="expanded")
@@ -86,7 +77,28 @@ T = {
     "fest_box_titolo": ("🗓️ Prochains jours fériés", "🗓️ Prossime festività", "🗓️ Upcoming public holidays"),
     "fest_tra": ("dans {n} jours", "tra {n} giorni", "in {n} days"),
     "fest_oggi": ("aujourd'hui", "oggi", "today"),
-    "fest_stop": (" Prévoir l'arrêt des lignes ou l'organisation du travail.", "🏭 Prevedere la fermata delle linee o l'organizzazione del lavoro.", "🏭 Plan line stoppage or work organization."),
+    "fest_stop": ("🏭 Prévoir l'arrêt des lignes ou l'organisation du travail.", "🏭 Prevedere la fermata delle linee o l'organizzazione del lavoro.", "🏭 Plan line stoppage or work organization."),
+    "amb_title": ("🧪 Environnement de travail", "🧪 Ambiente di lavoro", "🧪 Work environment"),
+    "amb_hint": ("« test » écrit UNIQUEMENT dans Proacier_SANDBOX_HRM. Par défaut: production.",
+                 "« test » scrive SOLO su Proacier_SANDBOX_HRM. Default: produzione.",
+                 "« test » writes ONLY to Proacier_SANDBOX_HRM. Default: production."),
+    "admin_user": ("Nom d'utilisateur", "Nome utente", "Username"),
+    "bacheca_title": ("📢 Tableau d'affichage de la direction", "📢 Bacheca della direzione", "📢 Management notice board"),
+    "bacheca_none": ("Aucun avis pour le moment.", "Nessun avviso al momento.", "No notices yet."),
+    "avviso_new": ("📢 Nouveau avis", "📢 Nuovo avviso", "📢 New notice"),
+    "avviso_titolo": ("Titre", "Titolo", "Title"),
+    "avviso_testo": ("Texte de l'avis", "Testo dell'avviso", "Notice text"),
+    "avviso_urgente": ("⚠️ Urgent (mis en évidence)", "⚠️ Urgente (evidenziato)", "⚠️ Urgent (highlighted)"),
+    "avviso_pubblica": ("Publier l'avis", "Pubblica avviso", "Publish notice"),
+    "avviso_ok": ("✅ Avis publié", "✅ Avviso pubblicato", "✅ Notice published"),
+    "avviso_tel_ok": ("+ envoyé sur Telegram ✅", "+ inviato su Telegram ✅", "+ sent to Telegram ✅"),
+    "avviso_tel_no": ("(Telegram non configuré: clés CONFIG manquantes)", "(Telegram non configurato: chiavi CONFIG mancanti)", "(Telegram not configured: missing CONFIG keys)"),
+    "avvisi_ultimi": ("Derniers avis", "Ultimi avvisi", "Latest notices"),
+    "tg_obbligo": ("📲 Telegram est OBLIGATOIRE pour recevoir les avis de la direction.",
+                   "📲 Telegram è OBBLIGATORIO per ricevere gli avvisi della direzione.",
+                   "📲 Telegram is MANDATORY to receive management notices."),
+    "tg_install": ("1️⃣ Installer Telegram", "1️⃣ Installa Telegram", "1️⃣ Install Telegram"),
+    "tg_join": ("2️⃣ Entrer dans le canal de l'entreprise", "2️⃣ Entra nel canale aziendale", "2️⃣ Join the company channel"),
     "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
     "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
     "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -220,7 +232,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👧‍ Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍‍👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍👩‍👧‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -384,11 +396,9 @@ def data_ord(s):
 
 
 # ============================================================
-# PROMEMORIA FESTIVITÀ (bacheca: Home, Lavoratore, Dashboard)
-# Legge le chiavi festivo_AAAA-MM-GG dal CONFIG dell'ambiente attivo.
-# Finestra giorni = chiave CONFIG promemoria_festivita_giorni_prima (default 10).
+# PROMEMORIA FESTIVITÀ (consiglio direzione SOLO per admin)
 # ============================================================
-def promemoria_festivita(lingua):
+def promemoria_festivita(lingua, consiglio=False):
     try:
         _, recs = leggi_foglio("CONFIG")
     except Exception:
@@ -399,13 +409,12 @@ def promemoria_festivita(lingua):
         k = s_str(r.get("chiave")).lower().replace(" ", "_")
         v = s_str(r.get("valore"))
         if k == "promemoria_festivita_giorni_prima":
-            f = None
             try:
                 f = int(float(v))
+                if f > 0:
+                    giorni_limite = f
             except Exception:
-                f = None
-            if f is not None and f > 0:
-                giorni_limite = f
+                pass
         elif k.startswith("festivo_"):
             ds = k.replace("festivo_", "", 1)
             try:
@@ -422,8 +431,66 @@ def promemoria_festivita(lingua):
         delta = (d - oggi).days
         quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
         righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
-    st.info("**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe) +
-            "\n\n" + get_testo("fest_stop", lingua))
+    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
+    if consiglio:
+        msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+
+
+# ============================================================
+# TELEGRAM: config + invio avvisi + blocco link
+# ============================================================
+def telegram_cfg():
+    out = {}
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return out
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        if k in ("telegram_bot_token", "telegram_chat_id", "telegram_link_canale"):
+            out[k] = s_str(r.get("valore"))
+    return out
+
+
+def invia_avviso_telegram(titolo, testo, urgente):
+    tc = telegram_cfg()
+    tok, chat = tc.get("telegram_bot_token"), tc.get("telegram_chat_id")
+    if not tok or not chat:
+        return False
+    msg = ("🚨 URGENT\n" if urgente else "📢 PROACIER\n") + f"*{titolo}*\n\n{testo}"
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                          json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=30)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def blocco_telegram(lingua):
+    tc = telegram_cfg()
+    link_canale = tc.get("telegram_link_canale")
+    st.caption(get_testo("tg_obbligo", lingua))
+    c1, c2 = st.columns(2)
+    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
+    if link_canale:
+        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
+
+
+def bacheca_avvisi(lingua):
+    try:
+        _, recs = leggi_foglio("AVVISI")
+    except Exception:
+        return
+    recs = [r for r in recs if s_str(r.get("titolo"))]
+    if not recs:
+        return
+    recs = list(reversed(recs))[:5]
+    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
+    for r in recs:
+        urg = s_str(r.get("urgente")).upper() in ("SI", "SÌ", "YES", "TRUE", "1")
+        box = st.error if urg else st.info
+        box(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
 
 
 # ============================================================
@@ -447,10 +514,8 @@ AREE_AZIENDALI = [
 def genera_credenziali():
     """
     Genera (codice, pin) univoci con UNA sola lettura di DIPENDENTI.
-    Codice: THS-AAAA-NNNN
-      - AAAA = anno corrente (cambia automaticamente il 1° gennaio)
-      - NNNN = SEQUENZIALE ASSOLUTO: progressivo globale MAI azzerato.
-    PIN: 4 cifre, mai duplicato tra i lavoratori presenti.
+    Codice: THS-AAAA-NNNN (AAAA = anno corrente; NNNN = sequenziale assoluto mai azzerato).
+    PIN: 4 cifre univoco.
     """
     anno = datetime.now().year
     prefisso = CONFIG["prefisso_codice"]
@@ -969,6 +1034,8 @@ def pannello_successo(lingua):
                        file_name=f'Proacier_{u["codice"]}.pdf', mime="application/pdf",
                        use_container_width=True, key="btn_dl_ok")
     st.markdown("---")
+    blocco_telegram(lingua)
+    st.markdown("---")
     if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
         st.session_state.ultimo_salvataggio = None
         st.session_state.reg_fp = None
@@ -1058,7 +1125,6 @@ def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
-    promemoria_festivita(lingua)
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1:
@@ -1109,8 +1175,9 @@ def pagina_candidatura(lingua):
                         row = {"id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
                                "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
-                               "data_nascita": f"{cg:02d}/{cm:02d}/{ca}", "indirizzo": c_ind, "comune": c_com,
-                               "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
+                               "data_nascita": f"{cg:02d}/{cm:02d}:{ca}" if False else f"{cg:02d}/{cm:02d}/{ca}",
+                               "indirizzo": c_ind, "comune": c_com, "regione": c_reg,
+                               "settore_richiesto": settore, "mansione_richiesta": mansione,
                                "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
                                "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
                         ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
@@ -1137,6 +1204,8 @@ def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f'{get_testo("benvenuto", lingua)} - {st.session_state.codice_operatore}')
     promemoria_festivita(lingua)
+    bacheca_avvisi(lingua)
+    blocco_telegram(lingua)
     st.markdown("---")
     headers, records = leggi_foglio("DIPENDENTI")
     mio, mio_idx = None, -1
@@ -1303,12 +1372,54 @@ def pagina_area_lavoratore(lingua):
 # ============================================================
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
-    promemoria_festivita(lingua)
+    env = st.session_state.get("ambiente", "produzione")
+    with st.expander("🧪 " + get_testo("amb_title", lingua), expanded=(env == "test")):
+        sel_env = st.radio("Ambiente", ["produzione", "test"],
+                           index=0 if env == "produzione" else 1,
+                           horizontal=True, key="amb_sel", label_visibility="collapsed")
+        st.caption(get_testo("amb_hint", lingua))
+        if sel_env != env:
+            st.session_state["ambiente"] = sel_env
+            _svuota_cache()
+            st.rerun()
+    promemoria_festivita(lingua, consiglio=True)
     pag = st.radio("Pagina", [get_testo("dash_p1", lingua), get_testo("dash_p2", lingua)],
                    horizontal=True, label_visibility="collapsed")
     if pag == get_testo("dash_p2", lingua):
         fase6_paghe.pagina_fase6(lingua, sys.modules[__name__])
         return
+    # ---- BACHECA AVVISI (form pubblicazione) ----
+    st.markdown("**" + get_testo("avviso_new", lingua) + "**")
+    with st.form("f_avviso"):
+        c1, c2 = st.columns([2, 1])
+        av_t = c1.text_input(get_testo("avviso_titolo", lingua), key="av_t")
+        av_u = c2.checkbox(get_testo("avviso_urgente", lingua), key="av_u")
+        av_x = st.text_area(get_testo("avviso_testo", lingua), key="av_x")
+        if st.form_submit_button(get_testo("avviso_pubblica", lingua), type="primary"):
+            if av_t.strip() and av_x.strip():
+                ok_tel = invia_avviso_telegram(av_t.strip(), av_x.strip(), av_u)
+                row = {"id_avviso": f"AVV-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                       "data_avviso": datetime.now().strftime("%d/%m/%Y"),
+                       "titolo": av_t.strip(), "testo": av_x.strip(),
+                       "urgente": "SI" if av_u else "NO", "autore": "admin",
+                       "inviato_telegram": "SI" if ok_tel else "NO",
+                       "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")}
+                ok, msg = salva_append("AVVISI", row)
+                if ok:
+                    st.success(get_testo("avviso_ok", lingua) + " " +
+                               (get_testo("avviso_tel_ok", lingua) if ok_tel else get_testo("avviso_tel_no", lingua)))
+                    st.rerun()
+                else:
+                    st.error(msg)
+    _, avvisi_rec = leggi_foglio("AVVISI")
+    avvisi_rec = [r for r in avvisi_rec if s_str(r.get("titolo"))]
+    if avvisi_rec:
+        with st.expander(get_testo("avvisi_ultimi", lingua)):
+            for r in list(reversed(avvisi_rec))[:5]:
+                st.markdown(f"- **{s_str(r.get('titolo'))}** ({s_str(r.get('data_avviso'))}) "
+                            f"{'⚠️' if s_str(r.get('urgente')).upper() == 'SI' else ''} "
+                            f"— TG: {s_str(r.get('inviato_telegram')) or 'NO'}")
+    st.markdown("---")
     b = leggi_admin()
     recs_dip = b.get("DIPENDENTI", [])
     recs_sal = b.get("SALARI", [])
@@ -1488,16 +1599,22 @@ def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
                  "ultimo_salvataggio": None, "cand_fp": None, "reg_fp": None, "_cache": {},
-                 "adm_limit": 15, "link_personale": None}.items():
+                 "adm_limit": 15, "link_personale": None, "ambiente": "produzione"}.items():
         if k not in st.session_state:
             st.session_state[k] = v
+    # Switch ambiente (sessione): sceglie quale Apps Script/foglio usare
+    CONFIG["url_api"] = CONFIG["url_api_produzione"] if st.session_state.get("ambiente") == "produzione" else CONFIG["url_api_test"]
     if not st.session_state.logged_in:
         try:
             qp = st.query_params
             qc, qpin = qp.get("code"), qp.get("pin")
+            au, ap = qp.get("adm_u"), qp.get("adm_p")
         except Exception:
-            qc, qpin = None, None
-        if qc and qpin:
+            qc, qpin, au, ap = None, None, None, None
+        if au and ap and au == CONFIG["user_admin"] and ap == CONFIG["password_admin"]:
+            st.session_state.logged_in = True
+            st.session_state.user_type = "admin"
+        elif qc and qpin:
             _, recs = leggi_foglio("DIPENDENTI")
             for r in recs:
                 if s_str(r.get("codice")).upper() == str(qc).strip().upper() and s_str(r.get("pin")) == str(qpin).strip():
@@ -1514,7 +1631,7 @@ def main():
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
-        st.caption(VERSIONE + (" — 🧪 SANDBOX" if AMBIENTE == "test" else ""))
+        st.caption(VERSIONE + (" — 🧪 SANDBOX" if st.session_state.get("ambiente") == "test" else ""))
         st.markdown("---")
         sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"],
                            index={"fr": 0, "it": 1, "en": 2}[lingua])
@@ -1610,15 +1727,23 @@ def main():
             else:
                 st.error(get_testo("codice_errato", lingua))
     elif st.session_state.pagina == "login_admin":
+        usr = st.text_input(get_testo("admin_user", lingua), key="lg_usr")
         pwd = st.text_input(get_testo("password", lingua), type="password", key="lg_pwd")
+        ricordami = st.checkbox(get_testo("ricordami", lingua), key="lg_ric_adm")
         if st.button(get_testo("accedi", lingua), type="primary", key="lg_adm"):
-            if pwd == CONFIG["password_admin"]:
+            if usr.strip() == CONFIG["user_admin"] and pwd == CONFIG["password_admin"]:
                 st.session_state.logged_in = True
                 st.session_state.user_type = "admin"
+                if ricordami:
+                    st.query_params.update({"adm_u": usr.strip(), "adm_p": pwd})
+                    st.session_state.link_admin = f"{CONFIG['base_url']}/?adm_u={usr.strip()}&adm_p={pwd}"
                 st.session_state.pagina = "dashboard"
                 st.rerun()
             else:
                 st.error(get_testo("codice_errato", lingua))
+        if st.session_state.get("link_admin"):
+            st.caption(get_testo("copia_link_help", lingua))
+            st.code(st.session_state.link_admin, language=None)
     elif st.session_state.pagina == "dashboard":
         pagina_dashboard(lingua)
 
