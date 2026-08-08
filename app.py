@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 PROACIER HRM - v20.15 - FILE COMPLETO
-✅ Switch AMBIENTE (produzione/test) → due fogli Google paralleli
-✅ Promemoria festività configurabile in Home, Area Lavoratore, Dashboard
-✅ Codice sequenziale assoluto THS-AAAA-NNNN + PIN unico
-✅ FASE 6 agganciata (fase6_paghe.py F6.2)
-✅ PDF tradotto FR/IT/EN, link personale copiabile, paginazione, anti-dup
-Richiede API Apps Script v6.1 (append batch "rows" per la FASE 6).
+✅ SANDBOX: switch AMBIENTE ("produzione" / "test") con due URL Apps Script
+✅ Promemoria festività configurabile (CONFIG: promemoria_festivita_giorni_prima)
+   mostrato in Home, Spazio Lavoratore e Dashboard
+✅ Include tutto v20.14: codice THS-AAAA-NNNN sequenziale assoluto, PIN unico,
+   FASE 6 (fase6_paghe.py), link personale copiabile, PDF tradotto FR/IT/EN
+Richiede API Apps Script v6.1 su ENTRAMBI gli script (produzione + sandbox).
 """
 import sys
 import streamlit as st
@@ -20,20 +20,11 @@ import fase6_paghe
 VERSIONE = "v20.15"
 
 # ============================================================
-# 🔀 SWITCH AMBIENTE - CAMBIA QUI PER PASSARE PRODUZIONE <-> TEST
-# ============================================================
-# Valori possibili: "produzione" oppure "test"
-# Quando passi a "test", l'app usa il foglio Google SANDBOX (url_api_test)
-# Quando torni a "produzione", riprende dal foglio pulito dove l'avevi lasciata
-AMBIENTE = "produzione"
-
-# ============================================================
 # CONFIGURAZIONE CENTRALE
 # ============================================================
 CONFIG = {
-    # URL attivi in base all'ambiente (il codice sceglie automaticamente)
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
-    "url_api_test": "https://script.google.com/macros/s/INSERISCI_QUI_URL_SANDBOX/exec",
+    "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
     "email_ouvriers": "ouvriers@proacier.sn",
     "email_candidature": "candidature@proacier.sn",
     "prefisso_codice": "THS",
@@ -42,29 +33,29 @@ CONFIG = {
     "base_url": "https://hrm.proacier.sn",
 }
 
-# Selezione automatica dell'URL in base all'ambiente
-CONFIG["url_api"] = CONFIG["url_api_test"] if AMBIENTE == "test" else CONFIG["url_api_produzione"]
+# ============================================================
+# SWITCH AMBIENTE  ←←← CAMBIA QUI PER TESTARE
+# "produzione" = foglio Proacier_Database_HRM (dati veri)
+# "test"       = foglio Proacier_SANDBOX_HRM (bolla di prova)
+# Dopo il cambio: push su GitHub → Streamlit si ri-deploya da solo.
+# ============================================================
+AMBIENTE = "produzione"
+CONFIG["url_api"] = CONFIG["url_api_produzione"] if AMBIENTE == "produzione" else CONFIG["url_api_test"]
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
                    layout="wide", initial_sidebar_state="expanded")
-
-# Stile sidebar + avviso ambiente
-_env_color = "#5EA529" if AMBIENTE == "produzione" else "#C77700"
-_env_label = "PRODUCTION" if AMBIENTE == "produzione" else "TEST / SANDBOX"
-
-st.markdown(f"""
+st.markdown("""
 <style>
-[data-testid="stSidebar"]{{background-color:{_env_color} !important;}}
-[data-testid="stSidebar"] *{{color:white !important;}}
-[data-testid="stSidebar"] button{{background-color:rgba(255,255,255,0.1)!important;color:white!important;}}
-[data-testid="stSidebar"] select{{color:white!important;background-color:rgba(0,0,0,0.3)!important;}}
-[data-testid="stSidebar"] option{{color:black!important;}}
-@media (max-width:768px){{.stTextInput>div>div>input,.stSelectbox>div>div>select{{font-size:16px;}}}}
-.phone-box{{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}}
-.phone-box h4{{margin:0 0 6px 0;color:white;font-size:15px;}}
-.phone-box .stTextInput>div>div>input{{background-color:white;color:black;}}
-.phone-box .stCheckbox label{{color:white;}}
-.env-badge{{background-color:{"#dc3545" if AMBIENTE=="test" else "#28a745"};color:white;padding:6px 14px;border-radius:6px;font-weight:bold;display:inline-block;margin:4px 0;}}
+[data-testid="stSidebar"]{background-color:#5EA529 !important;}
+[data-testid="stSidebar"] *{color:white !important;}
+[data-testid="stSidebar"] button{background-color:rgba(255,255,255,0.1)!important;color:white!important;}
+[data-testid="stSidebar"] select{color:white!important;background-color:rgba(0,0,0,0.3)!important;}
+[data-testid="stSidebar"] option{color:black!important;}
+@media (max-width:768px){.stTextInput>div>div>input,.stSelectbox>div>div>select{font-size:16px;}}
+.phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
+.phone-box h4{margin:0 0 6px 0;color:white;font-size:15px;}
+.phone-box .stTextInput>div>div>input{background-color:white;color:black;}
+.phone-box .stCheckbox label{color:white;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -90,6 +81,10 @@ T = {
     "i_miei_dati": ("Mes Données", "I Miei Dati", "My Data"),
     "totale_operai": ("Total Employés", "Totale Dipendenti", "Total Employees"),
     "nessun_risultato": ("Aucun résultat trouvé", "Nessun risultato", "No results found"),
+    "fest_box_titolo": ("🗓️ Prochains jours fériés", "🗓️ Prossime festività", "🗓️ Upcoming public holidays"),
+    "fest_tra": ("dans {n} jours", "tra {n} giorni", "in {n} days"),
+    "fest_oggi": ("aujourd'hui", "oggi", "today"),
+    "fest_stop": (" Prévoir l'arrêt des lignes ou l'organisation du travail.", "🏭 Prevedere la fermata delle linee o l'organizzazione del lavoro.", "🏭 Plan line stoppage or work organization."),
     "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
     "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
     "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -223,7 +218,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👧‍👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍👧‍👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👧‍ Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍‍👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -258,14 +253,6 @@ T = {
                    "Dopo aver cambiato il numero di mogli, salva per visualizzare i campi delle nuove mogli.",
                    "After changing the number of wives, save to display the fields of the new wives."),
     "mostra_altri": ("➕ Afficher 15 de plus", "➕ Mostrane altri 15", "➕ Show 15 more"),
-    # Festività
-    "festivita_box_title": ("📅 Prochains jours fériés", "📅 Prossime festività", "📅 Upcoming holidays"),
-    "festivita_tra": ("dans", "tra", "in"),
-    "festivita_jours": ("jours", "giorni", "days"),
-    "festivita_oggi": ("aujourd'hui!", "oggi!", "today!"),
-    "festivita_none": ("Aucun jour férié dans les prochains jours.", "Nessuna festività nei prossimi giorni.", "No holidays in the upcoming days."),
-    "festivita_prevedi_fermata": ("Prévoyez l'arrêt éventuel des lignes de production.", "Prevedere eventuale fermata delle linee di produzione.", "Plan possible production line shutdown."),
-    # PDF
     "pdf_titolo": ("FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES", "SCHEDA DI REGISTRAZIONE - RISORSE UMANE", "REGISTRATION FORM - HUMAN RESOURCES"),
     "pdf_nfiche": ("N° fiche: ", "N° scheda: ", "File No.: "),
     "pdf_data": ("Date: ", "Data: ", "Date: "),
@@ -395,6 +382,49 @@ def data_ord(s):
 
 
 # ============================================================
+# PROMEMORIA FESTIVITÀ (bacheca: Home, Lavoratore, Dashboard)
+# Legge le chiavi festivo_AAAA-MM-GG dal CONFIG dell'ambiente attivo.
+# Finestra giorni = chiave CONFIG promemoria_festivita_giorni_prima (default 10).
+# ============================================================
+def promemoria_festivita(lingua):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            f = None
+            try:
+                f = int(float(v))
+            except Exception:
+                f = None
+            if f is not None and f > 0:
+                giorni_limite = f
+        elif k.startswith("festivo_"):
+            ds = k.replace("festivo_", "", 1)
+            try:
+                y, m, g = ds.split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception:
+                pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti:
+        return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
+    st.info("**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe) +
+            "\n\n" + get_testo("fest_stop", lingua))
+
+
+# ============================================================
 # AREE AZIENDALI
 # ============================================================
 AREE_AZIENDALI = [
@@ -414,10 +444,11 @@ AREE_AZIENDALI = [
 # ============================================================
 def genera_credenziali():
     """
-    Genera (codice, pin) univoci.
-    Legge DAL FOGLIO ATTIVO (produzione o sandbox in base ad AMBIENTE).
-    Codice: THS-AAAA-NNNN sequenziale assoluto.
-    PIN: 4 cifre, mai duplicato nel foglio attivo.
+    Genera (codice, pin) univoci con UNA sola lettura di DIPENDENTI.
+    Codice: THS-AAAA-NNNN
+      - AAAA = anno corrente (cambia automaticamente il 1° gennaio)
+      - NNNN = SEQUENZIALE ASSOLUTO: progressivo globale MAI azzerato.
+    PIN: 4 cifre, mai duplicato tra i lavoratori presenti.
     """
     anno = datetime.now().year
     prefisso = CONFIG["prefisso_codice"]
@@ -432,10 +463,7 @@ def genera_credenziali():
             codici_esistenti.add(cod)
             m = pattern.match(cod)
             if m:
-                try:
-                    max_seq = max(max_seq, int(m.group(1)))
-                except ValueError:
-                    pass
+                max_seq = max(max_seq, int(m.group(1)))
         p = s_str(r.get("pin"))
         if p:
             pins_esistenti.add(p)
@@ -445,10 +473,8 @@ def genera_credenziali():
         seq += 1
         codice = f"{prefisso}-{anno}-{seq:04d}"
     pin = str(random.randint(1000, 9999))
-    tentativi = 0
-    while pin in pins_esistenti and tentativi < 1000:
+    while pin in pins_esistenti:
         pin = str(random.randint(1000, 9999))
-        tentativi += 1
     return codice, pin
 
 
@@ -493,76 +519,6 @@ def parse_mogli(s):
         res = re.sub(r"\s*\(\d+\s*enfants?\)\s*$", "", res).strip()
         out.append({"res": res, "fig": fig})
     return out
-
-
-# ============================================================
-# PROMEMORIA FESTIVITÀ (leggibile da CONFIG)
-# ============================================================
-def promemoria_festivita(giorni_prima=None):
-    """
-    Legge le righe festivo_YYYY-MM-DD da CONFIG e ritorna una lista
-    di (data, nome) per le festività entro `giorni_prima` giorni da oggi.
-    Se giorni_prima è None, legge da CONFIG la chiave promemoria_festivita_giorni_prima.
-    """
-    if giorni_prima is None:
-        try:
-            _, cfg_recs = leggi_foglio("CONFIG")
-            for r in cfg_recs:
-                if s_str(r.get("chiave")).strip() == "promemoria_festivita_giorni_prima":
-                    giorni_prima = int(s_str(r.get("valore")) or 10)
-                    break
-        except Exception:
-            pass
-        if giorni_prima is None:
-            giorni_prima = 10
-    oggi = datetime.now().date()
-    limite = oggi + timedelta(days=int(giorni_prima))
-    try:
-        _, cfg_recs = leggi_foglio("CONFIG")
-    except Exception:
-        cfg_recs = []
-    prossime = []
-    for r in cfg_recs:
-        k = s_str(r.get("chiave")).strip()
-        if k.startswith("festivo_"):
-            ds = k.replace("festivo_", "", 1)
-            try:
-                y, m, g = ds.split("-")
-                d = date(int(y), int(m), int(g))
-                if oggi <= d <= limite:
-                    nome = s_str(r.get("valore")) or k
-                    prossime.append((d, nome))
-            except Exception:
-                continue
-    return sorted(prossime, key=lambda x: x[0])
-
-
-def render_box_festivita(lingua, stile="info"):
-    """
-    Mostra un box con le prossime festività.
-    stile: "info" (blu), "warning" (arancione), "success" (verde)
-    """
-    prossime = promemoria_festivita()
-    if not prossime:
-        return
-    oggi = datetime.now().date()
-    linee = []
-    for d, nome in prossime:
-        delta = (d - oggi).days
-        if delta == 0:
-            delta_str = get_testo("festivita_oggi", lingua)
-        else:
-            delta_str = f"{get_testo('festivita_tra', lingua)} {delta} {get_testo('festivita_jours', lingua)}"
-        linee.append(f"**{d.strftime('%d/%m/%Y')}** — {nome} ({delta_str})")
-    titolo = "📅 " + get_testo("festivita_box_title", lingua)
-    contenuto = "\n".join(f"• {l}" for l in linee) + f"\n\n🏭 _{get_testo('festivita_prevedi_fermata', lingua)}_"
-    msg = f"**{titolo}**\n\n{contenuto}"
-    if stile == "warning":
-        st.warning(msg)
-    elif stile == "success":
-        st.success(msg)
-    else:
-        st.info(msg)
 
 
 # ============================================================
@@ -843,7 +799,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
 
 
 # ============================================================
-# STEP DEL FORMULARIO (identici a v20.14)
+# STEP DEL FORMULARIO
 # ============================================================
 def box_telefono(lingua, n, obbligatorio=False):
     st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
@@ -1100,6 +1056,7 @@ def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
     st.title(get_testo("titolo_candidatura", lingua))
     st.markdown(get_testo("sottotitolo_candidatura", lingua))
+    promemoria_festivita(lingua)
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1:
@@ -1172,12 +1129,12 @@ def pagina_candidatura(lingua):
 
 
 # ============================================================
-# AREA LAVORATORE (con box festività in alto)
+# AREA LAVORATORE
 # ============================================================
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f'{get_testo("benvenuto", lingua)} - {st.session_state.codice_operatore}')
-    render_box_festivita(lingua, stile="success")
+    promemoria_festivita(lingua)
     st.markdown("---")
     headers, records = leggi_foglio("DIPENDENTI")
     mio, mio_idx = None, -1
@@ -1340,19 +1297,16 @@ def pagina_area_lavoratore(lingua):
 
 
 # ============================================================
-# DASHBOARD ADMIN (con box festività in alto in P1)
+# DASHBOARD ADMIN
 # ============================================================
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
-    if AMBIENTE == "test":
-        st.markdown('<div class="env-badge">⚠️ AMBIENTE TEST / SANDBOX - Dati non reali</div>', unsafe_allow_html=True)
+    promemoria_festivita(lingua)
     pag = st.radio("Pagina", [get_testo("dash_p1", lingua), get_testo("dash_p2", lingua)],
                    horizontal=True, label_visibility="collapsed")
     if pag == get_testo("dash_p2", lingua):
         fase6_paghe.pagina_fase6(lingua, sys.modules[__name__])
         return
-    # Pagina 1: metriche + promemoria festività + avvisi + ricerca
-    render_box_festivita(lingua, stile="warning")
     b = leggi_admin()
     recs_dip = b.get("DIPENDENTI", [])
     recs_sal = b.get("SALARI", [])
@@ -1552,17 +1506,13 @@ def main():
     lingua = st.session_state.lingua
     with st.sidebar:
         st.image(CONFIG["logo_url"], use_container_width=True)
-        if AMBIENTE == "test":
-            st.markdown('<div class="env-badge" style="background-color:#dc3545;">⚠️ AMBIENTE TEST</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="env-badge" style="background-color:#28a745;">✓ PRODUCTION</div>', unsafe_allow_html=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
             _do_logout()
             st.rerun()
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
-        st.caption(VERSIONE)
+        st.caption(VERSIONE + (" — 🧪 SANDBOX" if AMBIENTE == "test" else ""))
         st.markdown("---")
         sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"],
                            index={"fr": 0, "it": 1, "en": 2}[lingua])
@@ -1594,7 +1544,7 @@ def main():
     if st.session_state.pagina == "home":
         st.title(get_testo("titolo", lingua))
         st.subheader(get_testo("sottotitolo", lingua))
-        render_box_festivita(lingua, stile="info")
+        promemoria_festivita(lingua)
         st.markdown("---")
         st.subheader(get_testo("home_titolo", lingua))
         c1, c2 = st.columns(2)
