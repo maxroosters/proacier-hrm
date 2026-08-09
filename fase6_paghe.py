@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.4]
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.5]
 Modulo importato da app.py (v20.18). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
   2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
@@ -9,19 +9,22 @@ Modulo importato da app.py (v20.18). Contenuti:
 F6.1: protezione timbrature notturne fantasma (00:0x) su turni non notturni.
 F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale).
 F6.3: nome letto dal file si ferma prima di "Dept :" → mapping nome→codice.
-F6.4: tollera le virgolette " del copia-incolla Excel (celle multiriga):
-      gli orari "08:09 / 17:34" ora vengono letti correttamente.
+F6.4: tollera le virgolette " del copia-incolla Excel.
+F6.5: parser TSV con modulo csv (virgolette + TAB) → colonne ALLINEATE:
+      ogni orario cade sul giorno giusto (fix presenze mescolate).
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
 import math
 import random
 import calendar
+import csv
+import io
 import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.4"
+VERSIONE_FASE6 = "F6.5"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -288,10 +291,9 @@ def mappa_turni(A, recs_turni):
 
 
 # =====================================================================
-# 1. PARSER "List of Logs"
+# 1. PARSER "List of Logs"  (F6.5: TSV con csv → colonne allineate)
 # =====================================================================
-def _extract_day_map(linea):
-    celle = linea.split("\t")
+def _extract_day_map(celle):
     nums = []
     for ci, cv in enumerate(celle):
         cv2 = cv.strip().strip('"')
@@ -303,9 +305,12 @@ def _extract_day_map(linea):
 
 
 def parse_list_of_logs(testo):
-    linee = testo.replace("\r", "").split("\n")
+    # F6.5: righe LOGICHE via csv (TAB + virgolette) → l'allineamento colonne sopravvive
+    rows = list(csv.reader(io.StringIO(testo.replace("\r", "")), delimiter="\t"))
+    linee = ["\t".join(r) for r in rows]
     anno = mese = g1 = g2 = None
-    m = re.search(r"Period\s*:\s*(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\s*~\s*(\d{1,2})(?:[/\-.](\d{1,2}))?", testo, re.I)
+    m = re.search(r"Period\s*:\s*(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\s*~\s*(\d{1,2})(?:[/\-.](\d{1,2}))?",
+                  "\n".join(linee), re.I)
     if m:
         anno, mese, g1 = int(m.group(1)), int(m.group(2)), int(m.group(3))
         g2 = int(m.group(4)) if m.group(4) else g1
@@ -321,15 +326,13 @@ def parse_list_of_logs(testo):
         day_map = {}
         candidati = list(range(max(0, i - 6), i)) + list(range(i + 1, fine))
         for j in candidati:
-            dm = _extract_day_map(linee[j])
+            dm = _extract_day_map(rows[j])
             if dm:
                 day_map = dm
                 break
         per_giorno = {}
         for j in range(i + 1, fine):
-            celle = linee[j].split("\t")
-            for ci, cv in enumerate(celle):
-                # F6.4: le virgolette " del copia-incolla Excel sono separatori
+            for ci, cv in enumerate(rows[j]):
                 for tok in re.split(r'[\s,;/"]+', cv.strip()):
                     mt = TIME_RE.match(tok)
                     if mt and int(mt.group(1)) < 24:
