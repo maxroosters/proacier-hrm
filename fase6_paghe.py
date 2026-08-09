@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.5]
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.6]
 Modulo importato da app.py (v20.18). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
   2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
@@ -10,8 +10,9 @@ F6.1: protezione timbrature notturne fantasma (00:0x) su turni non notturni.
 F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale).
 F6.3: nome letto dal file si ferma prima di "Dept :" → mapping nome→codice.
 F6.4: tollera le virgolette " del copia-incolla Excel.
-F6.5: parser TSV con modulo csv (virgolette + TAB) → colonne ALLINEATE:
-      ogni orario cade sul giorno giusto (fix presenze mescolate).
+F6.5: parser TSV con modulo csv (virgolette + TAB) → colonne allineate.
+F6.6: FIX lettura periodo: il giorno finale leggeva il MESE (07) invece del
+      giorno (31) → importava solo i giorni 1-7. Ora importa tutto il mese.
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
@@ -24,7 +25,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.5"
+VERSIONE_FASE6 = "F6.6"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -305,7 +306,6 @@ def _extract_day_map(celle):
 
 
 def parse_list_of_logs(testo):
-    # F6.5: righe LOGICHE via csv (TAB + virgolette) → l'allineamento colonne sopravvive
     rows = list(csv.reader(io.StringIO(testo.replace("\r", "")), delimiter="\t"))
     linee = ["\t".join(r) for r in rows]
     anno = mese = g1 = g2 = None
@@ -313,7 +313,8 @@ def parse_list_of_logs(testo):
                   "\n".join(linee), re.I)
     if m:
         anno, mese, g1 = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        g2 = int(m.group(4)) if m.group(4) else g1
+        # F6.6: dopo "~" c'è MM/GG → il giorno finale è group(5); se manca, group(4)
+        g2 = int(m.group(5)) if m.group(5) else int(m.group(4))
         if g2 < g1:
             g2 = g1
     headers_idx = [i for i, l in enumerate(linee)
