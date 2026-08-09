@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.17 - FILE COMPLETO
-✅ Avvisi: TITOLO FACOLTATIVO (se vuoto = prime 40 caratteri del testo); avviso se testo vuoto
-✅ Include tutto v20.16: switch ambiente in dashboard, login admin user+pass+ricordami,
-   bacheca AVVISI + Telegram, blocco Telegram operai, festività senza consiglio per operai
-Richiede: Apps Script v6.1 + fase6_paghe.py F6.2 + foglio AVVISI + chiavi CONFIG.
+PROACIER HRM - v20.18 - FILE COMPLETO
+✅ v20.18: importlib.reload(fase6_paghe) → gli aggiornamenti del modulo FASE 6
+   entrano in funzione senza riavvio manuale di Streamlit Cloud
+✅ Include tutto v20.17: titolo avvisi facoltativo, switch ambiente in dashboard,
+   login admin user+pass+ricordami, bacheca AVVISI + Telegram, blocco Telegram operai
+Richiede: Apps Script v6.1 + fase6_paghe.py F6.4 + foglio AVVISI + chiavi CONFIG.
 """
 import sys
+import importlib
 import streamlit as st
 import requests
 import random
@@ -14,8 +16,9 @@ import re
 from datetime import datetime, timedelta, date
 from fpdf import FPDF
 import fase6_paghe
+importlib.reload(fase6_paghe)  # ← v20.18: codice FASE 6 sempre fresco
 
-VERSIONE = "v20.17"
+VERSIONE = "v20.18"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -81,7 +84,6 @@ T = {
                  "« test » writes ONLY to Proacier_SANDBOX_HRM. Default: production."),
     "admin_user": ("Nom d'utilisateur", "Nome utente", "Username"),
     "bacheca_title": ("📢 Tableau d'affichage de la direction", "📢 Bacheca della direzione", "📢 Management notice board"),
-    "bacheca_none": ("Aucun avis pour le moment.", "Nessun avviso al momento.", "No notices yet."),
     "avviso_new": ("📢 Nouveau avis", "📢 Nuovo avviso", "📢 New notice"),
     "avviso_titolo": ("Titre (facultatif)", "Titolo (facoltativo)", "Title (optional)"),
     "avviso_testo": ("Texte de l'avis", "Testo dell'avviso", "Notice text"),
@@ -230,7 +232,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍‍‍👦 Famille (modifiable)", "👨‍‍‍👦 Famiglia (modificabile)", "👨‍‍👧👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍‍👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -394,104 +396,6 @@ def data_ord(s):
 
 
 # ============================================================
-# PROMEMORIA FESTIVITÀ (consiglio direzione SOLO per admin)
-# ============================================================
-def promemoria_festivita(lingua, consiglio=False):
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return
-    giorni_limite = 10
-    fest = []
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        v = s_str(r.get("valore"))
-        if k == "promemoria_festivita_giorni_prima":
-            try:
-                f = int(float(v))
-                if f > 0:
-                    giorni_limite = f
-            except Exception:
-                pass
-        elif k.startswith("festivo_"):
-            ds = k.replace("festivo_", "", 1)
-            try:
-                y, m, g = ds.split("-")
-                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
-            except Exception:
-                pass
-    oggi = date.today()
-    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
-    if not imminenti:
-        return
-    righe = []
-    for d, n in imminenti:
-        delta = (d - oggi).days
-        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
-        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
-    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
-    if consiglio:
-        msg += "\n\n" + get_testo("fest_stop", lingua)
-    st.info(msg)
-
-
-# ============================================================
-# TELEGRAM: config + invio avvisi + blocco link
-# ============================================================
-def telegram_cfg():
-    out = {}
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return out
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        if k in ("telegram_bot_token", "telegram_chat_id", "telegram_link_canale"):
-            out[k] = s_str(r.get("valore"))
-    return out
-
-
-def invia_avviso_telegram(titolo, testo, urgente):
-    tc = telegram_cfg()
-    tok, chat = tc.get("telegram_bot_token"), tc.get("telegram_chat_id")
-    if not tok or not chat:
-        return False
-    msg = ("🚨 URGENT\n" if urgente else "📢 PROACIER\n") + f"*{titolo}*\n\n{testo}"
-    try:
-        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                          json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=30)
-        return r.status_code == 200
-    except Exception:
-        return False
-
-
-def blocco_telegram(lingua):
-    tc = telegram_cfg()
-    link_canale = tc.get("telegram_link_canale")
-    st.caption(get_testo("tg_obbligo", lingua))
-    c1, c2 = st.columns(2)
-    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
-    if link_canale:
-        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
-
-
-def bacheca_avvisi(lingua):
-    try:
-        _, recs = leggi_foglio("AVVISI")
-    except Exception:
-        return
-    recs = [r for r in recs if s_str(r.get("titolo"))]
-    if not recs:
-        return
-    recs = list(reversed(recs))[:5]
-    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
-    for r in recs:
-        urg = s_str(r.get("urgente")).upper() in ("SI", "SÌ", "YES", "TRUE", "1")
-        box = st.error if urg else st.info
-        box(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-
-
-# ============================================================
 # AREE AZIENDALI
 # ============================================================
 AREE_AZIENDALI = [
@@ -510,11 +414,6 @@ AREE_AZIENDALI = [
 # HELPERS DATI
 # ============================================================
 def genera_credenziali():
-    """
-    Genera (codice, pin) univoci con UNA sola lettura di DIPENDENTI.
-    Codice: THS-AAAA-NNNN (AAAA = anno corrente; NNNN = sequenziale assoluto mai azzerato).
-    PIN: 4 cifre univoco.
-    """
     anno = datetime.now().year
     prefisso = CONFIG["prefisso_codice"]
     _, recs = leggi_foglio("DIPENDENTI", force=True)
@@ -700,7 +599,6 @@ def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
 
 
 def salva_append_many(nome_foglio, rows):
-    """Append in batch (richiede API Apps Script v6.1)."""
     if not rows:
         return True, "ok"
     ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "rows": rows})
@@ -1195,6 +1093,62 @@ def pagina_candidatura(lingua):
 
 
 # ============================================================
+# TELEGRAM HELPERS
+# ============================================================
+def telegram_cfg():
+    out = {}
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return out
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        if k in ("telegram_bot_token", "telegram_chat_id", "telegram_link_canale"):
+            out[k] = s_str(r.get("valore"))
+    return out
+
+
+def invia_avviso_telegram(titolo, testo, urgente):
+    tc = telegram_cfg()
+    tok, chat = tc.get("telegram_bot_token"), tc.get("telegram_chat_id")
+    if not tok or not chat:
+        return False
+    msg = ("🚨 URGENT\n" if urgente else "📢 PROACIER\n") + f"*{titolo}*\n\n{testo}"
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                          json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=30)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def blocco_telegram(lingua):
+    tc = telegram_cfg()
+    link_canale = tc.get("telegram_link_canale")
+    st.caption(get_testo("tg_obbligo", lingua))
+    c1, c2 = st.columns(2)
+    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
+    if link_canale:
+        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
+
+
+def bacheca_avvisi(lingua):
+    try:
+        _, recs = leggi_foglio("AVVISI")
+    except Exception:
+        return
+    recs = [r for r in recs if s_str(r.get("titolo"))]
+    if not recs:
+        return
+    recs = list(reversed(recs))[:5]
+    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
+    for r in recs:
+        urg = s_str(r.get("urgente")).upper() in ("SI", "SÌ", "YES", "TRUE", "1")
+        box = st.error if urg else st.info
+        box(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+
+
+# ============================================================
 # AREA LAVORATORE
 # ============================================================
 def pagina_area_lavoratore(lingua):
@@ -1365,6 +1319,48 @@ def pagina_area_lavoratore(lingua):
 
 
 # ============================================================
+# PROMEMORIA FESTIVITÀ
+# ============================================================
+def promemoria_festivita(lingua, consiglio=False):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            try:
+                f = int(float(v))
+                if f > 0:
+                    giorni_limite = f
+            except Exception:
+                pass
+        elif k.startswith("festivo_"):
+            ds = k.replace("festivo_", "", 1)
+            try:
+                y, m, g = ds.split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception:
+                pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti:
+        return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
+    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
+    if consiglio:
+        msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+
+
+# ============================================================
 # DASHBOARD ADMIN
 # ============================================================
 def pagina_dashboard(lingua):
@@ -1385,7 +1381,6 @@ def pagina_dashboard(lingua):
     if pag == get_testo("dash_p2", lingua):
         fase6_paghe.pagina_fase6(lingua, sys.modules[__name__])
         return
-    # ---- BACHECA AVVISI (form pubblicazione) ----
     st.markdown("**" + get_testo("avviso_new", lingua) + "**")
     with st.form("f_avviso"):
         c1, c2 = st.columns([2, 1])

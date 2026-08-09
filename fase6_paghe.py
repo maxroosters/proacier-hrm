@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.3]
-Modulo importato da app.py (v20.17). Contenuti:
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.4]
+Modulo importato da app.py (v20.18). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
   2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
   3. Calcolo paghe per quindicina (1-15 / 16-fine mese) → PAGAMENTI
   4. Gestione acconti (generico / Tabaski / Scuola / Karem)
 F6.1: protezione timbrature notturne fantasma (00:0x) su turni non notturni.
 F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale).
-F6.3: FIX lettura nome dal file incollato (TAB reali, non "|"): il nome si ferma
-      prima di "Dept :" → il mapping nome→codice ora funziona.
+F6.3: nome letto dal file si ferma prima di "Dept :" → mapping nome→codice.
+F6.4: tollera le virgolette " del copia-incolla Excel (celle multiriga):
+      gli orari "08:09 / 17:34" ora vengono letti correttamente.
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
@@ -20,7 +21,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.3"
+VERSIONE_FASE6 = "F6.4"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -155,7 +156,6 @@ DEFAULT_CONFIG = {
     "assenza_penale_percent": 0.0,
 }
 
-# Fallback solo se il foglio CONFIG è vuoto. DATE LUNARI INDICATIVE → verificare!
 FESTIVI_DEFAULT = {
     "01/01/2026": "Nouvel An",
     "04/04/2026": "Fête de l'Indépendance",
@@ -204,7 +204,6 @@ def parse_data(s):
 
 
 def timbro_notte(t):
-    """True se la timbratura è in fascia notturna (prima 02:00 o dopo/equal 23:00)."""
     m = to_min(t)
     return m is not None and (m < 2 * 60 or m >= 23 * 60)
 
@@ -222,7 +221,6 @@ def tipo_giorno_di(anno, mese, g, festivi):
 
 
 def _norm_nome(s):
-    """F6.3: normalizza il nome letto dal file (spazi multipli→1, taglia a 'DEPT')."""
     s = re.sub(r"\s+", " ", str(s or "")).strip().upper()
     s = re.split(r"\bDEPT\b", s)[0].strip()
     return s
@@ -296,7 +294,7 @@ def _extract_day_map(linea):
     celle = linea.split("\t")
     nums = []
     for ci, cv in enumerate(celle):
-        cv2 = cv.strip()
+        cv2 = cv.strip().strip('"')
         if cv2.isdigit() and 1 <= int(cv2) <= 31:
             nums.append((ci, int(cv2)))
     if len(nums) >= 15:
@@ -318,9 +316,8 @@ def parse_list_of_logs(testo):
     blocchi = []
     for pos, i in enumerate(headers_idx):
         fine = headers_idx[pos + 1] if pos + 1 < len(headers_idx) else len(linee)
-        # F6.3: il nome si ferma al TAB o a "|" (prima prendeva anche "Dept : Work")
         mh = re.search(r"Name\s*:\s*([^|\t]+)", linee[i], re.I)
-        nome = mh.group(1).strip() if mh else ""
+        nome = mh.group(1).strip().strip('"') if mh else ""
         day_map = {}
         candidati = list(range(max(0, i - 6), i)) + list(range(i + 1, fine))
         for j in candidati:
@@ -332,7 +329,8 @@ def parse_list_of_logs(testo):
         for j in range(i + 1, fine):
             celle = linee[j].split("\t")
             for ci, cv in enumerate(celle):
-                for tok in re.split(r"[\s,;/]+", cv.strip()):
+                # F6.4: le virgolette " del copia-incolla Excel sono separatori
+                for tok in re.split(r'[\s,;/"]+', cv.strip()):
                     mt = TIME_RE.match(tok)
                     if mt and int(mt.group(1)) < 24:
                         giorno = day_map.get(ci)
@@ -369,7 +367,6 @@ def coppie_giorno(per_giorno, attr, notte_ok=False):
         times = sorted(set(per_giorno.get(g, [])), key=to_min)
         if not times:
             continue
-        # F6.1: protezione timbrature notturne "fantasma" (es. 00:0x)
         if not attr and not notte_ok and any(timbro_notte(t) for t in times):
             esiti.append((g, times[0], "", "DA_RIVEDERE",
                           "timbratura in fascia notturna (prima 02:00 / dopo 23:00) - verificare"))
@@ -394,7 +391,7 @@ def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
     rows = []
     attr = tinfo.get("attr", False)
     start = tinfo.get("start")
-    notte_ok = (start is not None and start < 2 * 60)  # solo T3 (inizio 0:00)
+    notte_ok = (start is not None and start < 2 * 60)
     for (g, ingr, usc, stato, nota) in coppie_giorno(per_giorno, attr, notte_ok):
         if g < g1 or g > g2:
             continue
@@ -422,7 +419,7 @@ def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
             wd = GIORNI_SETTIMANA[date(anno, mese, g).weekday()]
         except ValueError:
             continue
-        if wd in riposo:  # F6.2: niente ASSENTE nei giorni di riposo settimanale
+        if wd in riposo:
             continue
         rows.append({
             "codice_lavoratore": code, "nome_macchina": nome_macchina or code,
