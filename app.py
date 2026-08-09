@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.16 - FILE COMPLETO
-✅ Switch ambiente PRODUZIONE/TEST nella dashboard admin (sessione, default produzione)
-✅ Login admin = username + password + ricordami (link copiabile)
-✅ Bacheca operai: festività SENZA consiglio direzione (consiglio solo admin)
-✅ Bacheca AVVISI della direzione (flag urgente) + invio automatico al canale Telegram
-✅ Blocco Telegram (installa + entra nel canale) alla registrazione e nello spazio lavoratore
-✅ Include tutto v20.15: codici THS sequenziali assoluti, PIN unico, FASE 6, promemoria festività
-Richiede: Apps Script v6.1 (entrambi gli script) + nuovo foglio AVVISI + chiavi CONFIG telegram.
+PROACIER HRM - v20.17 - FILE COMPLETO
+✅ Avvisi: TITOLO FACOLTATIVO (se vuoto = prime 40 caratteri del testo); avviso se testo vuoto
+✅ Include tutto v20.16: switch ambiente in dashboard, login admin user+pass+ricordami,
+   bacheca AVVISI + Telegram, blocco Telegram operai, festività senza consiglio per operai
+Richiede: Apps Script v6.1 + fase6_paghe.py F6.2 + foglio AVVISI + chiavi CONFIG.
 """
 import sys
 import streamlit as st
@@ -18,7 +15,7 @@ from datetime import datetime, timedelta, date
 from fpdf import FPDF
 import fase6_paghe
 
-VERSIONE = "v20.16"
+VERSIONE = "v20.17"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -86,13 +83,14 @@ T = {
     "bacheca_title": ("📢 Tableau d'affichage de la direction", "📢 Bacheca della direzione", "📢 Management notice board"),
     "bacheca_none": ("Aucun avis pour le moment.", "Nessun avviso al momento.", "No notices yet."),
     "avviso_new": ("📢 Nouveau avis", "📢 Nuovo avviso", "📢 New notice"),
-    "avviso_titolo": ("Titre", "Titolo", "Title"),
+    "avviso_titolo": ("Titre (facultatif)", "Titolo (facoltativo)", "Title (optional)"),
     "avviso_testo": ("Texte de l'avis", "Testo dell'avviso", "Notice text"),
     "avviso_urgente": ("⚠️ Urgent (mis en évidence)", "⚠️ Urgente (evidenziato)", "⚠️ Urgent (highlighted)"),
     "avviso_pubblica": ("Publier l'avis", "Pubblica avviso", "Publish notice"),
     "avviso_ok": ("✅ Avis publié", "✅ Avviso pubblicato", "✅ Notice published"),
     "avviso_tel_ok": ("+ envoyé sur Telegram ✅", "+ inviato su Telegram ✅", "+ sent to Telegram ✅"),
     "avviso_tel_no": ("(Telegram non configuré: clés CONFIG manquantes)", "(Telegram non configurato: chiavi CONFIG mancanti)", "(Telegram not configured: missing CONFIG keys)"),
+    "avviso_vuoto": ("⚠️ Écris au moins le texte de l'avis", "⚠️ Scrivi almeno il testo dell'avviso", "⚠️ Write at least the notice text"),
     "avvisi_ultimi": ("Derniers avis", "Ultimi avvisi", "Latest notices"),
     "tg_obbligo": ("📲 Telegram est OBLIGATOIRE pour recevoir les avis de la direction.",
                    "📲 Telegram è OBBLIGATORIO per ricevere gli avvisi della direzione.",
@@ -232,7 +230,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍👩‍👧‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍‍‍👦 Famille (modifiable)", "👨‍‍‍👦 Famiglia (modificabile)", "👨‍‍👧👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -1175,9 +1173,8 @@ def pagina_candidatura(lingua):
                         row = {"id": f"CAND-{datetime.now().year}-{random.randint(1000, 9999)}",
                                "data_candidatura": datetime.now().strftime("%d/%m/%Y %H:%M"),
                                "cognome": c_cognome, "nome": c_nome, "email": c_email, "telefono": c_tel,
-                               "data_nascita": f"{cg:02d}/{cm:02d}:{ca}" if False else f"{cg:02d}/{cm:02d}/{ca}",
-                               "indirizzo": c_ind, "comune": c_com, "regione": c_reg,
-                               "settore_richiesto": settore, "mansione_richiesta": mansione,
+                               "data_nascita": f"{cg:02d}/{cm:02d}/{ca}", "indirizzo": c_ind, "comune": c_com,
+                               "regione": c_reg, "settore_richiesto": settore, "mansione_richiesta": mansione,
                                "studi": c_studi, "skills": c_skills, "esperienza_anno": int(c_exp),
                                "salario_richiesto": c_sal, "note": c_note, "stato": "Nuova"}
                         ok, msg = salva_append("CANDIDATURE", row, "id", row["id"])
@@ -1396,11 +1393,15 @@ def pagina_dashboard(lingua):
         av_u = c2.checkbox(get_testo("avviso_urgente", lingua), key="av_u")
         av_x = st.text_area(get_testo("avviso_testo", lingua), key="av_x")
         if st.form_submit_button(get_testo("avviso_pubblica", lingua), type="primary"):
-            if av_t.strip() and av_x.strip():
-                ok_tel = invia_avviso_telegram(av_t.strip(), av_x.strip(), av_u)
+            testo = av_x.strip()
+            if not testo:
+                st.warning(get_testo("avviso_vuoto", lingua))
+            else:
+                titolo = av_t.strip() or (testo[:40] + ("…" if len(testo) > 40 else ""))
+                ok_tel = invia_avviso_telegram(titolo, testo, av_u)
                 row = {"id_avviso": f"AVV-{datetime.now().strftime('%Y%m%d%H%M%S')}",
                        "data_avviso": datetime.now().strftime("%d/%m/%Y"),
-                       "titolo": av_t.strip(), "testo": av_x.strip(),
+                       "titolo": titolo, "testo": testo,
                        "urgente": "SI" if av_u else "NO", "autore": "admin",
                        "inviato_telegram": "SI" if ok_tel else "NO",
                        "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")}
@@ -1602,7 +1603,6 @@ def main():
                  "adm_limit": 15, "link_personale": None, "ambiente": "produzione"}.items():
         if k not in st.session_state:
             st.session_state[k] = v
-    # Switch ambiente (sessione): sceglie quale Apps Script/foglio usare
     CONFIG["url_api"] = CONFIG["url_api_produzione"] if st.session_state.get("ambiente") == "produzione" else CONFIG["url_api_test"]
     if not st.session_state.logged_in:
         try:

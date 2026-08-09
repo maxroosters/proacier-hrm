@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.2]
-Modulo importato da app.py (v20.14+). Contenuti:
+Modulo importato da app.py (v20.17). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
   2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
   3. Calcolo paghe per quindicina (1-15 / 16-fine mese) → PAGAMENTI
   4. Gestione acconti (generico / Tabaski / Scuola / Karem)
-Novità F6.1: timbratura in fascia notturna (prima 02:00 / dopo 23:00) su turno
-NON notturno → DA_RIVEDERE (protezione da timbrature "fantasma" tipo 00:0x).
+Novità F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale,
+default "sabato,domenica" come da report macchinetta) → niente righe ASSENTE nei riposi.
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
@@ -18,7 +18,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.1"
+VERSIONE_FASE6 = "F6.2"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -30,6 +30,8 @@ MESI = {
     "en": ["January", "February", "March", "April", "May", "June", "July",
            "August", "September", "October", "November", "December"],
 }
+
+GIORNI_SETTIMANA = ["lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica"]
 
 T6 = {
     "titolo": ("🕒 Présences & Paies", "🕒 Presenze e Paghe", "🕒 Attendance & Payroll"),
@@ -151,7 +153,7 @@ DEFAULT_CONFIG = {
     "assenza_penale_percent": 0.0,
 }
 
-# Fallback solo se la foglio CONFIG è vuota. DATE LUNARI INDICATIVE → verificare!
+# Fallback solo se il foglio CONFIG è vuoto. DATE LUNARI INDICATIVE → verificare!
 FESTIVI_DEFAULT = {
     "01/01/2026": "Nouvel An",
     "04/04/2026": "Fête de l'Indépendance",
@@ -220,6 +222,7 @@ def tipo_giorno_di(anno, mese, g, festivi):
 def leggi_config(A):
     cfg = dict(DEFAULT_CONFIG)
     festivi = {}
+    riposo = {"sabato", "domenica"}
     try:
         _, recs = A.leggi_foglio("CONFIG")
     except Exception:
@@ -236,6 +239,9 @@ def leggi_config(A):
                 festivi[f"{int(g):02d}/{int(m):02d}/{y}"] = v or "Férié"
             except Exception:
                 pass
+        elif k == "riposo_settimanale":
+            if v:
+                riposo = {x.strip().lower() for x in v.split(",") if x.strip()}
         elif k.startswith("assenza"):
             f = to_float_or_none(v)
             if f is not None:
@@ -251,6 +257,7 @@ def leggi_config(A):
     if not festivi:
         festivi = dict(FESTIVI_DEFAULT)
         cfg["_festivi_default"] = True
+    cfg["_riposo"] = riposo
     return cfg, festivi
 
 
@@ -264,7 +271,7 @@ def mappa_turni(A, recs_turni):
         oi = A.s_str(r.get("ora_inizio")).strip()
         start = to_min(oi) if re.match(r"^\d{1,2}:\d{2}", oi) else None
         if start is None and not oi:
-            continue  # riga di note senza orari (es. blocco "Regole")
+            continue
         info[ct] = {"attr": attr, "start": start}
     info.setdefault("T1", {"attr": False, "start": 8 * 60})
     info.setdefault("T2", {"attr": True, "start": 16 * 60})
@@ -373,7 +380,7 @@ def coppie_giorno(per_giorno, attr, notte_ok=False):
     return esiti
 
 
-def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2, tinfo, festivi):
+def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2, tinfo, festivi, riposo):
     rows = []
     attr = tinfo.get("attr", False)
     start = tinfo.get("start")
@@ -401,6 +408,12 @@ def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
         tg = tipo_giorno_di(anno, mese, g, festivi)
         if tg != "feriale":
             continue
+        try:
+            wd = GIORNI_SETTIMANA[date(anno, mese, g).weekday()]
+        except ValueError:
+            continue
+        if wd in riposo:  # F6.2: niente ASSENTE nei giorni di riposo settimanale
+            continue
         rows.append({
             "codice_lavoratore": code, "nome_macchina": nome_macchina or code,
             "data": f"{g:02d}/{mese:02d}/{anno}", "ora_ingresso": "", "ora_uscita": "",
@@ -427,7 +440,8 @@ def scrivi_presenze(A, parsed):
     codici_dip = {A.s_str(d.get("codice")).upper() for d in dips if A.s_str(d.get("codice"))}
     turni_dip = {A.s_str(d.get("codice")).upper(): A.s_str(d.get("turno")).upper() for d in dips}
     turni = mappa_turni(A, b.get("TURNI", []))
-    _, festivi = leggi_config(A)
+    cfg, festivi = leggi_config(A)
+    riposo = cfg.get("_riposo", {"sabato", "domenica"})
     _, pres_old = A.leggi_foglio("PRESENZE", force=True)
     esistenti = {(A.s_str(p.get("codice_lavoratore")).upper(), A.s_str(p.get("data"))) for p in pres_old}
     rows, unmapped, dup = [], set(), 0
@@ -438,7 +452,7 @@ def scrivi_presenze(A, parsed):
             unmapped.add(blk["nome"])
             continue
         tinfo = turni.get(turni_dip.get(code, ""), {"attr": False, "start": None})
-        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi):
+        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi, riposo):
             key = (r["codice_lavoratore"], r["data"])
             if key in esistenti:
                 dup += 1
@@ -895,6 +909,7 @@ def pagina_fase6(lingua, app_module):
         c5.metric("Penale assenza", f"{cfg['assenza_penale_percent']:.0f}%")
         st.write("**" + t6("cfg_festivi", lingua) + ":** " +
                  (", ".join(sorted(festivi.keys())) if festivi else t6("cfg_no_festivi", lingua)))
+        st.caption("Riposo settimanale: " + ", ".join(sorted(cfg.get('_riposo', {'sabato', 'domenica'}))))
         if cfg.get("_festivi_default"):
             st.caption("⚠️ " + t6("cfg_no_festivi", lingua))
     tab1, tab2, tab3, tab4 = st.tabs([
