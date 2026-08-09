@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.2]
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.3]
 Modulo importato da app.py (v20.17). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
   2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
   3. Calcolo paghe per quindicina (1-15 / 16-fine mese) → PAGAMENTI
   4. Gestione acconti (generico / Tabaski / Scuola / Karem)
-Novità F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale,
-default "sabato,domenica" come da report macchinetta) → niente righe ASSENTE nei riposi.
+F6.1: protezione timbrature notturne fantasma (00:0x) su turni non notturni.
+F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale).
+F6.3: FIX lettura nome dal file incollato (TAB reali, non "|"): il nome si ferma
+      prima di "Dept :" → il mapping nome→codice ora funziona.
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
@@ -18,7 +20,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.2"
+VERSIONE_FASE6 = "F6.3"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -219,6 +221,13 @@ def tipo_giorno_di(anno, mese, g, festivi):
     return "feriale"
 
 
+def _norm_nome(s):
+    """F6.3: normalizza il nome letto dal file (spazi multipli→1, taglia a 'DEPT')."""
+    s = re.sub(r"\s+", " ", str(s or "")).strip().upper()
+    s = re.split(r"\bDEPT\b", s)[0].strip()
+    return s
+
+
 def leggi_config(A):
     cfg = dict(DEFAULT_CONFIG)
     festivi = {}
@@ -309,7 +318,8 @@ def parse_list_of_logs(testo):
     blocchi = []
     for pos, i in enumerate(headers_idx):
         fine = headers_idx[pos + 1] if pos + 1 < len(headers_idx) else len(linee)
-        mh = re.search(r"Name\s*:\s*([^|]+)", linee[i], re.I)
+        # F6.3: il nome si ferma al TAB o a "|" (prima prendeva anche "Dept : Work")
+        mh = re.search(r"Name\s*:\s*([^|\t]+)", linee[i], re.I)
         nome = mh.group(1).strip() if mh else ""
         day_map = {}
         candidati = list(range(max(0, i - 6), i)) + list(range(i + 1, fine))
@@ -335,15 +345,15 @@ def parse_list_of_logs(testo):
 
 
 def resolve_code(nome, mapping, codici_dip, A):
-    n = A.s_str(nome).strip().upper()
+    n = _norm_nome(nome)
     if not n:
         return None, ""
     if n in codici_dip:
         return n, ""
     for m in mapping:
-        nm = A.s_str(m.get("nome_macchina")).strip().upper()
+        nm = _norm_nome(m.get("nome_macchina"))
         nmach = A.s_str(m.get("n_macchina")).strip().upper()
-        if n in (nm, nmach):
+        if n and n in (nm, nmach):
             cod = A.s_str(m.get("codice_lavoratore")).strip().upper()
             if cod:
                 return cod, A.s_str(nome)
@@ -449,7 +459,7 @@ def scrivi_presenze(A, parsed):
     for blk in parsed["blocchi"]:
         code, nome_macchina = resolve_code(blk["nome"], mapping, codici_dip, A)
         if not code:
-            unmapped.add(blk["nome"])
+            unmapped.add(_norm_nome(blk["nome"]))
             continue
         tinfo = turni.get(turni_dip.get(code, ""), {"attr": False, "start": None})
         for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi, riposo):
