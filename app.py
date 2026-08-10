@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.24
+# HRM_PA_ver_20.25
 """
-PROACIER HRM - v20.24 - FILE COMPLETO
-✅ PDF documento: logo piccolo, titolo grassetto sotto logo (solo pag.1), intestazione
-   lettera a destra, footer 2 righe + numero pagina su ogni pagina (testi AD Trading esatti)
-✅ Banner Telegram + 2 tasti rosso spento; credenziali senape/azzurro; tasti Règlement/Privacy
-✅ "New registration" distanziato; include tutto v20.23 (FRA/ENG/ITA istantanei, no festività in Home)
+PROACIER HRM - v20.25 - FILE COMPLETO
+✅ footer() presente con <br> per distanziare le due scritte e allungare la pagina nera
+✅ Tasti sidebar verde più scuro
+✅ promemoria_festivita() presente (fix NameError)
+✅ Include tutto v20.24: PDF documento AD Trading, FRA/ENG/ITA istantanei,
+   banner Telegram + tasti Règlement/Privacy, no festività in Home
 Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
 import sys
@@ -23,7 +24,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.24"
+VERSIONE = "v20.25"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -44,7 +45,7 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"]{background-color:#5EA529 !important;}
 [data-testid="stSidebar"] *{color:white !important;}
-[data-testid="stSidebar"] button{background-color:rgba(255,255,255,0.1)!important;color:white!important;padding:0.35rem 0.5rem !important;min-height:2.1rem !important;}
+[data-testid="stSidebar"] button{background-color:rgba(0,0,0,0.18)!important;color:white!important;padding:0.35rem 0.5rem !important;min-height:2.1rem !important;}
 [data-testid="stSidebar"] select{color:white!important;background-color:rgba(0,0,0,0.3)!important;}
 [data-testid="stSidebar"] option{color:black!important;}
 [data-testid="stSidebar"] .element-container{margin-bottom:0.25rem !important;}
@@ -236,7 +237,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👦 Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -655,9 +656,58 @@ def azienda_info():
     return out
 
 
-# ============================================================
-# PDF DOCUMENTO (v20.24)
-# ============================================================
+def footer():
+    anno = datetime.now().year
+    st.markdown("---")
+    st.markdown(
+        f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
+        f'Proacier - tel. +221 33 913 33 12 - '
+        f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span>'
+        f'<br><br><br><br><br><br>'
+        f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -'
+        f'</div>',
+        unsafe_allow_html=True)
+
+
+def promemoria_festivita(lingua, consiglio=False):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            try:
+                f = int(float(v))
+                if f > 0:
+                    giorni_limite = f
+            except Exception:
+                pass
+        elif k.startswith("festivo_"):
+            ds = k.replace("festivo_", "", 1)
+            try:
+                y, m, g = ds.split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception:
+                pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti:
+        return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
+    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
+    if consiglio:
+        msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+
+
 class PDFProacier(FPDF):
     titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
     azienda = {}
@@ -665,7 +715,7 @@ class PDFProacier(FPDF):
 
     def header(self):
         if self.page_no() == 1:
-            return  # pagina 1 disegnata nel corpo
+            return
         self.set_font("Helvetica", "B", 11)
         self.cell(0, 8, self.titolo, 0, 1, "C")
         self.ln(2)
@@ -708,14 +758,12 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
     pdf.add_page()
-    # logo piccolo in alto a sinistra
     try:
         lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
         if lg.status_code == 200 and lg.content:
             pdf.image(lg.content, x=10, y=8, w=30)
     except Exception:
         pass
-    # intestazione tipo lettera a destra
     pref = "M." if s_str(d.get("sesso")) == "M" else ("Mme" if s_str(d.get("sesso")) == "F" else "")
     pdf.set_xy(110, 10)
     pdf.set_font("Helvetica", "B", 9)
@@ -725,7 +773,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(0, 4, s_str(d.get("indirizzo")), 0, 1, "R")
     pdf.cell(0, 4, f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip(), 0, 1, "R")
     pdf.cell(0, 4, etichetta("paesi", d.get("paese_origine"), lingua) or "Sénégal", 0, 1, "R")
-    # titolo grassetto sotto il logo (solo pag.1), distanziato
     pdf.set_xy(10, 42)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "L")
@@ -816,23 +863,6 @@ def box_telefono(lingua, n, obbligatorio=False):
         sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
     servizi = ", ".join([k for k, v in sel.items() if v])
     return tel, servizi
-
-
-def blocco_telegram(lingua):
-    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
-    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
-    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
-    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
-    st.markdown(f'''
-<div style="display:flex;gap:10px;">
-<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
-<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
-</div>
-<div style="display:flex;gap:10px;margin-top:10px;">
-<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
-<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
-</div>
-''', unsafe_allow_html=True)
 
 
 def step_1(lingua):
@@ -995,6 +1025,23 @@ def pannello_successo(lingua):
         st.session_state.step = 1
         st.session_state.avviso_mostrato = False
         st.rerun()
+
+
+def blocco_telegram(lingua):
+    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
+    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
+    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
+    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+<div style="display:flex;gap:10px;">
+<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
+<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
+</div>
+<div style="display:flex;gap:10px;margin-top:10px;">
+<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
+<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
+</div>
+''', unsafe_allow_html=True)
 
 
 def pagina_registrazione(lingua):
@@ -1312,6 +1359,23 @@ def pagina_area_lavoratore(lingua):
         st.rerun()
 
 
+def bacheca_avvisi(lingua):
+    try:
+        _, recs = leggi_foglio("AVVISI")
+    except Exception:
+        return
+    recs = [r for r in recs if s_str(r.get("titolo"))]
+    if not recs:
+        return
+    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
+    for r in list(reversed(recs))[:5]:
+        urg = s_str(r.get("urgente")).upper() == "SI"
+        if urg:
+            st.error(f"**⚠️ URGENTE — {s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+        else:
+            st.info(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+
+
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
@@ -1524,18 +1588,7 @@ def _do_logout():
     except Exception:
         pass
 
-def footer():
-    anno = datetime.now().year
-    st.markdown("---")
-    st.markdown(
-        f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
-        f'Proacier - tel. +221 33 913 33 12 - '
-        f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span>'
-        f'<br><br><br><br><br><br>'
-        f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -'
-        f'</div>',
-        unsafe_allow_html=True)
-   
+
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
