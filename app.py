@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.23
+# HRM_PA_ver_20.24
 """
-PROACIER HRM - v20.23 - FILE COMPLETO
-✅ v20.23: lingua con bottoni nativi FRA/ENG/ITA (istantanei, niente bandierine né reload)
-✅ v20.23: riquadro festività TOLTO dalla Home (resta in Spazio Lavoratore + Dashboard)
-✅ Include tutto v20.22: footer © Lehev Ltd + tel + email anti-bot, nero a tutta altezza,
-   ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami,
-   bacheca AVVISI + banner Telegram, PDF AD Trading, import paghe (paghe.py)
-Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2, xlrd)
+PROACIER HRM - v20.24 - FILE COMPLETO
+✅ PDF documento: logo piccolo, titolo grassetto sotto logo (solo pag.1), intestazione
+   lettera a destra, footer 2 righe + numero pagina su ogni pagina (testi AD Trading esatti)
+✅ Banner Telegram + 2 tasti rosso spento; credenziali senape/azzurro; tasti Règlement/Privacy
+✅ "New registration" distanziato; include tutto v20.23 (FRA/ENG/ITA istantanei, no festività in Home)
+Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
 import sys
 import importlib
@@ -24,7 +23,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.23"
+VERSIONE = "v20.24"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -63,6 +62,7 @@ section.main{background-color:#0e1117 !important;min-height:100vh !important;}
 .phone-box .stTextInput>div>div>input{background-color:white;color:black;}
 .phone-box .stCheckbox label{color:white;}
 .tg-banner{background:#8b0000;color:#fff;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:0.95rem;}
+.docbtn{flex:1;text-align:center;padding:10px 0;border-radius:8px;text-decoration:none;font-size:0.9rem;color:#fff;display:block;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -99,8 +99,10 @@ T = {
     "tg_obbligo": ("📲 Telegram OBLIGATOIRE pour recevoir les avis de la direction.",
                    "📲 Telegram OBBLIGATORIO per ricevere gli avvisi della direzione.",
                    "📲 Telegram MANDATORY to receive management notices."),
-    "tg_install": ("1️⃣ Installer Telegram", "1️⃣ Installa Telegram", "1️⃣ Install Telegram"),
-    "tg_join": ("2️⃣ Entrer dans le canal", "2️⃣ Entra nel canale", "2️⃣ Join the channel"),
+    "tg_install": ("Installer Telegram", "Installa Telegram", "Install Telegram"),
+    "tg_join": ("Entrer dans le canal", "Entra nel canale", "Join the channel"),
+    "doc_regolamento": ("Règlement intérieur", "Regolamento", "Internal rules"),
+    "doc_privacy": ("Politique de confidentialité", "Privacy", "Privacy policy"),
     "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
     "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
     "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -123,8 +125,6 @@ T = {
                   "🔖 This page's address now contains your access: bookmark it or keep it (e.g. WhatsApp). Reopening it, you will enter directly."),
     "copia_link_help": ("Copie ce lien et garde-le précieusement :", "Copia questo link e conservalo con cura:", "Copy this link and keep it safe:"),
     "salva_link": ("🔖 Lien personnel", "🔖 Link personale", "🔖 Personal link"),
-    "salva_tutto": ("💾 Enregistrer toutes les modifications", "💾 Salva tutte le modifiche", "💾 Save all changes"),
-    "salvate_n": ("ligne(s) mise(s) à jour :", "riga/e aggiornata/e:", "row(s) updated:"),
     "step_1": ("1. Données Personnelles & Famille", "1. Dati Personali e Famiglia", "1. Personal Data & Family"),
     "step_2": ("2. Adresse, Documents & Services", "2. Indirizzo, Documenti e Servizi", "2. Address, Documents & Services"),
     "step_3": ("3. Expérience Professionnelle", "3. Esperienza Professionale", "3. Professional Experience"),
@@ -236,7 +236,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍👦 Famiglia (modificabile)", "👨‍👩‍👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -647,114 +647,36 @@ def azienda_info():
     if cache:
         return cache
     out = {"nome": "AD Trading S.A.",
-           "indirizzo": "Cité Asecna Ouakam N° A72 - 12300 DAKAR (SÉNÉGAL) - NINEA: 004250180 2Y3 - RCCM: SN.DKR.2007-B-5254",
-           "tel": "+221 33 913 33 12",
-           "email": "info@adtrading.sn"}
-    for k in ("azienda_nome", "azienda_indirizzo", "azienda_tel", "azienda_email"):
-        v = cfg_get(k)
-        if v:
-            out[k.split("_", 1)[1]] = v
+           "indirizzo": "Cité Asecna Ouakam N° A72 - 12300 DAKAR (SÉNÉGAL)",
+           "tel": "+221 33 9133312",
+           "email": "info@adtrading.sn",
+           "fisc": "NINEA: 004250180 2Y3 - RCCM: SN.DKR.2007-B-5254 - Shared Capital: 100.000.000 FCFA"}
     st.session_state["_azienda"] = out
     return out
 
 
-def footer():
-    anno = datetime.now().year
-    st.markdown("---")
-    st.markdown(
-        f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
-        f'Proacier - tel. +221 33 913 33 12 - '
-        f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span>'
-        f'<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'
-        f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -'
-        f'</div>',
-        unsafe_allow_html=True)
-
-
-def bacheca_avvisi(lingua):
-    try:
-        _, recs = leggi_foglio("AVVISI")
-    except Exception:
-        return
-    recs = [r for r in recs if s_str(r.get("titolo"))]
-    if not recs:
-        return
-    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
-    for r in list(reversed(recs))[:5]:
-        urg = s_str(r.get("urgente")).upper() == "SI"
-        if urg:
-            st.error(f"**⚠️ URGENTE — {s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-        else:
-            st.info(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-
-
-def blocco_telegram(lingua):
-    link_canale = cfg_get("telegram_link_canale")
-    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
-    if link_canale:
-        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
-
-
-def promemoria_festivita(lingua, consiglio=False):
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return
-    giorni_limite = 10
-    fest = []
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        v = s_str(r.get("valore"))
-        if k == "promemoria_festivita_giorni_prima":
-            try:
-                f = int(float(v))
-                if f > 0:
-                    giorni_limite = f
-            except Exception:
-                pass
-        elif k.startswith("festivo_"):
-            ds = k.replace("festivo_", "", 1)
-            try:
-                y, m, g = ds.split("-")
-                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
-            except Exception:
-                pass
-    oggi = date.today()
-    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
-    if not imminenti:
-        return
-    righe = []
-    for d, n in imminenti:
-        delta = (d - oggi).days
-        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
-        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
-    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
-    if consiglio:
-        msg += "\n\n" + get_testo("fest_stop", lingua)
-    st.info(msg)
-
-
+# ============================================================
+# PDF DOCUMENTO (v20.24)
+# ============================================================
 class PDFProacier(FPDF):
     titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
     azienda = {}
     pages_count = 0
 
     def header(self):
-        self.set_font("Helvetica", "B", 13)
-        self.set_fill_color(94, 165, 41)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 10, self.titolo, 0, 1, "C", True)
-        self.set_text_color(0, 0, 0)
+        if self.page_no() == 1:
+            return  # pagina 1 disegnata nel corpo
+        self.set_font("Helvetica", "B", 11)
+        self.cell(0, 8, self.titolo, 0, 1, "C")
         self.ln(2)
 
     def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 7)
         az = self.azienda or {}
-        self.cell(0, 5, f"{az.get('nome','AD Trading S.A.')} - tel. {az.get('tel','+221 33 913 33 12')} - {az.get('email','info@adtrading.sn')}", 0, 0, "L")
-        self.cell(0, 5, f"Pag. {self.page_no()}/{self.pages_count or ''}", 0, 1, "R")
+        self.set_y(-16)
+        self.set_font("Helvetica", "", 7)
+        self.cell(0, 4, f"{az.get('nome','AD Trading S.A.')} - {az.get('indirizzo','Cité Asecna Ouakam N° A72 - 12300 DAKAR (SÉNÉGAL)')}", 0, 1, "L")
+        self.cell(150, 4, f"tel. {az.get('tel','+221 33 9133312')} - {az.get('email','info@adtrading.sn')} - {az.get('fisc','')}", 0, 0, "L")
+        self.cell(0, 4, f"Pag. {self.page_no()}/{self.pages_count or ''}", 0, 1, "R")
 
     def sezione(self, titolo):
         self.set_font("Helvetica", "B", 10)
@@ -786,21 +708,28 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
     pdf.add_page()
+    # logo piccolo in alto a sinistra
     try:
         lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
         if lg.status_code == 200 and lg.content:
-            pdf.image(lg.content, x=10, y=22, w=45)
+            pdf.image(lg.content, x=10, y=8, w=30)
     except Exception:
         pass
-    pdf.set_xy(60, 24)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 6, az["nome"], 0, 1, "R")
-    pdf.set_xy(60, 31)
-    pdf.set_font("Helvetica", "", 7)
-    pdf.multi_cell(130, 4, az["indirizzo"], align="R")
-    pdf.set_xy(60, 43)
-    pdf.cell(0, 4, f"tel. {az['tel']} - {az['email']}", 0, 1, "R")
-    pdf.set_xy(10, 58)
+    # intestazione tipo lettera a destra
+    pref = "M." if s_str(d.get("sesso")) == "M" else ("Mme" if s_str(d.get("sesso")) == "F" else "")
+    pdf.set_xy(110, 10)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
+    pdf.cell(0, 5, f"{pref} {s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip(), 0, 1, "R")
+    pdf.set_font("Helvetica", "", 8)
+    pdf.cell(0, 4, s_str(d.get("indirizzo")), 0, 1, "R")
+    pdf.cell(0, 4, f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip(), 0, 1, "R")
+    pdf.cell(0, 4, etichetta("paesi", d.get("paese_origine"), lingua) or "Sénégal", 0, 1, "R")
+    # titolo grassetto sotto il logo (solo pag.1), distanziato
+    pdf.set_xy(10, 42)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "L")
+    pdf.ln(4)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(95, 5, f"{get_testo('pdf_nfiche', lingua)} {s_str(d.get('codice'))}", 0, 0)
     pdf.cell(0, 5, f"{get_testo('pdf_data', lingua)} {datetime.now().strftime('%d/%m/%Y')}", 0, 1, "R")
@@ -853,18 +782,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.ln(10)
     pdf.cell(0, 6, get_testo("pdf_signature", lingua), 0, 1)
     pdf.cell(0, 20, "", 1, 1)
-    reg = cfg_get("regolamento_testo")
-    priv = cfg_get("privacy_testo")
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "REGLEMENT INTERIEUR (extrait) / REGOLAMENTO (estratto)", 0, 1, "C")
-    pdf.set_font("Helvetica", "", 8)
-    pdf.multi_cell(0, 5, reg or "Texte du règlement intérieur à définir / Testo del regolamento da definire.")
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, "PROTECTION DES DONNEES / PRIVACY", 0, 1, "C")
-    pdf.set_font("Helvetica", "", 8)
-    pdf.multi_cell(0, 5, priv or get_testo("pdf_consent_testo", lingua))
     pdf.add_page()
     pdf.set_fill_color(255, 243, 205)
     pdf.set_font("Helvetica", "B", 14)
@@ -899,6 +816,23 @@ def box_telefono(lingua, n, obbligatorio=False):
         sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
     servizi = ", ".join([k for k, v in sel.items() if v])
     return tel, servizi
+
+
+def blocco_telegram(lingua):
+    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
+    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
+    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
+    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+<div style="display:flex;gap:10px;">
+<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
+<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
+</div>
+<div style="display:flex;gap:10px;margin-top:10px;">
+<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
+<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
+</div>
+''', unsafe_allow_html=True)
 
 
 def step_1(lingua):
@@ -1053,7 +987,7 @@ def pannello_successo(lingua):
                        use_container_width=True, key="btn_dl_ok")
     st.markdown("---")
     blocco_telegram(lingua)
-    st.markdown("---")
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
     if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
         st.session_state.ultimo_salvataggio = None
         st.session_state.reg_fp = None
