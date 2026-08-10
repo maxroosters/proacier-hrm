@@ -665,7 +665,7 @@ def footer():
         f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
         f'Proacier - tel. +221 33 913 33 12 - '
         f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span>'
-        f'<br><br><br><br><br><br>'
+        f'<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'
         f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -'
         f'</div>',
         unsafe_allow_html=True)
