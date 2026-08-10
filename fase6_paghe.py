@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.6]
-Modulo importato da app.py (v20.18). Contenuti:
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [F6.7]
+Modulo importato da app.py (v20.19). Contenuti:
   1. Parser "List of Logs" (file macchinetta) → PRESENZE
-  2. Revisione anomalie (DA_RIVEDERE / ASSENTE)
+  2. Revisione anomalie (DA_RIVEDERE / ASSENTE) con SALVA-TUTTO
   3. Calcolo paghe per quindicina (1-15 / 16-fine mese) → PAGAMENTI
   4. Gestione acconti (generico / Tabaski / Scuola / Karem)
-F6.1: protezione timbrature notturne fantasma (00:0x) su turni non notturni.
-F6.2: giorni di riposo settimanale configurabili (CONFIG: riposo_settimanale).
-F6.3: nome letto dal file si ferma prima di "Dept :" → mapping nome→codice.
-F6.4: tollera le virgolette " del copia-incolla Excel.
-F6.5: parser TSV con modulo csv (virgolette + TAB) → colonne allineate.
-F6.6: FIX lettura periodo: il giorno finale leggeva il MESE (07) invece del
-      giorno (31) → importava solo i giorni 1-7. Ora importa tutto il mese.
+F6.1: protezione timbrature notturne fantasma su turni non notturni.
+F6.2: riposo settimanale configurabile (CONFIG: riposo_settimanale).
+F6.3: nome letto dal file si ferma prima di "Dept :".
+F6.4: tollera virgolette " del copia-incolla Excel.
+F6.5: parser TSV con csv → colonne allineate.
+F6.6: periodo letto correttamente (gg finale = group 5).
+F6.7: algoritmo "a catena": uscita dopo mezzanotte chiude l'entrata del giorno
+      prima (doppi turni OK) con CONFIG soglia_uscita_notturna (default 03:00);
+      CONFIG turni_flottanti (es. EQUIPE) = niente assenze/ritardi, orario puro;
+      salva-tutto nelle anomalie.
 Richiede API Apps Script v6.1 (append batch con "rows").
 """
 import re
@@ -25,7 +28,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_FASE6 = "F6.6"
+VERSIONE_FASE6 = "F6.7"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -73,15 +76,15 @@ T6 = {
                             "Go to the “Anomalies” tab to fix DA_RIVEDERE."),
     "anom_title": ("Anomalies & absences", "Anomalie e assenze", "Anomalies & absences"),
     "anom_none": ("✅ Aucune anomalie : tout est en ordre.", "✅ Nessuna anomalia: tutto in ordine.", "✅ No anomalies: everything is fine."),
-    "anom_hint": ("DA_RIVEDERE = pointage incomplet (exclu du calcul jusqu'à correction). Les absences peuvent être justifiées (repos, maladie...).",
-                  "DA_RIVEDERE = timbratura incompleta (esclusa dal calcolo finché non corretta). Le assenze possono essere giustificate (riposo, malattia...).",
-                  "DA_RIVEDERE = incomplete punch (excluded from calculation until fixed). Absences can be justified (rest, sickness...)."),
+    "anom_hint": ("DA_RIVEDERE = pointage incomplet (exclu du calcul jusqu'à correction). Modifiez les lignes puis « Enregistrer tout ».",
+                  "DA_RIVEDERE = timbratura incompleta (esclusa dal calcolo finché non corretta). Modifica le righe poi « Salva tutto ».",
+                  "DA_RIVEDERE = incomplete punch (excluded until fixed). Edit rows then “Save all”."),
     "anom_uscita": ("Heure de sortie (HH:MM)", "Ora uscita (HH:MM)", "Clock-out time (HH:MM)"),
     "anom_stato": ("Statut", "Stato", "Status"),
     "anom_note": ("Note", "Nota", "Note"),
-    "anom_fix_save": ("💾 Enregistrer", "💾 Salva", "💾 Save"),
-    "anom_need_out": ("Indiquez une heure de sortie valide pour mettre OK", "Inserisci un'ora di uscita valida per mettere OK", "Enter a valid clock-out time to set OK"),
-    "anom_fixed": ("✅ Ligne mise à jour", "✅ Riga aggiornata", "✅ Row updated"),
+    "anom_save_all": ("💾 Enregistrer toutes les corrections", "💾 Salva tutte le correzioni", "💾 Save all corrections"),
+    "anom_fixed_n": ("corrections enregistrées", "correzioni salvate", "corrections saved"),
+    "anom_need_out": ("Pour mettre OK il faut une heure de sortie valide", "Per mettere OK serve un'ora di uscita valida", "To set OK a valid clock-out time is needed"),
     "paghe_title": ("Calcul des paies (quinzaine)", "Calcolo paghe (quindicina)", "Payroll calculation (fortnight)"),
     "paghe_anno": ("Année", "Anno", "Year"),
     "paghe_mese": ("Mois", "Mese", "Month"),
@@ -234,6 +237,8 @@ def leggi_config(A):
     cfg = dict(DEFAULT_CONFIG)
     festivi = {}
     riposo = {"sabato", "domenica"}
+    flottanti = set()
+    soglia_notte = 3 * 60
     try:
         _, recs = A.leggi_foglio("CONFIG")
     except Exception:
@@ -253,6 +258,13 @@ def leggi_config(A):
         elif k == "riposo_settimanale":
             if v:
                 riposo = {x.strip().lower() for x in v.split(",") if x.strip()}
+        elif k == "turni_flottanti":
+            if v:
+                flottanti = {x.strip().upper() for x in v.split(",") if x.strip()}
+        elif k == "soglia_uscita_notturna":
+            m2 = to_min(v)
+            if m2 is not None:
+                soglia_notte = m2
         elif k.startswith("assenza"):
             f = to_float_or_none(v)
             if f is not None:
@@ -269,6 +281,8 @@ def leggi_config(A):
         festivi = dict(FESTIVI_DEFAULT)
         cfg["_festivi_default"] = True
     cfg["_riposo"] = riposo
+    cfg["_flottanti"] = flottanti
+    cfg["_soglia_notte"] = soglia_notte
     return cfg, festivi
 
 
@@ -292,7 +306,7 @@ def mappa_turni(A, recs_turni):
 
 
 # =====================================================================
-# 1. PARSER "List of Logs"  (F6.5: TSV con csv → colonne allineate)
+# 1. PARSER "List of Logs" (TSV con csv → colonne allineate)
 # =====================================================================
 def _extract_day_map(celle):
     nums = []
@@ -313,7 +327,6 @@ def parse_list_of_logs(testo):
                   "\n".join(linee), re.I)
     if m:
         anno, mese, g1 = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        # F6.6: dopo "~" c'è MM/GG → il giorno finale è group(5); se manca, group(4)
         g2 = int(m.group(5)) if m.group(5) else int(m.group(4))
         if g2 < g1:
             g2 = g1
@@ -365,38 +378,44 @@ def resolve_code(nome, mapping, codici_dip, A):
     return None, A.s_str(nome)
 
 
-def coppie_giorno(per_giorno, attr, notte_ok=False):
+# ---------------------------------------------------------------------
+# F6.7: algoritmo "a catena" con carry-over dell'entrata spaiata
+# ---------------------------------------------------------------------
+def coppie_giorno(per_giorno, notte_ok, soglia_notte):
     esiti = []
+    pending = None
     for g in sorted(per_giorno.keys()):
         times = sorted(set(per_giorno.get(g, [])), key=to_min)
         if not times:
             continue
-        if not attr and not notte_ok and any(timbro_notte(t) for t in times):
-            esiti.append((g, times[0], "", "DA_RIVEDERE",
+        i = 0
+        if pending is not None:
+            if to_min(times[0]) is not None and to_min(times[0]) <= soglia_notte:
+                esiti.append((pending[0], pending[1], times[0], "OK", "uscita dopo mezzanotte (turno doppio)"))
+                i = 1
+            else:
+                esiti.append((pending[0], pending[1], "", "DA_RIVEDERE", "uscita mancante"))
+            pending = None
+        rest = times[i:]
+        if rest and not notte_ok and pending is None and timbro_notte(rest[0]):
+            esiti.append((g, rest[0], "", "DA_RIVEDERE",
                           "timbratura in fascia notturna (prima 02:00 / dopo 23:00) - verificare"))
-            continue
-        if attr:
-            entrate = [t for t in times if to_min(t) >= 12 * 60]
-            uscite_next = sorted({t for t in per_giorno.get(g + 1, []) if to_min(t) < 12 * 60}, key=to_min)
-            for k, e in enumerate(entrate):
-                if k < len(uscite_next):
-                    esiti.append((g, e, uscite_next[k], "OK", "uscita dopo mezzanotte"))
-                else:
-                    esiti.append((g, e, "", "DA_RIVEDERE", "uscita mancante"))
-        else:
-            for k in range(0, len(times) - 1, 2):
-                esiti.append((g, times[k], times[k + 1], "OK", ""))
-            if len(times) % 2 == 1:
-                esiti.append((g, times[-1], "", "DA_RIVEDERE", "timbrature dispari"))
+            rest = rest[1:]
+        for k in range(0, len(rest) - 1, 2):
+            esiti.append((g, rest[k], rest[k + 1], "OK", ""))
+        if len(rest) % 2 == 1:
+            pending = (g, rest[-1])
+    if pending is not None:
+        esiti.append((pending[0], pending[1], "", "DA_RIVEDERE", "uscita mancante"))
     return esiti
 
 
-def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2, tinfo, festivi, riposo):
+def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
+                            tinfo, festivi, riposo, flottante, soglia_notte):
     rows = []
-    attr = tinfo.get("attr", False)
     start = tinfo.get("start")
-    notte_ok = (start is not None and start < 2 * 60)
-    for (g, ingr, usc, stato, nota) in coppie_giorno(per_giorno, attr, notte_ok):
+    notte_ok = (start is not None and start < 2 * 60) or flottante
+    for (g, ingr, usc, stato, nota) in coppie_giorno(per_giorno, notte_ok, soglia_notte):
         if g < g1 or g > g2:
             continue
         dstr = f"{g:02d}/{mese:02d}/{anno}"
@@ -412,24 +431,25 @@ def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
             "ore_lavorate": f"{ore:.2f}", "tipo_giorno": tipo_giorno_di(anno, mese, g, festivi),
             "stato": stato, "note": nota,
         })
-    giorni_timbrati = set(per_giorno.keys())
-    for g in range(g1, g2 + 1):
-        if g in giorni_timbrati:
-            continue
-        tg = tipo_giorno_di(anno, mese, g, festivi)
-        if tg != "feriale":
-            continue
-        try:
-            wd = GIORNI_SETTIMANA[date(anno, mese, g).weekday()]
-        except ValueError:
-            continue
-        if wd in riposo:
-            continue
-        rows.append({
-            "codice_lavoratore": code, "nome_macchina": nome_macchina or code,
-            "data": f"{g:02d}/{mese:02d}/{anno}", "ora_ingresso": "", "ora_uscita": "",
-            "ore_lavorate": "0.00", "tipo_giorno": tg, "stato": "ASSENTE", "note": "",
-        })
+    if not flottante:
+        giorni_timbrati = set(per_giorno.keys())
+        for g in range(g1, g2 + 1):
+            if g in giorni_timbrati:
+                continue
+            tg = tipo_giorno_di(anno, mese, g, festivi)
+            if tg != "feriale":
+                continue
+            try:
+                wd = GIORNI_SETTIMANA[date(anno, mese, g).weekday()]
+            except ValueError:
+                continue
+            if wd in riposo:
+                continue
+            rows.append({
+                "codice_lavoratore": code, "nome_macchina": nome_macchina or code,
+                "data": f"{g:02d}/{mese:02d}/{anno}", "ora_ingresso": "", "ora_uscita": "",
+                "ore_lavorate": "0.00", "tipo_giorno": tg, "stato": "ASSENTE", "note": "",
+            })
     return rows
 
 
@@ -453,6 +473,8 @@ def scrivi_presenze(A, parsed):
     turni = mappa_turni(A, b.get("TURNI", []))
     cfg, festivi = leggi_config(A)
     riposo = cfg.get("_riposo", {"sabato", "domenica"})
+    flottanti = cfg.get("_flottanti", set())
+    soglia_notte = cfg.get("_soglia_notte", 3 * 60)
     _, pres_old = A.leggi_foglio("PRESENZE", force=True)
     esistenti = {(A.s_str(p.get("codice_lavoratore")).upper(), A.s_str(p.get("data"))) for p in pres_old}
     rows, unmapped, dup = [], set(), 0
@@ -462,8 +484,11 @@ def scrivi_presenze(A, parsed):
         if not code:
             unmapped.add(_norm_nome(blk["nome"]))
             continue
-        tinfo = turni.get(turni_dip.get(code, ""), {"attr": False, "start": None})
-        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi, riposo):
+        turno_cod = turni_dip.get(code, "")
+        flottante = turno_cod in flottanti
+        tinfo = turni.get(turno_cod, {"attr": False, "start": None})
+        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2,
+                                         tinfo, festivi, riposo, flottante, soglia_notte):
             key = (r["codice_lavoratore"], r["data"])
             if key in esistenti:
                 dup += 1
@@ -571,6 +596,7 @@ def pianifica_acconti(code, accs, A):
 
 def calcola_anteprima(A, lingua, anno, mese, quindicina):
     cfg, festivi = leggi_config(A)
+    flottanti = cfg.get("_flottanti", set())
     b = A.leggi_admin(force=True)
     dips = b.get("DIPENDENTI", [])
     sals = b.get("SALARI", [])
@@ -627,8 +653,10 @@ def calcola_anteprima(A, lingua, anno, mese, quindicina):
         tipo_paga = A.s_str(sal.get("tipo_paga")).lower() or cfg.get("modalita_paga", "giornaliero")
         base = to_float(A.s_str(sal.get("importo_base")))
         turno = A.s_str(dip.get("turno")).upper()
+        flottante = turno in flottanti
         tinfo = turni.get(turno, {"attr": False, "start": None})
-        busta = calcola_busta(pres_per.get(code, []), tipo_paga, base, cfg, tinfo.get("start"))
+        turno_start = None if flottante else tinfo.get("start")
+        busta = calcola_busta(pres_per.get(code, []), tipo_paga, base, cfg, turno_start)
         ded, piani = pianifica_acconti(code, accs, A)
         if busta["n_giorni"] == 0 and busta["n_assenze"] == 0 and ded == 0:
             continue
@@ -726,43 +754,51 @@ def sezione_anomalie(A, lingua):
         st.success(t6("anom_none", lingua))
         return
     st.caption(t6("anom_hint", lingua))
+    opts = ["OK", "ASSENTE", "RIPOSO", "MALATTIA", "ANNULLATA"]
     for i, p in righe[:60]:
         cod = A.s_str(p.get("codice_lavoratore"))
         data = A.s_str(p.get("data"))
         stato = A.s_str(p.get("stato")).upper()
         with st.expander(f"{stato} — {cod} — {data} — ▶ {A.s_str(p.get('ora_ingresso')) or '…'}"):
-            with st.form(f"f6_fix_{i}"):
-                c1, c2, c3 = st.columns(3)
-                nuova_uscita = c1.text_input(t6("anom_uscita", lingua), value=A.s_str(p.get("ora_uscita")), key=f"f6_fixu_{i}")
-                nuovo_stato = c2.selectbox(t6("anom_stato", lingua),
-                                           ["OK", "ASSENTE", "RIPOSO", "MALATTIA", "ANNULLATA"],
-                                           index=0 if stato == "DA_RIVEDERE" else 1, key=f"f6_fixs_{i}")
-                nota = c3.text_input(t6("anom_note", lingua), value=A.s_str(p.get("note")), key=f"f6_fixn_{i}")
-                if st.form_submit_button(t6("anom_fix_save", lingua), type="primary"):
-                    upd = {"stato": nuovo_stato, "note": nota}
-                    errore = None
-                    if nuovo_stato == "OK":
-                        ingr = A.s_str(p.get("ora_ingresso"))
-                        if ingr and nuova_uscita and to_min(ingr) is not None and to_min(nuova_uscita) is not None:
-                            diff = to_min(nuova_uscita) - to_min(ingr)
-                            if diff < 0:
-                                diff += 24 * 60
-                            upd["ora_uscita"] = nuova_uscita
-                            upd["ore_lavorate"] = f"{round(diff / 60.0, 2):.2f}"
-                        else:
-                            errore = t6("anom_need_out", lingua)
-                    elif nuovo_stato == "ASSENTE":
-                        upd["ora_uscita"] = ""
-                        upd["ore_lavorate"] = "0.00"
-                    if errore:
-                        st.error(errore)
-                    else:
-                        ok, msg = A.salva_update("PRESENZE", i, upd)
-                        if ok:
-                            st.success(t6("anom_fixed", lingua))
-                            st.rerun()
-                        else:
-                            st.error(msg)
+            c1, c2, c3 = st.columns(3)
+            c1.text_input(t6("anom_uscita", lingua), value=A.s_str(p.get("ora_uscita")), key=f"f6u_{i}")
+            c2.selectbox(t6("anom_stato", lingua), opts,
+                         index=opts.index(stato) if stato in opts else 1, key=f"f6s_{i}")
+            c3.text_input(t6("anom_note", lingua), value=A.s_str(p.get("note")), key=f"f6n_{i}")
+    if st.button("💾 " + t6("anom_save_all", lingua), type="primary"):
+        fatte = 0
+        for i, p in righe[:60]:
+            orig_stato = A.s_str(p.get("stato")).upper()
+            orig_usc = A.s_str(p.get("ora_uscita"))
+            orig_nota = A.s_str(p.get("note"))
+            n_stato = st.session_state.get(f"f6s_{i}", orig_stato)
+            n_usc = (st.session_state.get(f"f6u_{i}") or "").strip()
+            n_nota = st.session_state.get(f"f6n_{i}", orig_nota)
+            changed = (n_stato != orig_stato) or (n_usc != orig_usc) or (n_nota != orig_nota)
+            if not changed:
+                continue
+            upd = {"stato": n_stato, "note": n_nota}
+            ok_row = True
+            if n_stato == "OK":
+                ingr = A.s_str(p.get("ora_ingresso"))
+                if ingr and n_usc and to_min(ingr) is not None and to_min(n_usc) is not None:
+                    diff = to_min(n_usc) - to_min(ingr)
+                    if diff < 0:
+                        diff += 24 * 60
+                    upd["ora_uscita"] = n_usc
+                    upd["ore_lavorate"] = f"{round(diff / 60.0, 2):.2f}"
+                else:
+                    ok_row = False
+                    st.error(f"{A.s_str(p.get('data'))}: {t6('anom_need_out', lingua)}")
+            elif n_stato == "ASSENTE":
+                upd["ora_uscita"] = ""
+                upd["ore_lavorate"] = "0.00"
+            if ok_row:
+                ok, _ = A.salva_update("PRESENZE", i, upd)
+                if ok:
+                    fatte += 1
+        st.success(f"✅ {fatte} {t6('anom_fixed_n', lingua)}")
+        st.rerun()
     if len(righe) > 60:
         st.caption(f"… {len(righe) - 60}+")
 
@@ -920,7 +956,10 @@ def pagina_fase6(lingua, app_module):
         c5.metric("Penale assenza", f"{cfg['assenza_penale_percent']:.0f}%")
         st.write("**" + t6("cfg_festivi", lingua) + ":** " +
                  (", ".join(sorted(festivi.keys())) if festivi else t6("cfg_no_festivi", lingua)))
-        st.caption("Riposo settimanale: " + ", ".join(sorted(cfg.get('_riposo', {'sabato', 'domenica'}))))
+        st.caption("Riposo settimanale: " + ", ".join(sorted(cfg.get('_riposo', {'sabato', 'domenica'}))) +
+                   " — Flottanti: " + (", ".join(sorted(cfg.get('_flottanti', set()))) or "—") +
+                   " — Soglia uscita notturna: " +
+                   f"{cfg.get('_soglia_notte', 180) // 60:02d}:{cfg.get('_soglia_notte', 180) % 60:02d}")
         if cfg.get("_festivi_default"):
             st.caption("⚠️ " + t6("cfg_no_festivi", lingua))
     tab1, tab2, tab3, tab4 = st.tabs([

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.18 - FILE COMPLETO
-✅ v20.18: importlib.reload(fase6_paghe) → gli aggiornamenti del modulo FASE 6
-   entrano in funzione senza riavvio manuale di Streamlit Cloud
-✅ Include tutto v20.17: titolo avvisi facoltativo, switch ambiente in dashboard,
-   login admin user+pass+ricordami, bacheca AVVISI + Telegram, blocco Telegram operai
-Richiede: Apps Script v6.1 + fase6_paghe.py F6.4 + foglio AVVISI + chiavi CONFIG.
+PROACIER HRM - v20.19 - FILE COMPLETO
+✅ Bandierine lingua sopra il logo + bottoni sidebar uniformi/ravvicinati
+✅ SALVA-TUTTO modifiche admin P1 (un click, aggiorna solo le righe cambiate)
+✅ Include tutto v20.18: ambiente produzione/test in dashboard, login admin
+   user+pass+ricordami, bacheca AVVISI + Telegram, promemoria festività
+Richiede: Apps Script v6.1 + fase6_paghe.py F6.7 + foglio AVVISI + chiavi CONFIG.
 """
 import sys
 import importlib
@@ -16,9 +16,9 @@ import re
 from datetime import datetime, timedelta, date
 from fpdf import FPDF
 import fase6_paghe
-importlib.reload(fase6_paghe)  # ← v20.18: codice FASE 6 sempre fresco
+importlib.reload(fase6_paghe)  # codice FASE 6 sempre fresco
 
-VERSIONE = "v20.18"
+VERSIONE = "v20.19"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -121,6 +121,8 @@ T = {
                   "🔖 This page's address now contains your access: bookmark it or keep it (e.g. WhatsApp). Reopening it, you will enter directly."),
     "copia_link_help": ("Copie ce lien et garde-le précieusement :", "Copia questo link e conservalo con cura:", "Copy this link and keep it safe:"),
     "salva_link": ("🔖 Lien personnel", "🔖 Link personale", "🔖 Personal link"),
+    "salva_tutto": ("💾 Enregistrer toutes les modifications", "💾 Salva tutte le modifiche", "💾 Save all changes"),
+    "salvate_n": ("ligne(s) mise(s) à jour :", "riga/e aggiornata/e:", "row(s) updated:"),
     "step_1": ("1. Données Personnelles & Famille", "1. Dati Personali e Famiglia", "1. Personal Data & Family"),
     "step_2": ("2. Adresse, Documents & Services", "2. Indirizzo, Documenti e Servizi", "2. Address, Documents & Services"),
     "step_3": ("3. Expérience Professionnelle", "3. Esperienza Professionale", "3. Professional Experience"),
@@ -260,9 +262,9 @@ T = {
     "visite_scadute": ("Visites médicales à renouveler (≤30 jours ou scadute)", "Visite mediche da rinnovare (≤30 giorni o scadute)", "Medical visits to renew (≤30 days or expired)"),
     "idoneita_parziale": ("Aptitude avec restriction / inaptitude", "Idoneità con restrizione o inidoneità", "Restricted fitness / unfitness"),
     "promemoria_visita": ("⚠️ Prochain contrôle médical le ", "⚠️ Prossimo controllo medico il ", "⚠️ Next medical check on "),
-    "form_hint": ("ℹ️ Les modifications ne sont enregistrées QU'EN cliquant sur le bouton Enregistrer.",
-                  "ℹ️ Le modifiche vengono salvate SOLO cliccando sul pulsante Salva.",
-                  "ℹ️ Changes are saved ONLY when clicking the Save button."),
+    "form_hint": ("ℹ️ Modifiez ce que vous voulez, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas de liste.",
+                  "ℹ️ Modifica ciò che vuoi, poi clicca UNA volta su « Salva tutte le modifiche » in fondo alla lista.",
+                  "ℹ️ Edit what you need, then click “Save all changes” once at the bottom of the list."),
     "mogli_hint": ("Après modification du nombre d'épouses, enregistrez pour afficher les champs des nouvelles épouses.",
                    "Dopo aver cambiato il numero di mogli, salva per visualizzare i campi delle nuove mogli.",
                    "After changing the number of wives, save to display the fields of the new wives."),
@@ -1149,6 +1151,48 @@ def bacheca_avvisi(lingua):
 
 
 # ============================================================
+# PROMEMORIA FESTIVITÀ
+# ============================================================
+def promemoria_festivita(lingua, consiglio=False):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            try:
+                f = int(float(v))
+                if f > 0:
+                    giorni_limite = f
+            except Exception:
+                pass
+        elif k.startswith("festivo_"):
+            ds = k.replace("festivo_", "", 1)
+            try:
+                y, m, g = ds.split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception:
+                pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti:
+        return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
+    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
+    if consiglio:
+        msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+
+
+# ============================================================
 # AREA LAVORATORE
 # ============================================================
 def pagina_area_lavoratore(lingua):
@@ -1319,49 +1363,7 @@ def pagina_area_lavoratore(lingua):
 
 
 # ============================================================
-# PROMEMORIA FESTIVITÀ
-# ============================================================
-def promemoria_festivita(lingua, consiglio=False):
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return
-    giorni_limite = 10
-    fest = []
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        v = s_str(r.get("valore"))
-        if k == "promemoria_festivita_giorni_prima":
-            try:
-                f = int(float(v))
-                if f > 0:
-                    giorni_limite = f
-            except Exception:
-                pass
-        elif k.startswith("festivo_"):
-            ds = k.replace("festivo_", "", 1)
-            try:
-                y, m, g = ds.split("-")
-                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
-            except Exception:
-                pass
-    oggi = date.today()
-    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
-    if not imminenti:
-        return
-    righe = []
-    for d, n in imminenti:
-        delta = (d - oggi).days
-        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
-        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
-    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
-    if consiglio:
-        msg += "\n\n" + get_testo("fest_stop", lingua)
-    st.info(msg)
-
-
-# ============================================================
-# DASHBOARD ADMIN
+# DASHBOARD ADMIN (salva-tutto)
 # ============================================================
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
@@ -1381,41 +1383,6 @@ def pagina_dashboard(lingua):
     if pag == get_testo("dash_p2", lingua):
         fase6_paghe.pagina_fase6(lingua, sys.modules[__name__])
         return
-    st.markdown("**" + get_testo("avviso_new", lingua) + "**")
-    with st.form("f_avviso"):
-        c1, c2 = st.columns([2, 1])
-        av_t = c1.text_input(get_testo("avviso_titolo", lingua), key="av_t")
-        av_u = c2.checkbox(get_testo("avviso_urgente", lingua), key="av_u")
-        av_x = st.text_area(get_testo("avviso_testo", lingua), key="av_x")
-        if st.form_submit_button(get_testo("avviso_pubblica", lingua), type="primary"):
-            testo = av_x.strip()
-            if not testo:
-                st.warning(get_testo("avviso_vuoto", lingua))
-            else:
-                titolo = av_t.strip() or (testo[:40] + ("…" if len(testo) > 40 else ""))
-                ok_tel = invia_avviso_telegram(titolo, testo, av_u)
-                row = {"id_avviso": f"AVV-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                       "data_avviso": datetime.now().strftime("%d/%m/%Y"),
-                       "titolo": titolo, "testo": testo,
-                       "urgente": "SI" if av_u else "NO", "autore": "admin",
-                       "inviato_telegram": "SI" if ok_tel else "NO",
-                       "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")}
-                ok, msg = salva_append("AVVISI", row)
-                if ok:
-                    st.success(get_testo("avviso_ok", lingua) + " " +
-                               (get_testo("avviso_tel_ok", lingua) if ok_tel else get_testo("avviso_tel_no", lingua)))
-                    st.rerun()
-                else:
-                    st.error(msg)
-    _, avvisi_rec = leggi_foglio("AVVISI")
-    avvisi_rec = [r for r in avvisi_rec if s_str(r.get("titolo"))]
-    if avvisi_rec:
-        with st.expander(get_testo("avvisi_ultimi", lingua)):
-            for r in list(reversed(avvisi_rec))[:5]:
-                st.markdown(f"- **{s_str(r.get('titolo'))}** ({s_str(r.get('data_avviso'))}) "
-                            f"{'⚠️' if s_str(r.get('urgente')).upper() == 'SI' else ''} "
-                            f"— TG: {s_str(r.get('inviato_telegram')) or 'NO'}")
-    st.markdown("---")
     b = leggi_admin()
     recs_dip = b.get("DIPENDENTI", [])
     recs_sal = b.get("SALARI", [])
@@ -1467,6 +1434,7 @@ def pagina_dashboard(lingua):
         return
     limite = st.session_state.get("adm_limit", 15)
     vista = mostrati if cerca else mostrati[:limite]
+    st.caption(get_testo("form_hint", lingua))
     for i, r in vista:
         cod = s_str(r.get("codice"))
         with st.expander(f"{cod} — {s_str(r.get('cognome'))} {s_str(r.get('nome'))} | {get_testo('turno', lingua)}: {s_str(r.get('turno')) or '—'}"):
@@ -1479,54 +1447,31 @@ def pagina_dashboard(lingua):
                 f'— {get_testo("idoneita", lingua)}: {etichetta("idoneita", r.get("idoneita"), lingua)} '
                 f'({formatta_data(r.get("data_visita"))})')
             st.markdown(f'### {get_testo("sez_admin", lingua)}')
-            st.caption(get_testo("form_hint", lingua))
-            with st.form(f"adm_form_{cod}"):
-                ca, cb = st.columns(2)
-                with ca:
-                    t_val = s_str(r.get("turno"))
-                    t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
-                    n_turno = st.selectbox(get_testo("turno", lingua), turni_codes, index=t_idx, key=f"adm_turno_{cod}")
-                    ido_codes = [o[0] for o in OPZ["idoneita"]]
-                    ido_val = s_str(r.get("idoneita"))
-                    i_idx = ido_codes.index(ido_val) if ido_val in ido_codes else 0
-                    n_ido = st.selectbox(get_testo("idoneita", lingua), ido_codes, index=i_idx,
-                                         format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_ido_{cod}")
-                    n_vis = st.text_input(get_testo("data_visita", lingua), value=s_str(r.get("data_visita")), key=f"adm_vis_{cod}")
-                with cb:
-                    attiva = None
-                    for s in recs_sal:
-                        if s_str(s.get("codice_lavoratore")) == cod and not s_str(s.get("data_fine_validita")):
-                            attiva = s
-                            break
-                    tp_val = s_str(attiva.get("tipo_paga")) if attiva else ""
-                    tp_opts = ["", "giornaliero", "orario", "mensile"]
-                    tp_idx = tp_opts.index(tp_val) if tp_val in tp_opts else 0
-                    n_tp = st.selectbox(get_testo("paga_type", lingua), tp_opts, index=tp_idx,
-                                        format_func=lambda x: get_testo("globale", lingua) if x == "" else etichetta("tipo_paga", x, lingua), key=f"adm_tp_{cod}")
-                    n_imp = st.number_input(get_testo("paga_amount", lingua) + " (FCFA)", min_value=0,
-                                            value=s_int(attiva.get("importo_base")) if attiva else 0,
-                                            step=500, key=f"adm_imp_{cod}")
-                sub_adm = st.form_submit_button(get_testo("salva_modifiche", lingua), type="primary")
-                if sub_adm:
-                    ok1, m1 = salva_update("DIPENDENTI", i, {"turno": n_turno, "idoneita": n_ido, "data_visita": n_vis})
-                    ok2, m2 = True, "ok"
-                    if n_imp > 0 or n_tp != "":
-                        if attiva:
-                            ok2, m2 = salva_update("SALARI", recs_sal.index(attiva),
-                                                   {"tipo_paga": n_tp, "importo_base": int(n_imp)})
-                        else:
-                            ok2, m2 = salva_append("SALARI", {"codice_lavoratore": cod, "tipo_paga": n_tp,
-                                                              "importo_base": int(n_imp),
-                                                              "data_inizio_validita": datetime.now().strftime("%d/%m/%Y"),
-                                                              "data_fine_validita": "", "note": ""})
-                    if ok1 and ok2:
-                        st.success(get_testo("modifiche_salvate", lingua))
-                        st.rerun()
-                    else:
-                        st.error(f"{get_testo('errore_salvataggio', lingua)} ({m1} {m2})")
-            st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
-                               file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
-                               use_container_width=True, key=f"adm_pdf_{cod}")
+            ca, cb = st.columns(2)
+            with ca:
+                t_val = s_str(r.get("turno"))
+                t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
+                n_turno = st.selectbox(get_testo("turno", lingua), turni_codes, index=t_idx, key=f"adm_turno_{cod}")
+                ido_codes = [o[0] for o in OPZ["idoneita"]]
+                ido_val = s_str(r.get("idoneita"))
+                i_idx = ido_codes.index(ido_val) if ido_val in ido_codes else 0
+                n_ido = st.selectbox(get_testo("idoneita", lingua), ido_codes, index=i_idx,
+                                     format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_ido_{cod}")
+                n_vis = st.text_input(get_testo("data_visita", lingua), value=s_str(r.get("data_visita")), key=f"adm_vis_{cod}")
+            with cb:
+                attiva = None
+                for s in recs_sal:
+                    if s_str(s.get("codice_lavoratore")) == cod and not s_str(s.get("data_fine_validita")):
+                        attiva = s
+                        break
+                tp_val = s_str(attiva.get("tipo_paga")) if attiva else ""
+                tp_opts = ["", "giornaliero", "orario", "mensile"]
+                tp_idx = tp_opts.index(tp_val) if tp_val in tp_opts else 0
+                n_tp = st.selectbox(get_testo("paga_type", lingua), tp_opts, index=tp_idx,
+                                    format_func=lambda x: get_testo("globale", lingua) if x == "" else etichetta("tipo_paga", x, lingua), key=f"adm_tp_{cod}")
+                n_imp = st.number_input(get_testo("paga_amount", lingua) + " (FCFA)", min_value=0,
+                                        value=s_int(attiva.get("importo_base")) if attiva else 0,
+                                        step=500, key=f"adm_imp_{cod}")
             st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
             mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == cod]
             mie_vis.sort(key=lambda v: data_ord(v.get("data_visita")) or (0, 0, 0), reverse=True)
@@ -1567,6 +1512,55 @@ def pagina_dashboard(lingua):
                         st.rerun()
                     else:
                         st.error(f"{get_testo('errore_salvataggio', lingua)} ({mv} {md})")
+            st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
+                               file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
+                               use_container_width=True, key=f"adm_pdf_{cod}")
+    # ---- SALVA-TUTTO (un solo click, solo righe cambiate) ----
+    if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
+        cambi = 0
+        for i, r in vista:
+            cod = s_str(r.get("codice"))
+            upd = {}
+            orig_turno = s_str(r.get("turno"))
+            n_turno = st.session_state.get(f"adm_turno_{cod}", orig_turno)
+            if n_turno != orig_turno:
+                upd["turno"] = n_turno
+            orig_ido = s_str(r.get("idoneita"))
+            n_ido = st.session_state.get(f"adm_ido_{cod}", orig_ido)
+            if n_ido != orig_ido:
+                upd["idoneita"] = n_ido
+            orig_vis = s_str(r.get("data_visita"))
+            n_vis = st.session_state.get(f"adm_vis_{cod}", orig_vis)
+            if n_vis != orig_vis:
+                upd["data_visita"] = n_vis
+            if upd:
+                ok, _ = salva_update("DIPENDENTI", i, upd)
+                if ok:
+                    cambi += 1
+            attiva = None
+            for s in recs_sal:
+                if s_str(s.get("codice_lavoratore")) == cod and not s_str(s.get("data_fine_validita")):
+                    attiva = s
+                    break
+            orig_tp = s_str(attiva.get("tipo_paga")) if attiva else ""
+            orig_imp = s_int(attiva.get("importo_base")) if attiva else 0
+            n_tp = st.session_state.get(f"adm_tp_{cod}", orig_tp)
+            n_imp = int(st.session_state.get(f"adm_imp_{cod}", orig_imp))
+            if (n_tp != orig_tp) or (n_imp != orig_imp):
+                if attiva:
+                    ok2, _2 = salva_update("SALARI", recs_sal.index(attiva),
+                                           {"tipo_paga": n_tp, "importo_base": n_imp})
+                elif n_imp > 0 or n_tp:
+                    ok2, _2 = salva_append("SALARI", {"codice_lavoratore": cod, "tipo_paga": n_tp,
+                                                      "importo_base": n_imp,
+                                                      "data_inizio_validita": datetime.now().strftime("%d/%m/%Y"),
+                                                      "data_fine_validita": "", "note": ""})
+                else:
+                    ok2 = True
+                if ok2:
+                    cambi += 1
+        st.success(f"✅ {cambi} {get_testo('salvate_n', lingua)}")
+        st.rerun()
     if not cerca and len(mostrati) > limite:
         if st.button(get_testo("mostra_altri", lingua), key="adm_more"):
             st.session_state.adm_limit = limite + 15
@@ -1589,7 +1583,7 @@ def _do_logout():
 
 
 # ============================================================
-# MAIN
+# MAIN (bandierine sopra il logo + bottoni uniformi ravvicinati)
 # ============================================================
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
@@ -1619,42 +1613,47 @@ def main():
                     break
     lingua = st.session_state.lingua
     with st.sidebar:
+        f1, f2, f3 = st.columns(3)
+        if f1.button("🇫🇷", key="flag_fr", use_container_width=True):
+            st.session_state.lingua = "fr"
+            st.rerun()
+        if f2.button("🇮🇹", key="flag_it", use_container_width=True):
+            st.session_state.lingua = "it"
+            st.rerun()
+        if f3.button("🇬🇧", key="flag_en", use_container_width=True):
+            st.session_state.lingua = "en"
+            st.rerun()
         st.image(CONFIG["logo_url"], use_container_width=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
             _do_logout()
             st.rerun()
+        if st.session_state.logged_in:
+            st.success(f'{get_testo("benvenuto", lingua)}')
+            if st.session_state.user_type == "admin":
+                if st.button(get_testo("dashboard", lingua), use_container_width=True, key="sb_dash"):
+                    st.session_state.pagina = "dashboard"
+                    st.rerun()
+            if st.session_state.user_type == "lavoratore":
+                if st.button(get_testo("i_miei_dati", lingua), use_container_width=True, key="sb_miei"):
+                    st.session_state.pagina = "area_lavoratore"
+                    st.rerun()
+            if st.button(get_testo("logout", lingua), use_container_width=True, key="sb_out"):
+                _do_logout()
+                st.rerun()
+        else:
+            if st.button(get_testo("candidatura_spontanea", lingua), use_container_width=True, key="sb_cand"):
+                st.session_state.pagina = "candidatura"
+                st.rerun()
+            if st.button(get_testo("area_lavoratore", lingua), use_container_width=True, key="sb_area"):
+                st.session_state.pagina = "espace"
+                st.rerun()
+            if st.button(get_testo("dashboard", lingua), use_container_width=True, key="sb_admin"):
+                st.session_state.pagina = "login_admin"
+                st.rerun()
         st.markdown("---")
         st.title(get_testo("titolo", lingua))
         st.markdown(get_testo("sottotitolo", lingua))
         st.caption(VERSIONE + (" — 🧪 SANDBOX" if st.session_state.get("ambiente") == "test" else ""))
-        st.markdown("---")
-        sel = st.selectbox(get_testo("lingua", lingua), ["Français", "Italiano", "English"],
-                           index={"fr": 0, "it": 1, "en": 2}[lingua])
-        nuova = {"Français": "fr", "Italiano": "it", "English": "en"}[sel]
-        if nuova != lingua:
-            st.session_state.lingua = nuova
-            st.rerun()
-        lingua = st.session_state.lingua
-        st.markdown("---")
-        if st.session_state.logged_in:
-            st.success(f'{get_testo("benvenuto", lingua)}')
-            if st.session_state.user_type == "admin" and st.button(get_testo("dashboard", lingua), key="sb_dash"):
-                st.session_state.pagina = "dashboard"
-            if st.session_state.user_type == "lavoratore" and st.button(get_testo("i_miei_dati", lingua), key="sb_miei"):
-                st.session_state.pagina = "area_lavoratore"
-            if st.button(get_testo("logout", lingua), key="sb_out"):
-                _do_logout()
-                st.rerun()
-        else:
-            if st.button(get_testo("candidatura_spontanea", lingua), key="sb_cand"):
-                st.session_state.pagina = "candidatura"
-                st.rerun()
-            if st.button(get_testo("area_lavoratore", lingua), key="sb_area"):
-                st.session_state.pagina = "espace"
-                st.rerun()
-            if st.button(get_testo("dashboard", lingua), key="sb_admin"):
-                st.session_state.pagina = "login_admin"
-                st.rerun()
     if st.session_state.pagina == "home":
         st.title(get_testo("titolo", lingua))
         st.subheader(get_testo("sottotitolo", lingua))
