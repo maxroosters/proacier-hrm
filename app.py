@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+# HRM_PA_ver_20.21
 """
-PROACIER HRM - v20.20 - FILE COMPLETO
-✅ v20.20: layout compatto — bandierine grandi in alto, sidebar e area principale
-   compattate via CSS (la home entra nello schermo, tasti non più fuori pagina)
-✅ Include tutto v20.19: bandierine lingua, bottoni uniformi, salva-tutto admin,
-   ambiente test/produzione, ricordami admin, bacheca AVVISI+Telegram, festività
-Richiede: Apps Script v6.1 + fase6_paghe.py F6.7 + foglio AVVISI + chiavi CONFIG.
+PROACIER HRM - v20.21 - FILE COMPLETO
+✅ Bandierine PNG cliccabili (?lang=) + titolo sidebar in colonna (senza PROACIER)
+✅ Footer su tutte le pagine: © Lehev Ltd <anno auto> + tel + email anti-bot
+✅ PDF AD Trading: carta intestata (logo+indirizzo da CONFIG) + footer azienda/pag. + pagine regole/privacy da CONFIG
+✅ Bacheca con etichetta URGENTE + banner Telegram colorato
+✅ import paghe con fallback fase6_paghe
+✅ Include tutto v20.20: ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami, layout compatto
 """
 import sys
 import importlib
@@ -15,14 +17,15 @@ import random
 import re
 from datetime import datetime, timedelta, date
 from fpdf import FPDF
-import fase6_paghe
-importlib.reload(fase6_paghe)  # codice FASE 6 sempre fresco
 
-VERSIONE = "v20.20"
+try:
+    import paghe as modulo_paghe
+except ImportError:
+    import fase6_paghe as modulo_paghe
+importlib.reload(modulo_paghe)
 
-# ============================================================
-# CONFIGURAZIONE CENTRALE
-# ============================================================
+VERSIONE = "v20.21"
+
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
     "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
@@ -31,8 +34,10 @@ CONFIG = {
     "prefisso_codice": "THS",
     "user_admin": "admin",
     "password_admin": "admin123",
-    "logo_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/logo.png",
+    "logo_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/proacier.png",
+    "logo_adtrading": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/adtrading.png",
     "base_url": "https://hrm.proacier.sn",
+    "flags_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/",
 }
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
@@ -47,27 +52,24 @@ st.markdown("""
 [data-testid="stSidebar"] .element-container{margin-bottom:0.25rem !important;}
 [data-testid="stSidebar"] h1{font-size:1.25rem !important;margin:0.15rem 0 !important;}
 [data-testid="stSidebar"] hr{margin:0.4rem 0 !important;}
-[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]:first-of-type button{font-size:1.7rem !important;line-height:1.1 !important;padding:0.1rem 0 !important;min-height:2.6rem !important;}
 [data-testid="stMainBlockContainer"]{padding-top:1.1rem !important;padding-bottom:0.5rem !important;}
 [data-testid="stMain"] h1{font-size:1.9rem !important;margin:0.2rem 0 0.5rem 0 !important;}
 [data-testid="stMain"] h2{font-size:1.35rem !important;margin:0.5rem 0 0.3rem 0 !important;}
 [data-testid="stMain"] h3{font-size:1.05rem !important;margin:0.3rem 0 !important;}
 [data-testid="stMain"] hr{margin:0.5rem 0 !important;}
-[data-testid="stMain"] .stMarkdown p{margin-bottom:0.35rem !important;}
 @media (max-width:768px){.stTextInput>div>div>input,.stSelectbox>div>div>select{font-size:16px;}}
 .phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
 .phone-box h4{margin:0 0 6px 0;color:white;font-size:15px;}
 .phone-box .stTextInput>div>div>input{background-color:white;color:black;}
 .phone-box .stCheckbox label{color:white;}
+.tg-banner{background:#8b0000;color:#fff;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:0.95rem;}
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# TRADUZIONI (fr, it, en)
-# ============================================================
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 T = {
     "titolo": ("🏭 PROACIER - GESTION DES RESSOURCES HUMAINES", "🏭 PROACIER - GESTIONE RISORSE UMANE", "🏭 PROACIER - HUMAN RESOURCES"),
+    "titolo_sidebar": ("Gestion<br>Ressources<br>Humaines", "Gestione<br>Risorse<br>Umane", "Human<br>Resources<br>Management"),
     "sottotitolo": ("Système de Recrutement - Sénégal", "Sistema di Reclutamento - Senegal", "Recruitment System - Senegal"),
     "lingua": ("Langue", "Lingua", "Language"),
     "home": ("🏠 Accueil", "🏠 Home", "🏠 Home"),
@@ -84,6 +86,7 @@ T = {
     "i_miei_dati": ("Mes Données", "I Miei Dati", "My Data"),
     "totale_operai": ("Total Employés", "Totale Dipendenti", "Total Employees"),
     "nessun_risultato": ("Aucun résultat trouvé", "Nessun risultato", "No results found"),
+    "bacheca_title": ("📢 Tableau d'affichage de la direction", "📢 Bacheca della direzione", "📢 Management notice board"),
     "fest_box_titolo": ("🗓️ Prochains jours fériés", "🗓️ Prossime festività", "🗓️ Upcoming public holidays"),
     "fest_tra": ("dans {n} jours", "tra {n} giorni", "in {n} days"),
     "fest_oggi": ("aujourd'hui", "oggi", "today"),
@@ -93,22 +96,11 @@ T = {
                  "« test » scrive SOLO su Proacier_SANDBOX_HRM. Default: produzione.",
                  "« test » writes ONLY to Proacier_SANDBOX_HRM. Default: production."),
     "admin_user": ("Nom d'utilisateur", "Nome utente", "Username"),
-    "bacheca_title": ("📢 Tableau d'affichage de la direction", "📢 Bacheca della direzione", "📢 Management notice board"),
-    "avviso_new": ("📢 Nouveau avis", "📢 Nuovo avviso", "📢 New notice"),
-    "avviso_titolo": ("Titre (facultatif)", "Titolo (facoltativo)", "Title (optional)"),
-    "avviso_testo": ("Texte de l'avis", "Testo dell'avviso", "Notice text"),
-    "avviso_urgente": ("⚠️ Urgent (mis en évidence)", "⚠️ Urgente (evidenziato)", "⚠️ Urgent (highlighted)"),
-    "avviso_pubblica": ("Publier l'avis", "Pubblica avviso", "Publish notice"),
-    "avviso_ok": ("✅ Avis publié", "✅ Avviso pubblicato", "✅ Notice published"),
-    "avviso_tel_ok": ("+ envoyé sur Telegram ✅", "+ inviato su Telegram ✅", "+ sent to Telegram ✅"),
-    "avviso_tel_no": ("(Telegram non configuré: clés CONFIG manquantes)", "(Telegram non configurato: chiavi CONFIG mancanti)", "(Telegram not configured: missing CONFIG keys)"),
-    "avviso_vuoto": ("⚠️ Écris au moins le texte de l'avis", "⚠️ Scrivi almeno il testo dell'avviso", "⚠️ Write at least the notice text"),
-    "avvisi_ultimi": ("Derniers avis", "Ultimi avvisi", "Latest notices"),
-    "tg_obbligo": ("📲 Telegram est OBLIGATOIRE pour recevoir les avis de la direction.",
-                   "📲 Telegram è OBBLIGATORIO per ricevere gli avvisi della direzione.",
-                   "📲 Telegram is MANDATORY to receive management notices."),
+    "tg_obbligo": ("📲 Telegram OBLIGATOIRE pour recevoir les avis de la direction.",
+                   "📲 Telegram OBBLIGATORIO per ricevere gli avvisi della direzione.",
+                   "📲 Telegram MANDATORY to receive management notices."),
     "tg_install": ("1️⃣ Installer Telegram", "1️⃣ Installa Telegram", "1️⃣ Install Telegram"),
-    "tg_join": ("2️⃣ Entrer dans le canal de l'entreprise", "2️⃣ Entra nel canale aziendale", "2️⃣ Join the company channel"),
+    "tg_join": ("2️⃣ Entrer dans le canal", "2️⃣ Entra nel canale", "2️⃣ Join the channel"),
     "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
     "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
     "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -244,7 +236,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍‍👦 Famille (modifiable)", "👨‍‍👧‍ Famiglia (modificabile)", "👨‍‍👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👧 Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -272,9 +264,9 @@ T = {
     "visite_scadute": ("Visites médicales à renouveler (≤30 jours ou scadute)", "Visite mediche da rinnovare (≤30 giorni o scadute)", "Medical visits to renew (≤30 days or expired)"),
     "idoneita_parziale": ("Aptitude avec restriction / inaptitude", "Idoneità con restrizione o inidoneità", "Restricted fitness / unfitness"),
     "promemoria_visita": ("⚠️ Prochain contrôle médical le ", "⚠️ Prossimo controllo medico il ", "⚠️ Next medical check on "),
-    "form_hint": ("ℹ️ Modifiez ce que vous voulez, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas de liste.",
-                  "ℹ️ Modifica ciò che vuoi, poi clicca UNA volta su « Salva tutte le modifiche » in fondo alla lista.",
-                  "ℹ️ Edit what you need, then click “Save all changes” once at the bottom of the list."),
+    "form_hint": ("ℹ️ Modifiez ce que vous voulez, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas.",
+                  "ℹ️ Modifica ciò che vuoi, poi clicca UNA volta su « Salva tutte le modifiche » in fondo.",
+                  "ℹ️ Edit what you need, then click “Save all changes” once at the bottom."),
     "mogli_hint": ("Après modification du nombre d'épouses, enregistrez pour afficher les champs des nouvelles épouses.",
                    "Dopo aver cambiato il numero di mogli, salva per visualizzare i campi delle nuove mogli.",
                    "After changing the number of wives, save to display the fields of the new wives."),
@@ -338,9 +330,6 @@ def get_testo(chiave, lingua="fr"):
     return t[LINGUE.get(lingua, 0)]
 
 
-# ============================================================
-# OPZIONI CANONICHE
-# ============================================================
 OPZ = {
     "sesso": [("M", "Masculin", "Maschile", "Male"), ("F", "Féminin", "Femminile", "Female")],
     "stato_civile": [("celibe", "Célibataire", "Celibe/Nubile", "Single"), ("coniugato", "Marié(e)", "Coniugato/a", "Married"),
@@ -407,9 +396,6 @@ def data_ord(s):
     return (y, mo, d)
 
 
-# ============================================================
-# AREE AZIENDALI
-# ============================================================
 AREE_AZIENDALI = [
     {"label": ("Direction & Staff", "Direzione e Staff", "Management & Staff"), "ruoli": ["Directeur / Responsable d'Usine", "Responsable Production", "Responsable Qualité", "Responsable HSE", "Responsable RH / Administration", "Responsable Achats & Logistique", "Comptable / Assistant Comptable"]},
     {"label": ("Marketing & Ventes", "Marketing e Vendite", "Marketing & Sales"), "ruoli": ["Responsable Commercial / Directeur Commercial", "Commercial / Vendeur (B2B)", "Responsable Marketing", "Community Manager / Social Media Manager", "Responsable Communication & Promotion", "Assistant Commercial / Assistant Marketing"]},
@@ -422,9 +408,6 @@ AREE_AZIENDALI = [
 ]
 
 
-# ============================================================
-# HELPERS DATI
-# ============================================================
 def genera_credenziali():
     anno = datetime.now().year
     prefisso = CONFIG["prefisso_codice"]
@@ -497,9 +480,6 @@ def parse_mogli(s):
     return out
 
 
-# ============================================================
-# RETE: POST unificato + CACHE
-# ============================================================
 def _post_json(payload):
     try:
         r = requests.post(CONFIG["url_api"], json=payload, timeout=90)
@@ -651,11 +631,112 @@ def trova_duplicato_cand(cognome, nome, email, tel):
     return None
 
 
-# ============================================================
-# GENERATORE PDF
-# ============================================================
+def cfg_get(key, default=""):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+        for r in recs:
+            if s_str(r.get("chiave")).strip().lower() == key.lower():
+                return s_str(r.get("valore")) or default
+    except Exception:
+        pass
+    return default
+
+
+def azienda_info():
+    cache = st.session_state.get("_azienda")
+    if cache:
+        return cache
+    out = {"nome": "AD Trading S.A.",
+           "indirizzo": "Cité Asecna Ouakam N° A72 - 12300 DAKAR (SÉNÉGAL) - NINEA: 004250180 2Y3 - RCCM: SN.DKR.2007-B-5254",
+           "tel": "+221 33 913 33 12",
+           "email": "info@adtrading.sn"}
+    for k in ("azienda_nome", "azienda_indirizzo", "azienda_tel", "azienda_email"):
+        v = cfg_get(k)
+        if v:
+            out[k.split("_", 1)[1]] = v
+    st.session_state["_azienda"] = out
+    return out
+
+
+def footer():
+    anno = datetime.now().year
+    st.markdown("---")
+    st.markdown(
+        f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
+        f'© Copyright for Lehev Ltd. {anno} - All rights reserved<br>'
+        f'Proacier — tel. +221 33 913 33 12 — '
+        f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span></div>',
+        unsafe_allow_html=True)
+
+
+def bacheca_avvisi(lingua):
+    try:
+        _, recs = leggi_foglio("AVVISI")
+    except Exception:
+        return
+    recs = [r for r in recs if s_str(r.get("titolo"))]
+    if not recs:
+        return
+    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
+    for r in list(reversed(recs))[:5]:
+        urg = s_str(r.get("urgente")).upper() == "SI"
+        if urg:
+            st.error(f"**⚠️ URGENTE — {s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+        else:
+            st.info(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+
+
+def blocco_telegram(lingua):
+    link_canale = cfg_get("telegram_link_canale")
+    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
+    if link_canale:
+        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
+
+
+def promemoria_festivita(lingua, consiglio=False):
+    try:
+        _, recs = leggi_foglio("CONFIG")
+    except Exception:
+        return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            try:
+                f = int(float(v))
+                if f > 0:
+                    giorni_limite = f
+            except Exception:
+                pass
+        elif k.startswith("festivo_"):
+            ds = k.replace("festivo_", "", 1)
+            try:
+                y, m, g = ds.split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception:
+                pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti:
+        return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
+    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
+    if consiglio:
+        msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+
+
 class PDFProacier(FPDF):
     titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
+    azienda = {}
 
     def header(self):
         self.set_font("Helvetica", "B", 13)
@@ -667,8 +748,10 @@ class PDFProacier(FPDF):
 
     def footer(self):
         self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.cell(0, 10, f"Page {self.page_no()}", 0, 0, "C")
+        self.set_font("Helvetica", "I", 7)
+        az = self.azienda or {}
+        self.cell(0, 5, f"{az.get('nome','AD Trading S.A.')} - tel. {az.get('tel','+221 33 913 33 12')} - {az.get('email','info@adtrading.sn')}", 0, 0, "L")
+        self.cell(0, 5, f"Pag. {self.page_no()}/{self.pages_count}", 0, 1, "R")
 
     def sezione(self, titolo):
         self.set_font("Helvetica", "B", 10)
@@ -694,10 +777,28 @@ class PDFProacier(FPDF):
 
 
 def genera_pdf_lavoratore(d, lingua="fr"):
+    az = azienda_info()
     pdf = PDFProacier()
+    pdf.azienda = az
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
+    pdf.pages_count = 0
     pdf.add_page()
+    try:
+        lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
+        if lg.status_code == 200 and lg.content:
+            pdf.image(lg.content, x=10, y=22, w=45)
+    except Exception:
+        pass
+    pdf.set_xy(60, 24)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 6, az["nome"], 0, 1, "R")
+    pdf.set_xy(60, 31)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.multi_cell(130, 4, az["indirizzo"], align="R")
+    pdf.set_xy(60, 43)
+    pdf.cell(0, 4, f"tel. {az['tel']} - {az['email']}", 0, 1, "R")
+    pdf.set_xy(10, 58)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(95, 5, f"{get_testo('pdf_nfiche', lingua)} {s_str(d.get('codice'))}", 0, 0)
     pdf.cell(0, 5, f"{get_testo('pdf_data', lingua)} {datetime.now().strftime('%d/%m/%Y')}", 0, 1, "R")
@@ -750,6 +851,18 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.ln(10)
     pdf.cell(0, 6, get_testo("pdf_signature", lingua), 0, 1)
     pdf.cell(0, 20, "", 1, 1)
+    reg = cfg_get("regolamento_testo")
+    priv = cfg_get("privacy_testo")
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, "REGLEMENT INTERIEUR (extrait) / REGOLAMENTO (estratto)", 0, 1, "C")
+    pdf.set_font("Helvetica", "", 8)
+    pdf.multi_cell(0, 5, reg or "Texte du règlement intérieur à définir / Testo del regolamento da definire (sarà inserito dalla chat dedicata).")
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, "PROTECTION DES DONNEES / PRIVACY", 0, 1, "C")
+    pdf.set_font("Helvetica", "", 8)
+    pdf.multi_cell(0, 5, priv or get_testo("pdf_consent_testo", lingua))
     pdf.add_page()
     pdf.set_fill_color(255, 243, 205)
     pdf.set_font("Helvetica", "B", 14)
@@ -767,15 +880,13 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_text_color(150, 0, 0)
     pdf.multi_cell(0, 5, get_testo("pdf_id_avviso", lingua))
     pdf.set_text_color(0, 0, 0)
+    pdf.pages_count = pdf.pages_count or pdf.page
     out = pdf.output(dest="S")
     if isinstance(out, str):
         out = out.encode("latin-1", errors="ignore")
     return bytes(out)
 
 
-# ============================================================
-# STEP DEL FORMULARIO
-# ============================================================
 def box_telefono(lingua, n, obbligatorio=False):
     st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
     tel = st.text_input(f"Numero {n}", value=st.session_state.dati_form.get(f"telefono_{n}", ""), key=f"s2_tel{n}", label_visibility="collapsed")
@@ -925,9 +1036,6 @@ def step_7(lingua):
             "taglia_giacca": tg, "taglia_cappello": tc, "taglia_guanti": tgu}
 
 
-# ============================================================
-# PAGINA REGISTRAZIONE
-# ============================================================
 def pannello_successo(lingua):
     u = st.session_state.ultimo_salvataggio
     if u.get("dup"):
@@ -1026,9 +1134,6 @@ def genera_e_salva(dati, lingua):
             st.error(f"Erreur: {msg}")
 
 
-# ============================================================
-# PAGINA CANDIDATURA
-# ============================================================
 def pagina_candidatura(lingua):
     idx = LINGUE.get(lingua, 0)
     st.title(get_testo("titolo_candidatura", lingua))
@@ -1104,107 +1209,6 @@ def pagina_candidatura(lingua):
         st.rerun()
 
 
-# ============================================================
-# TELEGRAM HELPERS
-# ============================================================
-def telegram_cfg():
-    out = {}
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return out
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        if k in ("telegram_bot_token", "telegram_chat_id", "telegram_link_canale"):
-            out[k] = s_str(r.get("valore"))
-    return out
-
-
-def invia_avviso_telegram(titolo, testo, urgente):
-    tc = telegram_cfg()
-    tok, chat = tc.get("telegram_bot_token"), tc.get("telegram_chat_id")
-    if not tok or not chat:
-        return False
-    msg = ("🚨 URGENT\n" if urgente else "📢 PROACIER\n") + f"*{titolo}*\n\n{testo}"
-    try:
-        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                          json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=30)
-        return r.status_code == 200
-    except Exception:
-        return False
-
-
-def blocco_telegram(lingua):
-    tc = telegram_cfg()
-    link_canale = tc.get("telegram_link_canale")
-    st.caption(get_testo("tg_obbligo", lingua))
-    c1, c2 = st.columns(2)
-    c1.link_button(get_testo("tg_install", lingua), "https://telegram.org/download", use_container_width=True)
-    if link_canale:
-        c2.link_button(get_testo("tg_join", lingua), link_canale, use_container_width=True)
-
-
-def bacheca_avvisi(lingua):
-    try:
-        _, recs = leggi_foglio("AVVISI")
-    except Exception:
-        return
-    recs = [r for r in recs if s_str(r.get("titolo"))]
-    if not recs:
-        return
-    recs = list(reversed(recs))[:5]
-    st.markdown("**" + get_testo("bacheca_title", lingua) + "**")
-    for r in recs:
-        urg = s_str(r.get("urgente")).upper() in ("SI", "SÌ", "YES", "TRUE", "1")
-        box = st.error if urg else st.info
-        box(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-
-
-# ============================================================
-# PROMEMORIA FESTIVITÀ
-# ============================================================
-def promemoria_festivita(lingua, consiglio=False):
-    try:
-        _, recs = leggi_foglio("CONFIG")
-    except Exception:
-        return
-    giorni_limite = 10
-    fest = []
-    for r in recs:
-        k = s_str(r.get("chiave")).lower().replace(" ", "_")
-        v = s_str(r.get("valore"))
-        if k == "promemoria_festivita_giorni_prima":
-            try:
-                f = int(float(v))
-                if f > 0:
-                    giorni_limite = f
-            except Exception:
-                pass
-        elif k.startswith("festivo_"):
-            ds = k.replace("festivo_", "", 1)
-            try:
-                y, m, g = ds.split("-")
-                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
-            except Exception:
-                pass
-    oggi = date.today()
-    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
-    if not imminenti:
-        return
-    righe = []
-    for d, n in imminenti:
-        delta = (d - oggi).days
-        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
-        righe.append(f"- **{n}** — {d.strftime('%d/%m/%Y')} ({quando})")
-    msg = "**" + get_testo("fest_box_titolo", lingua) + "**\n\n" + "\n".join(righe)
-    if consiglio:
-        msg += "\n\n" + get_testo("fest_stop", lingua)
-    st.info(msg)
-
-
-# ============================================================
-# AREA LAVORATORE
-# ============================================================
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f'{get_testo("benvenuto", lingua)} - {st.session_state.codice_operatore}')
@@ -1372,9 +1376,6 @@ def pagina_area_lavoratore(lingua):
         st.rerun()
 
 
-# ============================================================
-# DASHBOARD ADMIN (salva-tutto)
-# ============================================================
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
@@ -1391,7 +1392,7 @@ def pagina_dashboard(lingua):
     pag = st.radio("Pagina", [get_testo("dash_p1", lingua), get_testo("dash_p2", lingua)],
                    horizontal=True, label_visibility="collapsed")
     if pag == get_testo("dash_p2", lingua):
-        fase6_paghe.pagina_fase6(lingua, sys.modules[__name__])
+        modulo_paghe.pagina_fase6(lingua, sys.modules[__name__])
         return
     b = leggi_admin()
     recs_dip = b.get("DIPENDENTI", [])
@@ -1525,7 +1526,6 @@ def pagina_dashboard(lingua):
             st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
                                file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
                                use_container_width=True, key=f"adm_pdf_{cod}")
-    # ---- SALVA-TUTTO (un solo click, solo righe cambiate) ----
     if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
         cambi = 0
         for i, r in vista:
@@ -1577,9 +1577,6 @@ def pagina_dashboard(lingua):
             st.rerun()
 
 
-# ============================================================
-# LOGOUT CENTRALE
-# ============================================================
 def _do_logout():
     st.session_state.logged_in = False
     st.session_state.user_type = None
@@ -1592,9 +1589,6 @@ def _do_logout():
         pass
 
 
-# ============================================================
-# MAIN (bandierine grandi in alto + sidebar compatta)
-# ============================================================
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
@@ -1602,6 +1596,12 @@ def main():
                  "adm_limit": 15, "link_personale": None, "ambiente": "produzione"}.items():
         if k not in st.session_state:
             st.session_state[k] = v
+    try:
+        ql = st.query_params.get("lang")
+        if ql in ("fr", "it", "en"):
+            st.session_state.lingua = ql
+    except Exception:
+        pass
     CONFIG["url_api"] = CONFIG["url_api_produzione"] if st.session_state.get("ambiente") == "produzione" else CONFIG["url_api_test"]
     if not st.session_state.logged_in:
         try:
@@ -1623,16 +1623,12 @@ def main():
                     break
     lingua = st.session_state.lingua
     with st.sidebar:
-        f1, f2, f3 = st.columns(3)
-        if f1.button("🇫", key="flag_fr", use_container_width=True):
-            st.session_state.lingua = "fr"
-            st.rerun()
-        if f2.button("🇮🇹", key="flag_it", use_container_width=True):
-            st.session_state.lingua = "it"
-            st.rerun()
-        if f3.button("🇬🇧", key="flag_en", use_container_width=True):
-            st.session_state.lingua = "en"
-            st.rerun()
+        fu = CONFIG["flags_url"]
+        st.markdown(
+            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'fr\'); window.location.assign(u); return false;" style="margin-right:6px"><img src="{fu}flag_fr.png" width="34" style="border-radius:4px"></a>'
+            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'it\'); window.location.assign(u); return false;" style="margin-right:6px"><img src="{fu}flag_it.png" width="34" style="border-radius:4px"></a>'
+            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'en\'); window.location.assign(u); return false;"><img src="{fu}flag_en.png" width="34" style="border-radius:4px"></a>',
+            unsafe_allow_html=True)
         st.image(CONFIG["logo_url"], use_container_width=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
             _do_logout()
@@ -1661,7 +1657,7 @@ def main():
                 st.session_state.pagina = "login_admin"
                 st.rerun()
         st.markdown("---")
-        st.title(get_testo("titolo", lingua))
+        st.markdown(f'### {get_testo("titolo_sidebar", lingua)}')
         st.markdown(get_testo("sottotitolo", lingua))
         st.caption(VERSIONE + (" — 🧪 SANDBOX" if st.session_state.get("ambiente") == "test" else ""))
     if st.session_state.pagina == "home":
@@ -1750,6 +1746,7 @@ def main():
             st.code(st.session_state.link_admin, language=None)
     elif st.session_state.pagina == "dashboard":
         pagina_dashboard(lingua)
+    footer()
 
 
 if __name__ == "__main__":
