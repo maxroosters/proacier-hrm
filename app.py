@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM - v20.19 - FILE COMPLETO
-✅ Bandierine lingua sopra il logo + bottoni sidebar uniformi/ravvicinati
-✅ SALVA-TUTTO modifiche admin P1 (un click, aggiorna solo le righe cambiate)
-✅ Include tutto v20.18: ambiente produzione/test in dashboard, login admin
-   user+pass+ricordami, bacheca AVVISI + Telegram, promemoria festività
+PROACIER HRM - v20.20 - FILE COMPLETO
+✅ v20.20: layout compatto — bandierine grandi in alto, sidebar e area principale
+   compattate via CSS (la home entra nello schermo, tasti non più fuori pagina)
+✅ Include tutto v20.19: bandierine lingua, bottoni uniformi, salva-tutto admin,
+   ambiente test/produzione, ricordami admin, bacheca AVVISI+Telegram, festività
 Richiede: Apps Script v6.1 + fase6_paghe.py F6.7 + foglio AVVISI + chiavi CONFIG.
 """
 import sys
@@ -18,7 +18,7 @@ from fpdf import FPDF
 import fase6_paghe
 importlib.reload(fase6_paghe)  # codice FASE 6 sempre fresco
 
-VERSIONE = "v20.19"
+VERSIONE = "v20.20"
 
 # ============================================================
 # CONFIGURAZIONE CENTRALE
@@ -41,9 +41,19 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"]{background-color:#5EA529 !important;}
 [data-testid="stSidebar"] *{color:white !important;}
-[data-testid="stSidebar"] button{background-color:rgba(255,255,255,0.1)!important;color:white!important;}
+[data-testid="stSidebar"] button{background-color:rgba(255,255,255,0.1)!important;color:white!important;padding:0.35rem 0.5rem !important;min-height:2.1rem !important;}
 [data-testid="stSidebar"] select{color:white!important;background-color:rgba(0,0,0,0.3)!important;}
 [data-testid="stSidebar"] option{color:black!important;}
+[data-testid="stSidebar"] .element-container{margin-bottom:0.25rem !important;}
+[data-testid="stSidebar"] h1{font-size:1.25rem !important;margin:0.15rem 0 !important;}
+[data-testid="stSidebar"] hr{margin:0.4rem 0 !important;}
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"]:first-of-type button{font-size:1.7rem !important;line-height:1.1 !important;padding:0.1rem 0 !important;min-height:2.6rem !important;}
+[data-testid="stMainBlockContainer"]{padding-top:1.1rem !important;padding-bottom:0.5rem !important;}
+[data-testid="stMain"] h1{font-size:1.9rem !important;margin:0.2rem 0 0.5rem 0 !important;}
+[data-testid="stMain"] h2{font-size:1.35rem !important;margin:0.5rem 0 0.3rem 0 !important;}
+[data-testid="stMain"] h3{font-size:1.05rem !important;margin:0.3rem 0 !important;}
+[data-testid="stMain"] hr{margin:0.5rem 0 !important;}
+[data-testid="stMain"] .stMarkdown p{margin-bottom:0.35rem !important;}
 @media (max-width:768px){.stTextInput>div>div>input,.stSelectbox>div>div>select{font-size:16px;}}
 .phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
 .phone-box h4{margin:0 0 6px 0;color:white;font-size:15px;}
@@ -234,7 +244,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👧👦 Famille (modifiable)", "👨‍👩‍👧‍ Famiglia (modificabile)", "👨‍‍‍👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍‍👦 Famille (modifiable)", "👨‍‍👧‍ Famiglia (modificabile)", "👨‍‍👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -1583,7 +1593,7 @@ def _do_logout():
 
 
 # ============================================================
-# MAIN (bandierine sopra il logo + bottoni uniformi ravvicinati)
+# MAIN (bandierine grandi in alto + sidebar compatta)
 # ============================================================
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
@@ -1614,7 +1624,7 @@ def main():
     lingua = st.session_state.lingua
     with st.sidebar:
         f1, f2, f3 = st.columns(3)
-        if f1.button("🇫🇷", key="flag_fr", use_container_width=True):
+        if f1.button("🇫", key="flag_fr", use_container_width=True):
             st.session_state.lingua = "fr"
             st.rerun()
         if f2.button("🇮🇹", key="flag_it", use_container_width=True):
