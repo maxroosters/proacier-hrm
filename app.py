@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.21
+# HRM_PA_ver_20.22
 """
-PROACIER HRM - v20.21 - FILE COMPLETO
-✅ Bandierine PNG cliccabili (?lang=) + titolo sidebar in colonna (senza PROACIER)
-✅ Footer su tutte le pagine: © Lehev Ltd <anno auto> + tel + email anti-bot
-✅ PDF AD Trading: carta intestata (logo+indirizzo da CONFIG) + footer azienda/pag. + pagine regole/privacy da CONFIG
-✅ Bacheca con etichetta URGENTE + banner Telegram colorato
-✅ import paghe con fallback fase6_paghe
-✅ Include tutto v20.20: ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami, layout compatto
+PROACIER HRM - v20.22 - FILE COMPLETO
+✅ v20.22: bandiere = link <a href> normali (niente JS, funzionano sempre) +
+   titolo sidebar in colonna con unsafe_allow_html + CSS min-height (nero a tutta altezza)
+✅ Include tutto v20.21: footer © Lehev Ltd, PDF AD Trading, bacheca URGENTE, banner Telegram,
+   ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami, import paghe (paghe.py)
 """
 import sys
 import importlib
@@ -24,7 +22,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.21"
+VERSIONE = "v20.22"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -52,7 +50,8 @@ st.markdown("""
 [data-testid="stSidebar"] .element-container{margin-bottom:0.25rem !important;}
 [data-testid="stSidebar"] h1{font-size:1.25rem !important;margin:0.15rem 0 !important;}
 [data-testid="stSidebar"] hr{margin:0.4rem 0 !important;}
-[data-testid="stMainBlockContainer"]{padding-top:1.1rem !important;padding-bottom:0.5rem !important;}
+section.main{background-color:#0e1117 !important;min-height:100vh !important;}
+[data-testid="stMainBlockContainer"]{padding-top:1.1rem !important;padding-bottom:3rem !important;min-height:calc(100vh - 120px) !important;}
 [data-testid="stMain"] h1{font-size:1.9rem !important;margin:0.2rem 0 0.5rem 0 !important;}
 [data-testid="stMain"] h2{font-size:1.35rem !important;margin:0.5rem 0 0.3rem 0 !important;}
 [data-testid="stMain"] h3{font-size:1.05rem !important;margin:0.3rem 0 !important;}
@@ -236,7 +235,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👧 Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍👧👦 Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -663,10 +662,10 @@ def footer():
     st.markdown("---")
     st.markdown(
         f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
+        f'© Copyright for Lehev Ltd. {anno} - All rights reserved<br>'
         f'Proacier — tel. +221 33 913 33 12 — '
         f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span></div>',
         unsafe_allow_html=True)
-        f'- powered by Lehev Ltd - ©Copyright for Lehev Ltd. {anno} - All rights reserved<br>'
 
 
 def bacheca_avvisi(lingua):
@@ -737,6 +736,7 @@ def promemoria_festivita(lingua, consiglio=False):
 class PDFProacier(FPDF):
     titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
     azienda = {}
+    pages_count = 0
 
     def header(self):
         self.set_font("Helvetica", "B", 13)
@@ -751,7 +751,7 @@ class PDFProacier(FPDF):
         self.set_font("Helvetica", "I", 7)
         az = self.azienda or {}
         self.cell(0, 5, f"{az.get('nome','AD Trading S.A.')} - tel. {az.get('tel','+221 33 913 33 12')} - {az.get('email','info@adtrading.sn')}", 0, 0, "L")
-        self.cell(0, 5, f"Pag. {self.page_no()}/{self.pages_count}", 0, 1, "R")
+        self.cell(0, 5, f"Pag. {self.page_no()}/{self.pages_count or ''}", 0, 1, "R")
 
     def sezione(self, titolo):
         self.set_font("Helvetica", "B", 10)
@@ -782,7 +782,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.azienda = az
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
-    pdf.pages_count = 0
     pdf.add_page()
     try:
         lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
@@ -857,7 +856,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_font("Helvetica", "B", 11)
     pdf.cell(0, 8, "REGLEMENT INTERIEUR (extrait) / REGOLAMENTO (estratto)", 0, 1, "C")
     pdf.set_font("Helvetica", "", 8)
-    pdf.multi_cell(0, 5, reg or "Texte du règlement intérieur à définir / Testo del regolamento da definire (sarà inserito dalla chat dedicata).")
+    pdf.multi_cell(0, 5, reg or "Texte du règlement intérieur à définir / Testo del regolamento da definire.")
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 11)
     pdf.cell(0, 8, "PROTECTION DES DONNEES / PRIVACY", 0, 1, "C")
@@ -880,7 +879,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_text_color(150, 0, 0)
     pdf.multi_cell(0, 5, get_testo("pdf_id_avviso", lingua))
     pdf.set_text_color(0, 0, 0)
-    pdf.pages_count = pdf.pages_count or pdf.page
+    pdf.pages_count = pdf.page
     out = pdf.output(dest="S")
     if isinstance(out, str):
         out = out.encode("latin-1", errors="ignore")
@@ -1589,6 +1588,28 @@ def _do_logout():
         pass
 
 
+def _flag_links():
+    """v20.22: link <a href> normali (niente JS) con parametri attuali + lang."""
+    fu = CONFIG["flags_url"]
+    try:
+        qp = st.query_params
+        keys = list(qp.keys())
+    except Exception:
+        qp, keys = {}, []
+
+    def href(lc):
+        parts = []
+        for k in keys:
+            v = qp.get(k)
+            if v is not None and k != "lang":
+                parts.append(f"{k}={v}")
+        parts.append(f"lang={lc}")
+        return "?" + "&".join(parts)
+    return (f'<a href="{href("fr")}" style="margin-right:6px"><img src="{fu}flag_fr.png" width="34" style="border-radius:4px"></a>'
+            f'<a href="{href("it")}" style="margin-right:6px"><img src="{fu}flag_it.png" width="34" style="border-radius:4px"></a>'
+            f'<a href="{href("en")}"><img src="{fu}flag_en.png" width="34" style="border-radius:4px"></a>')
+
+
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
@@ -1623,12 +1644,7 @@ def main():
                     break
     lingua = st.session_state.lingua
     with st.sidebar:
-        fu = CONFIG["flags_url"]
-        st.markdown(
-            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'fr\'); window.location.assign(u); return false;" style="margin-right:6px"><img src="{fu}flag_fr.png" width="34" style="border-radius:4px"></a>'
-            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'it\'); window.location.assign(u); return false;" style="margin-right:6px"><img src="{fu}flag_it.png" width="34" style="border-radius:4px"></a>'
-            f'<a href="#" onclick="var u=new URL(window.location.href); u.searchParams.set(\'lang\',\'en\'); window.location.assign(u); return false;"><img src="{fu}flag_en.png" width="34" style="border-radius:4px"></a>',
-            unsafe_allow_html=True)
+        st.markdown(_flag_links(), unsafe_allow_html=True)
         st.image(CONFIG["logo_url"], use_container_width=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
             _do_logout()
@@ -1657,7 +1673,7 @@ def main():
                 st.session_state.pagina = "login_admin"
                 st.rerun()
         st.markdown("---")
-        st.markdown(f'### {get_testo("titolo_sidebar", lingua)}')
+        st.markdown(f'### {get_testo("titolo_sidebar", lingua)}', unsafe_allow_html=True)
         st.markdown(get_testo("sottotitolo", lingua))
         st.caption(VERSIONE + (" — 🧪 SANDBOX" if st.session_state.get("ambiente") == "test" else ""))
     if st.session_state.pagina == "home":
