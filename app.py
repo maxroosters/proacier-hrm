@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.22
+# HRM_PA_ver_20.23
 """
-PROACIER HRM - v20.22 - FILE COMPLETO
-✅ v20.22: bandiere = link <a href> normali (niente JS, funzionano sempre) +
-   titolo sidebar in colonna con unsafe_allow_html + CSS min-height (nero a tutta altezza)
-✅ Include tutto v20.21: footer © Lehev Ltd, PDF AD Trading, bacheca URGENTE, banner Telegram,
-   ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami, import paghe (paghe.py)
+PROACIER HRM - v20.23 - FILE COMPLETO
+✅ v20.23: lingua con bottoni nativi FRA/ENG/ITA (istantanei, niente bandierine né reload)
+✅ v20.23: riquadro festività TOLTO dalla Home (resta in Spazio Lavoratore + Dashboard)
+✅ Include tutto v20.22: footer © Lehev Ltd + tel + email anti-bot, nero a tutta altezza,
+   ambiente test/produzione, salva-tutto admin, admin user+pass+ricordami,
+   bacheca AVVISI + banner Telegram, PDF AD Trading, import paghe (paghe.py)
+Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2, xlrd)
 """
 import sys
 import importlib
@@ -22,7 +24,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.22"
+VERSIONE = "v20.23"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -35,7 +37,6 @@ CONFIG = {
     "logo_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/proacier.png",
     "logo_adtrading": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/adtrading.png",
     "base_url": "https://hrm.proacier.sn",
-    "flags_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/",
 }
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
@@ -235,7 +236,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍👧👦 Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -664,7 +665,7 @@ def footer():
         f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
         f'Proacier - tel. +221 33 913 33 12 - '
         f'<span>&#105;&#110;&#102;&#111;&#64;&#112;&#114;&#111;&#97;&#99;&#105;&#101;&#114;&#46;&#115;&#110;</span>'
-        f'<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'
+        f'<br><br><br><br><br><br>'
         f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -'
         f'</div>',
         unsafe_allow_html=True)
@@ -1590,28 +1591,6 @@ def _do_logout():
         pass
 
 
-def _flag_links():
-    """v20.22: link <a href> normali (niente JS) con parametri attuali + lang."""
-    fu = CONFIG["flags_url"]
-    try:
-        qp = st.query_params
-        keys = list(qp.keys())
-    except Exception:
-        qp, keys = {}, []
-
-    def href(lc):
-        parts = []
-        for k in keys:
-            v = qp.get(k)
-            if v is not None and k != "lang":
-                parts.append(f"{k}={v}")
-        parts.append(f"lang={lc}")
-        return "?" + "&".join(parts)
-    return (f'<a href="{href("fr")}" style="margin-right:6px"><img src="{fu}flag_fr.png" width="34" style="border-radius:4px"></a>'
-            f'<a href="{href("it")}" style="margin-right:6px"><img src="{fu}flag_it.png" width="34" style="border-radius:4px"></a>'
-            f'<a href="{href("en")}"><img src="{fu}flag_en.png" width="34" style="border-radius:4px"></a>')
-
-
 def main():
     for k, v in {"lingua": "fr", "pagina": "home", "logged_in": False, "user_type": None,
                  "step": 1, "dati_form": {}, "codice_operatore": None, "avviso_mostrato": False,
@@ -1646,7 +1625,16 @@ def main():
                     break
     lingua = st.session_state.lingua
     with st.sidebar:
-        st.markdown(_flag_links(), unsafe_allow_html=True)
+        lf1, lf2, lf3 = st.columns(3)
+        if lf1.button("FRA", use_container_width=True, key="lang_fr"):
+            st.session_state.lingua = "fr"
+            st.rerun()
+        if lf2.button("ENG", use_container_width=True, key="lang_en"):
+            st.session_state.lingua = "en"
+            st.rerun()
+        if lf3.button("ITA", use_container_width=True, key="lang_it"):
+            st.session_state.lingua = "it"
+            st.rerun()
         st.image(CONFIG["logo_url"], use_container_width=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
             _do_logout()
@@ -1681,7 +1669,6 @@ def main():
     if st.session_state.pagina == "home":
         st.title(get_testo("titolo", lingua))
         st.subheader(get_testo("sottotitolo", lingua))
-        promemoria_festivita(lingua)
         st.markdown("---")
         st.subheader(get_testo("home_titolo", lingua))
         c1, c2 = st.columns(2)
