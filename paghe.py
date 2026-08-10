@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – PAGHE (Pagina 2) : Présences & Paies  [ver 07.00]
+PROACIER HRM – PAGHE (Pagina 2) : Présences & Paies  [ver 07.01]
 Modulo importato da app.py (v20.21). Contenuti:
-  1. Parser "List of Logs" da TESTO incollato O da FILE .XLS scaricato (xlrd)
-  2. Revisione anomalie (DA_RIVEDERE / ASSENTE) con salva-tutto
-  3. Calcolo paghe quindicina (1-15 / 16-fine) → PAGAMENTI
-  4. Acconti (generico/Tabasky/Scuola/Karem) + premi
+  1. Parser "List of Logs" da TESTO incollato O da FILE .XLS (xlrd) dal cloud
+  2. Caricamento in-app del file macchinetta (upload.php con token)
+  3. Revisione anomalie con salva-tutto
+  4. Calcolo paghe quindicina → PAGAMENTI + acconti + premi
 Regole: catena uscite notturne (soglia_uscita_notturna), turni_flottanti,
-riposo_settimanale. Richiede Apps Script v6.1 + xlrd in requirements.
+riposo_settimanale. Richiede Apps Script v6.1 + xlrd.
 """
 import re
 import math
@@ -20,7 +20,7 @@ import xlrd
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_PAGHE = "07.00"
+VERSIONE_PAGHE = "07.01"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -44,14 +44,18 @@ T6 = {
                              "⚠️ Festività predefinite (date lunari INDICATIVE). Verificare e completare il foglio CONFIG.",
                              "⚠️ Default holidays (INDICATIVE lunar dates). Check and complete the CONFIG sheet."),
     "import_title": ("Importation des pointages", "Importazione presenze", "Attendance import"),
-    "import_hint": ("Collez le contenu du fichier « List of Logs » OU utilisez « Prélever du cloud ».",
-                    "Incolla il contenuto del file « List of Logs » OPPURE usa « Preleva dal cloud ».",
-                    "Paste the “List of Logs” content OR use “Fetch from cloud”."),
+    "import_hint": ("Collez le contenu « List of Logs » OU chargez/prélevez le fichier .XLS du cloud.",
+                    "Incolla il contenuto « List of Logs » OPPURE carica/preleva il file .XLS dal cloud.",
+                    "Paste the “List of Logs” content OR upload/fetch the .XLS from the cloud."),
     "import_da_testo": ("Contenu du fichier", "Contenuto del file", "File content"),
     "import_cloud_btn": ("📥 Prélever du cloud (mois choisi)", "📥 Preleva dal cloud (mese scelto)", "📥 Fetch from cloud (chosen month)"),
-    "import_cloud_err": ("❌ Fichier introuvable. Vérifiez CONFIG url_cartella_presenze / url_file_presenze et que le fichier 001_AAAA_M_MON.XLS est dans la cartella.",
-                         "❌ File non trovato. Controlla CONFIG url_cartella_presenze / url_file_presenze e che il file 001_AAAA_M_MON.XLS sia nella cartella.",
-                         "❌ File not found. Check CONFIG url_cartella_presenze / url_file_presenze and that 001_YYYY_M_MON.XLS is in the folder."),
+    "import_up_label": ("📤 Fichier .XLS à envoyer au cloud", "📤 File .XLS da inviare al cloud", "📤 .XLS file to send to the cloud"),
+    "import_up_btn": ("📤 Envoyer au cloud", "📤 Invia al cloud", "📤 Send to cloud"),
+    "import_up_ok": ("✅ Fichier envoyé. Utilisez maintenant « Prélever du cloud ».", "✅ File inviato. Ora usa « Preleva dal cloud ».", "✅ File sent. Now use “Fetch from cloud”."),
+    "import_up_err": ("❌ Échec de l'envoi. Vérifiez upload.php / token / Directory Privacy.", "❌ Invio fallito. Controlla upload.php / token / Directory Privacy.", "❌ Upload failed. Check upload.php / token / Directory Privacy."),
+    "import_cloud_err": ("❌ Fichier introuvable. Vérifiez CONFIG url_cartella_presenze / url_file_presenze et que 001_AAAA_M_MON.XLS est présent.",
+                         "❌ File non trovato. Controlla CONFIG url_cartella_presenze / url_file_presenze e che 001_AAAA_M_MON.XLS sia presente.",
+                         "❌ File not found. Check CONFIG url_cartella_presenze / url_file_presenze and that 001_YYYY_M_MON.XLS exists."),
     "import_parse_btn": ("Analyser le fichier", "Analizza il file", "Parse file"),
     "import_write_btn": ("Enregistrer dans PRESENZE", "Scrivi in PRESENZE", "Write to PRESENZE"),
     "import_empty": ("Collez d'abord le contenu du fichier", "Prima incolla il contenuto del file", "Paste the file content first"),
@@ -226,6 +230,7 @@ def leggi_config(A):
     riposo = {"sabato", "domenica"}
     flottanti = set()
     soglia_notte = 3 * 60
+    extra = {}
     try:
         _, recs = A.leggi_foglio("CONFIG")
     except Exception:
@@ -264,13 +269,25 @@ def leggi_config(A):
         elif k in ("modalita_paga", "ritardo_metodo"):
             if v:
                 cfg[k] = v.lower()
+        elif k in ("url_cartella_presenze", "url_file_presenze", "url_upload_presenze",
+                   "url_upload_token", "url_presenze_user/pass"):
+            extra[k] = v
     if not festivi:
         festivi = dict(FESTIVI_DEFAULT)
         cfg["_festivi_default"] = True
     cfg["_riposo"] = riposo
     cfg["_flottanti"] = flottanti
     cfg["_soglia_notte"] = soglia_notte
+    cfg["_extra"] = extra
     return cfg, festivi
+
+
+def _auth_presenze(cfg):
+    up = cfg.get("_extra", {}).get("url_presenze_user/pass", "")
+    if up and ":" in up:
+        u, p = up.split(":", 1)
+        return (u.strip(), p.strip())
+    return None
 
 
 def mappa_turni(A, recs_turni):
@@ -293,26 +310,19 @@ def mappa_turni(A, recs_turni):
 
 
 # =====================================================================
-# DOWNLOAD FILE .XLS DAL CLOUD (modalità B url_file, poi A cartella/mese)
+# CLOUD: download (con auth) + upload (token)
 # =====================================================================
-def scarica_bytes_presenze(A, anno, mese):
-    cfg_rows, _ = A.leggi_foglio("CONFIG")
-    url_file, url_cartella = "", ""
-    for r in cfg_rows:
-        k = A.s_str(r.get("chiave")).strip().lower().replace(" ", "_")
-        v = A.s_str(r.get("valore")).strip()
-        if k == "url_file_presenze":
-            url_file = v
-        elif k == "url_cartella_presenze":
-            url_cartella = v
+def scarica_bytes_presenze(A, cfg, anno, mese):
+    extra = cfg.get("_extra", {})
+    auth = _auth_presenze(cfg)
     urls = []
-    if url_file:
-        urls.append(url_file)
-    if url_cartella:
-        urls.append(url_cartella.rstrip("/") + f"/001_{anno}_{mese}_MON.XLS")
+    if extra.get("url_file_presenze"):
+        urls.append(extra["url_file_presenze"])
+    if extra.get("url_cartella_presenze"):
+        urls.append(extra["url_cartella_presenze"].rstrip("/") + f"/001_{anno}_{mese}_MON.XLS")
     for u in urls:
         try:
-            r = requests.get(u, timeout=120)
+            r = requests.get(u, timeout=120, auth=auth)
             if r.status_code == 200 and len(r.content) > 2048:
                 return r.content, u
         except Exception:
@@ -320,8 +330,30 @@ def scarica_bytes_presenze(A, anno, mese):
     return None, ""
 
 
+def invia_file_presenze(A, cfg, anno, mese, file_bytes, file_type):
+    extra = cfg.get("_extra", {})
+    url = extra.get("url_upload_presenze", "")
+    token = extra.get("url_upload_token", "")
+    if not url or not token:
+        return False, "CONFIG: url_upload_presenze / url_upload_token mancanti"
+    nome = f"001_{anno}_{mese}_MON.XLS"
+    try:
+        r = requests.post(url, data={"token": token, "filename": nome},
+                          files={"file": (nome, file_bytes, file_type or "application/vnd.ms-excel")},
+                          timeout=180, auth=_auth_presenze(cfg))
+        if r.status_code == 200:
+            try:
+                j = r.json()
+                if j.get("status") == "success":
+                    return True, nome
+            except Exception:
+                pass
+        return False, f"HTTP {r.status_code}"
+    except Exception as e:
+        return False, str(e)
+
+
 def _xls_matrix(data):
-    """Apre il .xls e restituisce la matrice del tab Logs (stringhe)."""
     wb = xlrd.open_workbook(file_contents=data)
     sh = None
     for s in wb.sheets():
@@ -579,7 +611,7 @@ def scrivi_presenze(A, parsed):
 
 
 # =====================================================================
-# CALCOLO BUSTA / ACCONTI / ANTEPRIMA / CONFERMA (invariato da F6.7)
+# CALCOLO BUSTA / ACCONTI / ANTEPRIMA / CONFERMA
 # =====================================================================
 def calcola_busta(pp_list, tipo_paga, base, cfg, turno_start):
     ore_norm = cfg.get("ore_normali_giorno", 8) or 8
@@ -769,29 +801,40 @@ def conferma_paghe(A, ant):
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua))
     st.caption(t6("import_hint", lingua))
-    ca, cb = st.columns([2, 1])
+    ca, cb = st.columns(2)
     anno_sel = ca.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035,
                                value=datetime.now().year, key="f6_imp_anno")
     nomi = MESI.get(lingua, MESI["fr"])
     mese_sel = cb.selectbox(t6("paghe_mese", lingua), list(range(1, 13)),
                             format_func=lambda m: nomi[m - 1],
                             index=datetime.now().month - 1, key="f6_imp_mese")
-    if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
-        data, _src = scarica_bytes_presenze(A, int(anno_sel), int(mese_sel))
-        if data is None:
-            st.error(t6("import_cloud_err", lingua))
-        else:
-            try:
-                parsed = parse_matrix(_xls_matrix(data))
-            except Exception as e:
-                st.error(f"❌ {e}")
-                parsed = None
-            if parsed and parsed["blocchi"]:
-                st.session_state.f6_parsed = parsed
-                st.session_state.pop("f6_esito_import", None)
-                st.rerun()
+    cfg, _fest = leggi_config(A)
+    c1, c2 = st.columns(2)
+    with c1:
+        up = st.file_uploader(t6("import_up_label", lingua), type=["xls", "xlsx"], key="f6_up")
+        if up is not None and st.button("📤 " + t6("import_up_btn", lingua), use_container_width=True):
+            ok, info = invia_file_presenze(A, cfg, int(anno_sel), int(mese_sel), up.getvalue(), up.type)
+            if ok:
+                st.success(t6("import_up_ok", lingua) + f" ({info})")
             else:
-                st.error(t6("parsed_none", lingua))
+                st.error(t6("import_up_err", lingua) + f" — {info}")
+    with c2:
+        if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
+            data, _src = scarica_bytes_presenze(A, cfg, int(anno_sel), int(mese_sel))
+            if data is None:
+                st.error(t6("import_cloud_err", lingua))
+            else:
+                try:
+                    parsed = parse_matrix(_xls_matrix(data))
+                except Exception as e:
+                    st.error(f"❌ {e}")
+                    parsed = None
+                if parsed and parsed["blocchi"]:
+                    st.session_state.f6_parsed = parsed
+                    st.session_state.pop("f6_esito_import", None)
+                    st.rerun()
+                else:
+                    st.error(t6("parsed_none", lingua))
     testo = st.text_area(t6("import_da_testo", lingua), height=200, key="f6_ta")
     if st.button("🔎 " + t6("import_parse_btn", lingua), type="primary"):
         if not testo.strip():
