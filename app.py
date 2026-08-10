@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.25
+# HRM_PA_ver_20.26
 """
-PROACIER HRM - v20.25 - FILE COMPLETO
-✅ footer() presente con <br> per distanziare le due scritte e allungare la pagina nera
-✅ Tasti sidebar verde più scuro
-✅ promemoria_festivita() presente (fix NameError)
-✅ Include tutto v20.24: PDF documento AD Trading, FRA/ENG/ITA istantanei,
-   banner Telegram + tasti Règlement/Privacy, no festività in Home
+PROACIER HRM - v20.26 - FILE COMPLETO
+✅ FIX StreamlitDuplicateElementKey: chiavi widget dashboard basate sull'indice di riga (i)
+   invece che sul codice (gestisce righe con codice vuoto/duplicato)
+✅ Include tutto v20.25: footer, tasti FRA/ENG/ITA, verde scuro, PDF documento AD Trading,
+   ambiente test/produzione, bacheca AVVISI, Telegram, FASE 6 (paghe.py)
 Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
 import sys
@@ -24,7 +23,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.25"
+VERSIONE = "v20.26"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -237,7 +236,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👦 Famille (modifiable)", "👨‍👩‍‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -1447,7 +1446,7 @@ def pagina_dashboard(lingua):
     vista = mostrati if cerca else mostrati[:limite]
     st.caption(get_testo("form_hint", lingua))
     for i, r in vista:
-        cod = s_str(r.get("codice"))
+        cod = s_str(r.get("codice")) or f"(senza codice riga {i})"
         with st.expander(f"{cod} — {s_str(r.get('cognome'))} {s_str(r.get('nome'))} | {get_testo('turno', lingua)}: {s_str(r.get('turno')) or '—'}"):
             st.markdown(
                 f'{get_testo("data_nascita", lingua)}: {formatta_data(r.get("data_nascita"))} '
@@ -1461,30 +1460,30 @@ def pagina_dashboard(lingua):
             ca, cb = st.columns(2)
             with ca:
                 t_val = s_str(r.get("turno"))
-                t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
-                n_turno = st.selectbox(get_testo("turno", lingua), turni_codes, index=t_idx, key=f"adm_turno_{cod}")
+                t_idx = t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
+                n_turno = st.selectbox(get_testo("turno", lingua), turni_codes, index=t_idx, key=f"adm_turno_{i}")
                 ido_codes = [o[0] for o in OPZ["idoneita"]]
                 ido_val = s_str(r.get("idoneita"))
                 i_idx = ido_codes.index(ido_val) if ido_val in ido_codes else 0
                 n_ido = st.selectbox(get_testo("idoneita", lingua), ido_codes, index=i_idx,
-                                     format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_ido_{cod}")
-                n_vis = st.text_input(get_testo("data_visita", lingua), value=s_str(r.get("data_visita")), key=f"adm_vis_{cod}")
+                                     format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_ido_{i}")
+                n_vis = st.text_input(get_testo("data_visita", lingua), value=s_str(r.get("data_visita")), key=f"adm_vis_{i}")
             with cb:
                 attiva = None
                 for s in recs_sal:
-                    if s_str(s.get("codice_lavoratore")) == cod and not s_str(s.get("data_fine_validita")):
+                    if s_str(s.get("codice_lavoratore")) == s_str(r.get("codice")) and not s_str(s.get("data_fine_validita")):
                         attiva = s
                         break
                 tp_val = s_str(attiva.get("tipo_paga")) if attiva else ""
                 tp_opts = ["", "giornaliero", "orario", "mensile"]
                 tp_idx = tp_opts.index(tp_val) if tp_val in tp_opts else 0
                 n_tp = st.selectbox(get_testo("paga_type", lingua), tp_opts, index=tp_idx,
-                                    format_func=lambda x: get_testo("globale", lingua) if x == "" else etichetta("tipo_paga", x, lingua), key=f"adm_tp_{cod}")
+                                    format_func=lambda x: get_testo("globale", lingua) if x == "" else etichetta("tipo_paga", x, lingua), key=f"adm_tp_{i}")
                 n_imp = st.number_input(get_testo("paga_amount", lingua) + " (FCFA)", min_value=0,
                                         value=s_int(attiva.get("importo_base")) if attiva else 0,
-                                        step=500, key=f"adm_imp_{cod}")
+                                        step=500, key=f"adm_imp_{i}")
             st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
-            mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == cod]
+            mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == s_str(r.get("codice"))]
             mie_vis.sort(key=lambda v: data_ord(v.get("data_visita")) or (0, 0, 0), reverse=True)
             if mie_vis:
                 for v in mie_vis:
@@ -1497,23 +1496,23 @@ def pagina_dashboard(lingua):
                     st.markdown(riga)
             else:
                 st.caption(get_testo("nessuna_visita", lingua))
-            with st.form(f"adm_vis_form_{cod}"):
+            with st.form(f"adm_vis_form_{i}"):
                 v1, v2 = st.columns(2)
                 with v1:
                     n_data_vis = st.text_input(get_testo("data_visita", lingua),
-                                               value=datetime.now().strftime("%d/%m/%Y"), key=f"adm_visdata_{cod}")
+                                               value=datetime.now().strftime("%d/%m/%Y"), key=f"adm_visdata_{i}")
                     n_tipo = st.selectbox(get_testo("tipo_visita", lingua), [o[0] for o in OPZ["tipo_visita"]],
-                                          format_func=lambda c: etichetta("tipo_visita", c, lingua), key=f"adm_vistipo_{cod}")
+                                          format_func=lambda c: etichetta("tipo_visita", c, lingua), key=f"adm_vistipo_{i}")
                     n_ido2 = st.selectbox(get_testo("idoneita", lingua), [o[0] for o in OPZ["idoneita"]],
-                                          format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_visido_{cod}")
+                                          format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_visido_{i}")
                 with v2:
-                    n_restr = st.text_input(get_testo("restrizioni", lingua), key=f"adm_visrestr_{cod}")
-                    n_pross = st.text_input(get_testo("prossimo_controllo", lingua) + " (GG/MM/AAAA)", key=f"adm_vispros_{cod}")
-                    n_esito = st.text_area(get_testo("esito", lingua), key=f"adm_visesito_{cod}")
+                    n_restr = st.text_input(get_testo("restrizioni", lingua), key=f"adm_visrestr_{i}")
+                    n_pross = st.text_input(get_testo("prossimo_controllo", lingua) + " (GG/MM/AAAA)", key=f"adm_vispros_{i}")
+                    n_esito = st.text_area(get_testo("esito", lingua), key=f"adm_visesito_{i}")
                 sub_vis = st.form_submit_button(get_testo("salva_modifiche", lingua))
                 if sub_vis:
                     okv, mv = salva_append("VISITE_MEDICHE", {
-                        "codice_lavoratore": cod, "data_visita": n_data_vis, "tipo_visita": n_tipo,
+                        "codice_lavoratore": s_str(r.get("codice")), "data_visita": n_data_vis, "tipo_visita": n_tipo,
                         "idoneita": n_ido2, "restrizioni": n_restr, "esito": n_esito,
                         "prossimo_controllo": n_pross, "registrato_da": "admin",
                         "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")})
@@ -1524,26 +1523,26 @@ def pagina_dashboard(lingua):
                     else:
                         st.error(f"{get_testo('errore_salvataggio', lingua)} ({mv} {md})")
             st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
-                               file_name=f"Proacier_{cod}.pdf", mime="application/pdf",
-                               use_container_width=True, key=f"adm_pdf_{cod}")
+                               file_name=f"Proacier_{s_str(r.get('codice')) or i}.pdf", mime="application/pdf",
+                               use_container_width=True, key=f"adm_pdf_{i}")
     if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
         cambi = 0
         for i, r in vista:
             cod = s_str(r.get("codice"))
             upd = {}
             orig_turno = s_str(r.get("turno"))
-            n_turno = st.session_state.get(f"adm_turno_{cod}", orig_turno)
+            n_turno = st.session_state.get(f"adm_turno_{i}", orig_turno)
             if n_turno != orig_turno:
                 upd["turno"] = n_turno
             orig_ido = s_str(r.get("idoneita"))
-            n_ido = st.session_state.get(f"adm_ido_{cod}", orig_ido)
+            n_ido = st.session_state.get(f"adm_ido_{i}", orig_ido)
             if n_ido != orig_ido:
                 upd["idoneita"] = n_ido
             orig_vis = s_str(r.get("data_visita"))
-            n_vis = st.session_state.get(f"adm_vis_{cod}", orig_vis)
+            n_vis = st.session_state.get(f"adm_vis_{i}", orig_vis)
             if n_vis != orig_vis:
                 upd["data_visita"] = n_vis
-            if upd:
+            if upd and cod:
                 ok, _ = salva_update("DIPENDENTI", i, upd)
                 if ok:
                     cambi += 1
@@ -1554,21 +1553,21 @@ def pagina_dashboard(lingua):
                     break
             orig_tp = s_str(attiva.get("tipo_paga")) if attiva else ""
             orig_imp = s_int(attiva.get("importo_base")) if attiva else 0
-            n_tp = st.session_state.get(f"adm_tp_{cod}", orig_tp)
-            n_imp = int(st.session_state.get(f"adm_imp_{cod}", orig_imp))
+            n_tp = st.session_state.get(f"adm_tp_{i}", orig_tp)
+            n_imp = int(st.session_state.get(f"adm_imp_{i}", orig_imp))
             if (n_tp != orig_tp) or (n_imp != orig_imp):
                 if attiva:
                     ok2, _2 = salva_update("SALARI", recs_sal.index(attiva),
                                            {"tipo_paga": n_tp, "importo_base": n_imp})
+                    if ok2:
+                        cambi += 1
                 elif n_imp > 0 or n_tp:
                     ok2, _2 = salva_append("SALARI", {"codice_lavoratore": cod, "tipo_paga": n_tp,
                                                       "importo_base": n_imp,
                                                       "data_inizio_validita": datetime.now().strftime("%d/%m/%Y"),
                                                       "data_fine_validita": "", "note": ""})
-                else:
-                    ok2 = True
-                if ok2:
-                    cambi += 1
+                    if ok2:
+                        cambi += 1
         st.success(f"✅ {cambi} {get_testo('salvate_n', lingua)}")
         st.rerun()
     if not cerca and len(mostrati) > limite:
