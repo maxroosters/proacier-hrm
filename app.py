@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.26
+# HRM_PA_ver_20.27
 """
-PROACIER HRM - v20.26 - FILE COMPLETO
-✅ FIX StreamlitDuplicateElementKey: chiavi widget dashboard basate sull'indice di riga (i)
-   invece che sul codice (gestisce righe con codice vuoto/duplicato)
-✅ Include tutto v20.25: footer, tasti FRA/ENG/ITA, verde scuro, PDF documento AD Trading,
-   ambiente test/produzione, bacheca AVVISI, Telegram, FASE 6 (paghe.py)
+PROACIER HRM - v20.27 - FILE COMPLETO
+✅ PDF: titoli centrati; blocco lavoratore sotto linea logo (dx); firma + riga Data
+✅ Pannello successo: zona azzurra (conserva+codice+pin+scarica) + tasti Règlement/Privacy
+✅ Include tutto v20.26: chiavi widget dashboard su indice riga (fix DuplicateElementKey),
+   ambiente test/produzione, FRA/ENG/ITA, footer, PDF documento AD Trading, FASE 6 (paghe.py)
 Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
 import sys
@@ -23,7 +23,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.26"
+VERSIONE = "v20.27"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -56,6 +56,7 @@ section.main{background-color:#0e1117 !important;min-height:100vh !important;}
 [data-testid="stMain"] h2{font-size:1.35rem !important;margin:0.5rem 0 0.3rem 0 !important;}
 [data-testid="stMain"] h3{font-size:1.05rem !important;margin:0.3rem 0 !important;}
 [data-testid="stMain"] hr{margin:0.5rem 0 !important;}
+[data-testid="stDownloadButton"] button{background-color:#2b4a6b !important;color:#fff !important;}
 @media (max-width:768px){.stTextInput>div>div>input,.stSelectbox>div>div>select{font-size:16px;}}
 .phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
 .phone-box h4{margin:0 0 6px 0;color:white;font-size:15px;}
@@ -155,9 +156,6 @@ T = {
     "nuova_registrazione": ("🆕 Nouvelle inscription", "🆕 Nuova registrazione", "🆕 New registration"),
     "nouvelle_candidature": ("🆕 Nouvelle candidature", "🆕 Nuova candidatura", "🆕 New application"),
     "candidatura_gia_inviata": ("ℹ️ Candidature déjà envoyée avec ces coordonnées.", "ℹ️ Candidatura già inviata con questi dati.", "ℹ️ Application already submitted with these details."),
-    "reg_gia": ("ℹ️ Travailleur déjà enregistré aujourd'hui avec ces données. Voici ses identifiants.",
-                "ℹ️ Lavoratore già registrato oggi con questi dati. Ecco le sue credenziali.",
-                "ℹ️ Worker already registered today with these details. Here are the credentials."),
     "cognome": ("Nom", "Cognome", "Surname"),
     "nome": ("Prénom(s)", "Nome", "First Name"),
     "data_nascita": ("Date de naissance", "Data di nascita", "Date of birth"),
@@ -236,7 +234,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍👦 Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
@@ -309,6 +307,7 @@ T = {
                      "I certify the accuracy of the information and accept the conditions."),
     "pdf_candidat": ("CANDIDAT", "CANDIDATO", "CANDIDATE"),
     "pdf_employeur": ("EMPLOYEUR", "DATORE DI LAVORO", "EMPLOYER"),
+    "pdf_data_firma": ("Data / Date: ", "Data: ", "Date: "),
     "pdf_consent_titolo": ("CONSENTEMENT DONNEES PERSONNELLES", "CONSENSO DATI PERSONALI", "PERSONAL DATA CONSENT"),
     "pdf_consent_testo": ("Conformement a la Loi n° 2008-12 du 25 janvier 2008 (Senegal).",
                           "Conforme alla Legge n° 2008-12 del 25 gennaio 2008 (Senegal).",
@@ -634,11 +633,11 @@ def trova_duplicato_cand(cognome, nome, email, tel):
 def cfg_get(key, default=""):
     try:
         _, recs = leggi_foglio("CONFIG")
-        for r in recs:
-            if s_str(r.get("chiave")).strip().lower() == key.lower():
-                return s_str(r.get("valore")) or default
     except Exception:
-        pass
+        return default
+    for r in recs:
+        if s_str(r.get("chiave")).strip().lower() == key.lower():
+            return s_str(r.get("valore")) or default
     return default
 
 
@@ -757,25 +756,28 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
     pdf.add_page()
+    # logo in alto a sinistra
     try:
         lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
         if lg.status_code == 200 and lg.content:
             pdf.image(lg.content, x=10, y=8, w=30)
     except Exception:
         pass
-    pref = "M." if s_str(d.get("sesso")) == "M" else ("Mme" if s_str(d.get("sesso")) == "F" else "")
-    pdf.set_xy(110, 10)
+    # blocco lavoratore ABBASSATO sotto la linea del logo, allineato a destra
+    pdf.set_xy(110, 34)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
+    pref = "M." if s_str(d.get("sesso")) == "M" else ("Mme" if s_str(d.get("sesso")) == "F" else "")
     pdf.cell(0, 5, f"{pref} {s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip(), 0, 1, "R")
     pdf.set_font("Helvetica", "", 8)
     pdf.cell(0, 4, s_str(d.get("indirizzo")), 0, 1, "R")
     pdf.cell(0, 4, f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip(), 0, 1, "R")
     pdf.cell(0, 4, etichetta("paesi", d.get("paese_origine"), lingua) or "Sénégal", 0, 1, "R")
-    pdf.set_xy(10, 42)
+    # titolo CENTRATO sotto il blocco
+    pdf.set_xy(10, 62)
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "L")
-    pdf.ln(4)
+    pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "C")
+    pdf.set_xy(10, 72)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(95, 5, f"{get_testo('pdf_nfiche', lingua)} {s_str(d.get('codice'))}", 0, 0)
     pdf.cell(0, 5, f"{get_testo('pdf_data', lingua)} {datetime.now().strftime('%d/%m/%Y')}", 0, 1, "R")
@@ -818,8 +820,11 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(95, 6, get_testo("pdf_candidat", lingua), 1, 0, "C")
     pdf.cell(95, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(95, 15, "", 1, 0)
-    pdf.cell(95, 15, "", 1, 1)
+    # spazio firma aumentato + riga Data sotto
+    pdf.cell(95, 22, "", 1, 0)
+    pdf.cell(95, 22, "", 1, 1)
+    pdf.ln(2)
+    pdf.cell(0, 6, f"{get_testo('pdf_data_firma', lingua)} ______________________________", 0, 1, "L")
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, get_testo("pdf_consent_titolo", lingua), 0, 1, "C")
@@ -1003,20 +1008,21 @@ def step_7(lingua):
 
 def pannello_successo(lingua):
     u = st.session_state.ultimo_salvataggio
-    if u.get("dup"):
-        st.info(get_testo("reg_gia", lingua))
-    else:
+    if not u.get("dup"):
         st.success(f'✅ {get_testo("pdf_generato", lingua)}')
-    st.warning(get_testo("conserva_credenziali", lingua))
+    st.info(get_testo("conserva_credenziali", lingua))
     c1, c2 = st.columns(2)
     c1.info(f'{get_testo("codice_accesso", lingua)}: {u["codice"]}')
     c2.info(f'{get_testo("pin_accesso", lingua)}: {u["pin"]}')
     st.download_button(label=f'📥 {get_testo("scarica", lingua)} PDF', data=u["pdf"],
                        file_name=f'Proacier_{u["codice"]}.pdf', mime="application/pdf",
                        use_container_width=True, key="btn_dl_ok")
-    st.markdown("---")
-    blocco_telegram(lingua)
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
+    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
+    c1, c2 = st.columns(2)
+    c1.link_button(get_testo("doc_regolamento", lingua), url_reg, use_container_width=True)
+    c2.link_button(get_testo("doc_privacy", lingua), url_priv, use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
         st.session_state.ultimo_salvataggio = None
         st.session_state.reg_fp = None
@@ -1024,23 +1030,6 @@ def pannello_successo(lingua):
         st.session_state.step = 1
         st.session_state.avviso_mostrato = False
         st.rerun()
-
-
-def blocco_telegram(lingua):
-    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
-    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
-    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
-    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
-    st.markdown(f'''
-<div style="display:flex;gap:10px;">
-<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
-<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
-</div>
-<div style="display:flex;gap:10px;margin-top:10px;">
-<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
-<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
-</div>
-''', unsafe_allow_html=True)
 
 
 def pagina_registrazione(lingua):
@@ -1089,7 +1078,7 @@ def genera_e_salva(dati, lingua):
         return
     fp = "|".join([s_str(dati.get("cognome")).lower(), s_str(dati.get("nome")).lower(), s_str(dati.get("telefono_1"))])
     if st.session_state.get("reg_fp") == fp:
-        st.info(get_testo("reg_gia", lingua))
+        st.info(get_testo("candidatura_gia_inviata", lingua))
         return
     with st.spinner(get_testo("saving", lingua)):
         dup = trova_duplicato_reg(dati)
@@ -1375,6 +1364,23 @@ def bacheca_avvisi(lingua):
             st.info(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
 
 
+def blocco_telegram(lingua):
+    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
+    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
+    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
+    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+<div style="display:flex;gap:10px;">
+<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
+<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
+</div>
+<div style="display:flex;gap:10px;margin-top:10px;">
+<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
+<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
+</div>
+''', unsafe_allow_html=True)
+
+
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
@@ -1460,7 +1466,7 @@ def pagina_dashboard(lingua):
             ca, cb = st.columns(2)
             with ca:
                 t_val = s_str(r.get("turno"))
-                t_idx = t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
+                t_idx = turni_codes.index(t_val) if t_val in turni_codes else 0
                 n_turno = st.selectbox(get_testo("turno", lingua), turni_codes, index=t_idx, key=f"adm_turno_{i}")
                 ido_codes = [o[0] for o in OPZ["idoneita"]]
                 ido_val = s_str(r.get("idoneita"))
