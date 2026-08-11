@@ -1223,7 +1223,7 @@ def pagina_area_lavoratore(lingua):
         if pc:
             lim = datetime.now() + timedelta(days=30)
             if pc <= (lim.year, lim.month, lim.day):
-                st.warning(f'{get_testo("promemoria_visita", lingua)} {s_str(ultima.get("prossimo_controllo'))}')
+                st.warning(f'{get_testo("promemoria_visita", lingua)} {s_str(ultima.get("prossimo_controllo"))}')
         if norm_idoneita(ultima.get("idoneita")) in ("restriction", "inapte") and s_str(ultima.get("restrizioni")):
             st.info("🩺 " + s_str(ultima.get("restrizioni")))
     c1, c2, c3 = st.columns(3)
@@ -1337,7 +1337,7 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
                 somma_mogli += fig
             prev = st.session_state.get("prev_somma_mogli")
             if prev is None:
