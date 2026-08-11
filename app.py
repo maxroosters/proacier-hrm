@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.29
+# HRM_PA_ver_20.30
 """
-PROACIER HRM - v20.29 - FILE COMPLETO
-✅ Link personali/admin su URL Streamlit diretto (autologin affidabile, senza iframe)
-✅ Include tutto v20.28: Telegram a fine registrazione, figli parificati, PDF con servizi/mogli/figli,
-   blocco dati personali nell'admin, titoli centrati, blocco lavoratore sotto logo, firma+riga Data,
+PROACIER HRM - v20.30 - FILE COMPLETO
+✅ Autologin via link atterra direttamente nella pagina giusta
+   (lavoratore -> area_lavoratore, admin -> dashboard)
+✅ Include tutto v20.29: link personali su URL Streamlit diretto, Telegram a fine
+   registrazione, figli parificati, PDF con servizi/mogli/figli, blocco dati admin,
    ambiente test/produzione, FRA/ENG/ITA, footer, FASE 6 (paghe.py)
 Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
@@ -23,7 +24,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.29"
+VERSIONE = "v20.30"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -1627,6 +1628,7 @@ def main():
         if au and ap and au == CONFIG["user_admin"] and ap == CONFIG["password_admin"]:
             st.session_state.logged_in = True
             st.session_state.user_type = "admin"
+            st.session_state.pagina = "dashboard"
         elif qc and qpin:
             _, recs = leggi_foglio("DIPENDENTI")
             for r in recs:
@@ -1634,6 +1636,7 @@ def main():
                     st.session_state.logged_in = True
                     st.session_state.user_type = "lavoratore"
                     st.session_state.codice_operatore = str(qc).strip()
+                    st.session_state.pagina = "area_lavoratore"
                     break
     lingua = st.session_state.lingua
     with st.sidebar:
