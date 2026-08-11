@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.18
+# HRM_PA_ver_20.29
 """
-PROACIER HRM - v20.28 - FILE COMPLETO
-✅ Telegram rimesso a fine registrazione (5 righe sotto Scarica PDF)
-✅ Figli: contatori parificati (somma mogli ↔ totale manuale, salvataggio coerente, PDF aggiornato)
-✅ PDF: aggiunti servizi telefono (Wave/Orange/...) e n° mogli/figli
-✅ Admin: blocco statico con dati personali completi in alto nell'expander
-✅ Include tutto v20.17: PDF documento AD Trading, FRA/ENG/ITA, ambiente test/produzione, FASE 6
-Richiede: Apps Script v6.1 + paghe.py + index.html che inoltra i parametri
+PROACIER HRM - v20.29 - FILE COMPLETO
+✅ Link personali/admin su URL Streamlit diretto (autologin affidabile, senza iframe)
+✅ Include tutto v20.28: Telegram a fine registrazione, figli parificati, PDF con servizi/mogli/figli,
+   blocco dati personali nell'admin, titoli centrati, blocco lavoratore sotto logo, firma+riga Data,
+   ambiente test/produzione, FRA/ENG/ITA, footer, FASE 6 (paghe.py)
+Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
 """
 import sys
 import importlib
@@ -24,11 +23,12 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.18"
+VERSIONE = "v20.29"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
     "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
+    "url_app": "https://proacier-hrm.streamlit.app",
     "email_ouvriers": "ouvriers@proacier.sn",
     "email_candidature": "candidature@proacier.sn",
     "prefisso_codice": "THS",
@@ -1197,11 +1197,11 @@ def pagina_candidatura(lingua):
     if st.session_state.get("cand_fp") and st.button(get_testo("nouvelle_candidature", lingua), use_container_width=True, key="btn_cand_new"):
         for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_studi"):
             st.session_state.pop(k, None)
-    for k in list(st.session_state.keys()):
-        if k.startswith("c_man_"):
-            st.session_state.pop(k, None)
-    st.session_state.cand_fp = None
-    st.rerun()
+        for k in list(st.session_state.keys()):
+            if k.startswith("c_man_"):
+                st.session_state.pop(k, None)
+        st.session_state.cand_fp = None
+        st.rerun()
 
 
 def pagina_area_lavoratore(lingua):
@@ -1306,9 +1306,8 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
                 somma_mogli += fig
-            # parifica: se la somma mogli cambia, aggiorna il totale; il totale manuale resta per adozione/decesso
             prev = st.session_state.get("prev_somma_mogli")
             if prev is None:
                 if "ar_fig_tot" not in st.session_state:
@@ -1360,7 +1359,7 @@ def pagina_area_lavoratore(lingua):
             _code = s_str(mio.get("codice"))
             _pin = s_str(mio.get("pin"))
             st.query_params.update({"code": _code, "pin": _pin})
-            st.session_state.link_personale = f"{CONFIG['base_url']}/?code={_code}&pin={_pin}"
+            st.session_state.link_personale = f"{CONFIG['url_app']}/?code={_code}&pin={_pin}"
             st.info(get_testo("link_hint", lingua))
         if st.session_state.get("link_personale"):
             st.caption(get_testo("copia_link_help", lingua))
@@ -1466,7 +1465,6 @@ def pagina_dashboard(lingua):
     for i, r in vista:
         cod = s_str(r.get("codice")) or f"(senza codice riga {i})"
         with st.expander(f"{cod} — {s_str(r.get('cognome'))} {s_str(r.get('nome'))} | {get_testo('turno', lingua)}: {s_str(r.get('turno')) or '—'}"):
-            # blocco statico dati personali completi in alto
             st.markdown(
                 f"**{s_str(r.get('nome'))} {s_str(r.get('cognome'))}** — {s_str(r.get('indirizzo'))}, {s_str(r.get('comune'))} {s_str(r.get('quartiere'))}\n\n"
                 f"🎂 {formatta_data(r.get('data_nascita'))} — {s_str(r.get('luogo_nascita'))}\n\n"
@@ -1755,7 +1753,7 @@ def main():
                 st.session_state.user_type = "admin"
                 if ricordami:
                     st.query_params.update({"adm_u": usr.strip(), "adm_p": pwd})
-                    st.session_state.link_admin = f"{CONFIG['base_url']}/?adm_u={usr.strip()}&adm_p={pwd}"
+                    st.session_state.link_admin = f"{CONFIG['url_app']}/?adm_u={usr.strip()}&adm_p={pwd}"
                 st.session_state.pagina = "dashboard"
                 st.rerun()
             else:
