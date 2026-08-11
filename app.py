@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.31
+# HRM_PA_ver_20.32
 """
-PROACIER HRM - v20.31 - FILE COMPLETO
-✅ Rimosso autologin via query params (solo login manuale + promemoria link)
-✅ NUOVI FOGLI: STORICO_MANSIONI, STORICO_SANZIONI, PERFORMANCE_REVIEW
-✅ Spazio Lavoratore: mansione (sola lettura), storico mansioni/paghe/performance
-✅ Admin: CRUD completo sui 3 nuovi fogli
-Richiede: Apps Script + i 3 nuovi fogli con le intestazioni TAB-separated
+PROACIER HRM - v20.32 - FILE COMPLETO
+✅ UNICO bottone "Salva tutte le modifiche" in fondo: salva modifiche esistenti
+   + nuove mansioni/sanzioni/performance; chiude la mansione precedente (force, no cache)
+✅ Include tutto v20.31: STORICO_MANSIONI/SANZIONI/PERFORMANCE_REVIEW, mansione sola lettura,
+   regola d'oro performance, ambiente test/produzione, FRA/ENG/ITA, footer, PDF AD Trading
+Richiede: Apps Script + fogli STORICO_MANSIONI, STORICO_SANZIONI, PERFORMANCE_REVIEW
 """
 import sys
 import importlib
@@ -23,7 +23,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.31"
+VERSIONE = "v20.32"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -234,7 +234,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍👦 Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
@@ -270,9 +270,9 @@ T = {
     "visite_scadute": ("Visites médicales à renouveler (≤30 jours ou scadute)", "Visite mediche da rinnovare (≤30 giorni o scadute)", "Medical visits to renew (≤30 days or expired)"),
     "idoneita_parziale": ("Aptitude avec restriction / inaptitude", "Idoneità con restrizione o inidoneità", "Restricted fitness / unfitness"),
     "promemoria_visita": ("⚠️ Prochain contrôle médical le ", "⚠️ Prossimo controllo medico il ", "⚠️ Next medical check on "),
-    "form_hint": ("ℹ️ Modifiez ce que vous voulez, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas.",
-                  "ℹ️ Modifica ciò che vuoi, poi clicca UNA volta su « Salva tutte le modifiche » in fondo.",
-                  "ℹ️ Edit what you need, then click “Save all changes” once at the bottom."),
+    "form_hint": ("ℹ️ Remplissez tout, puis cliquez UNE seule fois sur « Enregistrer toutes les modifications » en bas.",
+                  "ℹ️ Compila tutto, poi clicca UNA sola volta su « Salva tutte le modifiche » in fondo.",
+                  "ℹ️ Fill everything, then click “Save all changes” once at the bottom."),
     "mogli_hint": ("Le total se met à jour automatiquement quand vous changez les enfants d'une épouse; ajustez manuellement seulement pour adoption/décès.",
                    "Il totale si aggiorna da solo quando cambi i figli di una moglie; ajusta manualmente solo per adozione/decesso.",
                    "The total auto-updates when you change a wife's children; adjust manually only for adoption/death."),
@@ -355,8 +355,7 @@ T = {
 
 def get_testo(chiave, lingua="fr"):
     t = T.get(chiave)
-    if not t:
-        return chiave
+    if not t: return chiave
     return t[LINGUE.get(lingua, 0)]
 
 OPZ = {
@@ -382,31 +381,21 @@ OPZ = {
                       ("richiamo_scritto", "Rappel écrit", "Richiamo scritto", "Written warning"),
                       ("sospensione", "Suspension", "Sospensione", "Suspension"),
                       ("altro", "Autre", "Altro", "Other")],
-    "gravita": [("lieve", "Légère", "Lieve", "Minor"),
-                ("media", "Moyenne", "Media", "Moderate"),
-                ("grave", "Grave", "Grave", "Severe")],
-    "motivo_cambio": [("assunzione", "Embauche", "Assunzione", "Hiring"),
-                      ("promozione", "Promotion", "Promozione", "Promotion"),
-                      ("trasferimento", "Transfert", "Trasferimento", "Transfer"),
-                      ("reintegro", "Réintégration", "Reintegro", "Reinstatement"),
+    "gravita": [("lieve", "Légère", "Lieve", "Minor"), ("media", "Moyenne", "Media", "Moderate"), ("grave", "Grave", "Grave", "Severe")],
+    "motivo_cambio": [("assunzione", "Embauche", "Assunzione", "Hiring"), ("promozione", "Promotion", "Promozione", "Promotion"),
+                      ("trasferimento", "Transfert", "Trasferimento", "Transfer"), ("reintegro", "Réintégration", "Reintegro", "Reinstatement"),
                       ("altro", "Autre", "Altro", "Other")],
-    "criteri_perf": [("puntualita", "Ponctualité", "Puntualità", "Punctuality"),
-                     ("qualita", "Qualité du travail", "Qualità del lavoro", "Work quality"),
-                     ("collaborazione", "Collaboration", "Collaborazione", "Collaboration"),
-                     ("sicurezza", "Sécurité", "Sicurezza", "Safety"),
-                     ("produttivita", "Productivité", "Produttività", "Productivity"),
-                     ("leadership", "Leadership", "Leadership", "Leadership"),
-                     ("affidabilita", "Fiabilité", "Affidabilità", "Reliability"),
-                     ("iniziativa", "Initiative", "Iniziativa", "Initiative")],
+    "criteri_perf": [("puntualita", "Ponctualité", "Puntualità", "Punctuality"), ("qualita", "Qualité du travail", "Qualità del lavoro", "Work quality"),
+                     ("collaborazione", "Collaboration", "Collaborazione", "Collaboration"), ("sicurezza", "Sécurité", "Sicurezza", "Safety"),
+                     ("produttivita", "Productivité", "Produttività", "Productivity"), ("leadership", "Leadership", "Leadership", "Leadership"),
+                     ("affidabilita", "Fiabilité", "Affidabilità", "Reliability"), ("iniziativa", "Initiative", "Iniziativa", "Initiative")],
 }
 
 def etichetta(tipo, valore, lingua="fr"):
     v = s_str(valore)
-    if not v:
-        return ""
+    if not v: return ""
     for o in OPZ.get(tipo, []):
-        if v in o:
-            return o[LINGUE.get(lingua, 0) + 1]
+        if v in o: return o[LINGUE.get(lingua, 0) + 1]
     return v
 
 def select_canonico(tipo, lingua, label, key, saved=None):
@@ -414,13 +403,10 @@ def select_canonico(tipo, lingua, label, key, saved=None):
     idx = 0
     sv = s_str(saved)
     if sv:
-        if sv in codes:
-            idx = codes.index(sv)
+        if sv in codes: idx = codes.index(sv)
         else:
             for o in OPZ[tipo]:
-                if sv in o[1:]:
-                    idx = codes.index(o[0])
-                    break
+                if sv in o[1:]: idx = codes.index(o[0]); break
     return st.selectbox(label, codes, index=idx, format_func=lambda c: etichetta(tipo, c, lingua), key=key)
 
 def norm_idoneita(v):
@@ -509,8 +495,7 @@ def servizi_di(r):
     for n in (1, 2, 3):
         tel = s_str(r.get(f"telefono_{n}"))
         sv = s_str(r.get(f"servizi_tel{n}"))
-        if tel:
-            parti.append(f"{tel}" + (f" ({sv})" if sv else ""))
+        if tel: parti.append(f"{tel}" + (f" ({sv})" if sv else ""))
     return " / ".join(parti)
 
 def _post_json(payload):
@@ -523,8 +508,7 @@ def _post_json(payload):
                     if j.get("status") == "success": return True, "ok"
                     return False, j.get("message", "Errore server")
                 return False, "Risposta inattesa"
-            except Exception:
-                return False, "Risposta non JSON"
+            except Exception: return False, "Risposta non JSON"
         return False, f"HTTP {r.status_code}"
     except Exception as e:
         return False, str(e)
@@ -707,13 +691,11 @@ class PDFProacier(FPDF):
     titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
     azienda = {}
     pages_count = 0
-
     def header(self):
         if self.page_no() == 1: return
         self.set_font("Helvetica", "B", 11)
         self.cell(0, 8, self.titolo, 0, 1, "C")
         self.ln(2)
-
     def footer(self):
         az = self.azienda or {}
         self.set_y(-16)
@@ -721,19 +703,16 @@ class PDFProacier(FPDF):
         self.cell(0, 4, f"{az.get('nome','AD Trading S.A.')} - {az.get('indirizzo','Cité Asecna Ouakam N° A72 - 12300 DAKAR (SÉNÉGAL)')}", 0, 1, "L")
         self.cell(150, 4, f"tel. {az.get('tel','+221 33 9133312')} - {az.get('email','info@adtrading.sn')} - {az.get('fisc','')}", 0, 0, "L")
         self.cell(0, 4, f"Pag. {self.page_no()}/{self.pages_count or ''}", 0, 1, "R")
-
     def sezione(self, titolo):
         self.set_font("Helvetica", "B", 10)
         self.set_fill_color(217, 225, 242)
         self.cell(0, 6, titolo, 0, 1, "C", True)
         self.ln(1)
-
     def campo(self, et, val):
         self.set_font("Helvetica", "B", 8)
         self.cell(60, 5, et, 0, 0)
         self.set_font("Helvetica", "", 8)
         self.cell(0, 5, s_str(val) or "___", 0, 1)
-
     def campo_doppio(self, e1, v1, e2, v2):
         self.set_font("Helvetica", "B", 8)
         self.cell(50, 5, e1, 0, 0)
@@ -1209,8 +1188,6 @@ def pagina_area_lavoratore(lingua):
         st.error(get_testo("nessun_risultato", lingua))
         return
     codice_mio = s_str(mio.get("codice"))
-
-    # === SEZIONE MANSIONE ATTUALE (sola lettura) ===
     st.subheader(get_testo("sezione_mansione", lingua))
     mansioni = mostra_storico_mansioni(codice_mio, lingua)
     attuale = None
@@ -1224,7 +1201,6 @@ def pagina_area_lavoratore(lingua):
     else:
         st.info(get_testo("no_mansione", lingua))
     st.markdown("---")
-
     st.subheader(get_testo("sezione_dati_personali", lingua))
     c1, c2, c3 = st.columns(3)
     c1.text_input(get_testo("cognome", lingua), value=s_str(mio.get("cognome")), disabled=True)
@@ -1237,7 +1213,6 @@ def pagina_area_lavoratore(lingua):
     c3.text_input(get_testo("luogo_nascita", lingua), value=s_str(mio.get("luogo_nascita")), disabled=True)
     c3.text_input(get_testo("nazionalita", lingua), value=etichetta("paesi", mio.get("nazionalita"), lingua), disabled=True)
     st.markdown("---")
-
     st.subheader("🩺 " + get_testo("sezione_medica", lingua))
     _, recs_vis_me = leggi_foglio("VISITE_MEDICHE")
     mie_vis = [v for v in recs_vis_me if s_str(v.get("codice_lavoratore")).upper() == str(st.session_state.codice_operatore).strip().upper()]
@@ -1248,7 +1223,7 @@ def pagina_area_lavoratore(lingua):
         if pc:
             lim = datetime.now() + timedelta(days=30)
             if pc <= (lim.year, lim.month, lim.day):
-                st.warning(f'{get_testo("promemoria_visita", lingua)} {s_str(ultima.get("prossimo_controllo"))}')
+                st.warning(f'{get_testo("promemoria_visita", lingua)} {s_str(ultima.get("prossimo_controllo'))}')
         if norm_idoneita(ultima.get("idoneita")) in ("restriction", "inapte") and s_str(ultima.get("restrizioni")):
             st.info("🩺 " + s_str(ultima.get("restrizioni")))
     c1, c2, c3 = st.columns(3)
@@ -1269,8 +1244,6 @@ def pagina_area_lavoratore(lingua):
     else:
         st.caption(get_testo("nessuna_visita", lingua))
     st.markdown("---")
-
-    # === SEZIONE PAGHE ===
     st.subheader(get_testo("sezione_paga", lingua))
     _, sal_records = leggi_foglio("SALARI")
     mia_paga = [s for s in sal_records if s_str(s.get("codice_lavoratore")).upper() == codice_mio.upper() and not s_str(s.get("data_fine_validita"))]
@@ -1280,7 +1253,6 @@ def pagina_area_lavoratore(lingua):
         c2.text_input(get_testo("paga_amount", lingua), value=s_str(mia_paga[0].get("importo_base")) + " FCFA", disabled=True)
     else:
         st.info(get_testo("paga_desc", lingua))
-
     with st.expander("💰 " + get_testo("sezione_storico_paghe", lingua)):
         storico_paghe = mostra_storico_paghe(codice_mio, lingua)
         if storico_paghe:
@@ -1288,33 +1260,24 @@ def pagina_area_lavoratore(lingua):
                 riga = (f"- **{s_str(p.get('data_inizio_validita'))}** → "
                         f"{etichetta('tipo_paga', p.get('tipo_paga'), lingua)} "
                         f"{s_str(p.get('importo_base'))} FCFA")
-                if s_str(p.get("data_fine_validita")):
-                    riga += f" → {s_str(p.get('data_fine_validita'))}"
-                if s_str(p.get("note")):
-                    riga += f" • {s_str(p.get('note'))}"
+                if s_str(p.get("data_fine_validita")): riga += f" → {s_str(p.get('data_fine_validita'))}"
+                if s_str(p.get("note")): riga += f" • {s_str(p.get('note'))}"
                 st.markdown(riga)
         else:
             st.caption(get_testo("no_storico_paghe", lingua))
     st.markdown("---")
-
-    # === SEZIONE STORICO MANSIONI ===
     st.subheader(get_testo("sezione_storico_mansioni", lingua))
     if mansioni:
         for m in mansioni:
             riga = (f"- **{s_str(m.get('date_debut'))}** → **{s_str(m.get('poste'))}** "
                     f"({s_str(m.get('departement'))})")
-            if s_str(m.get("date_fin")):
-                riga += f" → {s_str(m.get('date_fin'))}"
-            else:
-                riga += " *(actuel)*"
-            if s_str(m.get("upgrade")):
-                riga += f" • 📈 {etichetta('motivo_cambio', m.get('motif'), lingua)}"
+            if s_str(m.get("date_fin")): riga += f" → {s_str(m.get('date_fin'))}"
+            else: riga += " *(actuel)*"
+            if s_str(m.get("upgrade")): riga += f" • 📈 {etichetta('motivo_cambio', m.get('motif'), lingua)}"
             st.markdown(riga)
     else:
         st.caption(get_testo("no_storico_mansioni", lingua))
     st.markdown("---")
-
-    # === SEZIONE PERFORMANCE ===
     st.subheader("⭐ " + get_testo("sezione_performance", lingua))
     st.info("💡 " + get_testo("regola_oro", lingua))
     performance = mostra_performance(codice_mio, lingua)
@@ -1332,8 +1295,6 @@ def pagina_area_lavoratore(lingua):
     else:
         st.caption(get_testo("no_performance", lingua))
     st.markdown("---")
-
-    # === SEZIONE SANZIONI ===
     st.subheader("⚠️ " + get_testo("sezione_sanzioni", lingua))
     sanzioni = mostra_sanzioni(codice_mio, lingua)
     if sanzioni:
@@ -1345,7 +1306,6 @@ def pagina_area_lavoratore(lingua):
     else:
         st.success("✅ " + get_testo("no_sanzioni", lingua))
     st.markdown("---")
-
     st.caption(get_testo("form_hint", lingua))
     with st.form("area_lav_form"):
         st.subheader(get_testo("sezione_contatti", lingua))
@@ -1377,7 +1337,7 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
                 somma_mogli += fig
             prev = st.session_state.get("prev_somma_mogli")
             if prev is None:
@@ -1555,7 +1515,7 @@ def pagina_dashboard(lingua):
                                         value=s_int(attiva.get("importo_base")) if attiva else 0,
                                         step=500, key=f"adm_imp_{i}")
 
-            # === SEZIONE MANSIONI ===
+            # === MANSIONI (campi di preparazione, salvati dal bottone in fondo) ===
             st.markdown(f"### {get_testo('sez_mansioni', lingua)}")
             mie_man = [m for m in recs_man if s_str(m.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_man.sort(key=lambda x: data_ord(x.get("date_debut")) or (0, 0, 0), reverse=True)
@@ -1568,37 +1528,14 @@ def pagina_dashboard(lingua):
                     st.markdown(riga)
             else:
                 st.caption(get_testo("no_storico_mansioni", lingua))
-            with st.form(f"form_mansione_{i}"):
-                mc1, mc2, mc3 = st.columns(3)
-                new_poste = mc1.text_input(get_testo("mansione", lingua), key=f"new_poste_{i}")
-                new_dept = mc2.text_input("Département", key=f"new_dept_{i}")
-                new_data = mc3.text_input(get_testo("data_inizio", lingua) + " (GG/MM/AAAA)", value=datetime.now().strftime("%d/%m/%Y"), key=f"new_mdata_{i}")
-                new_motivo = select_canonico("motivo_cambio", lingua, get_testo("motivo_cambio", lingua), f"new_motivo_{i}")
-                new_upgrade = st.checkbox(get_testo("upgrade", lingua), key=f"new_upgrade_{i}")
-                sub_man = st.form_submit_button(get_testo("nuova_mansione", lingua))
-                if sub_man and new_poste:
-                    # chiudi eventuali mansioni aperte
-                    for m_open in mie_man:
-                        if not s_str(m_open.get("date_fin")):
-                            idx_open = None
-                            for idx_r, rr in enumerate(recs_man):
-                                if rr.get("code_travailleur") == m_open.get("code_travailleur") and rr.get("date_debut") == m_open.get("date_debut"):
-                                    idx_open = idx_r
-                                    break
-                            if idx_open is not None:
-                                salva_update("STORICO_MANSIONI", idx_open, {"date_fin": datetime.now().strftime("%d/%m/%Y")})
-                    row_man = {"code_travailleur": s_str(r.get("codice")), "nom_prenom": nome_completo,
-                               "date_debut": new_data, "date_fin": "",
-                               "poste": new_poste, "departement": new_dept,
-                               "motif": new_motivo, "upgrade": "SI" if new_upgrade else "NO"}
-                    ok, msg = salva_append("STORICO_MANSIONI", row_man)
-                    if ok:
-                        st.success(get_testo("modifiche_salvate", lingua))
-                        st.rerun()
-                    else:
-                        st.error(msg)
+            mc1, mc2, mc3 = st.columns(3)
+            new_poste = mc1.text_input(get_testo("mansione", lingua), key=f"new_poste_{i}")
+            new_dept = mc2.text_input("Département", key=f"new_dept_{i}")
+            new_data = mc3.text_input(get_testo("data_inizio", lingua) + " (GG/MM/AAAA)", value=datetime.now().strftime("%d/%m/%Y"), key=f"new_mdata_{i}")
+            new_motivo = select_canonico("motivo_cambio", lingua, get_testo("motivo_cambio", lingua), f"new_motivo_{i}")
+            new_upgrade = st.checkbox(get_testo("upgrade", lingua), key=f"new_upgrade_{i}")
 
-            # === SEZIONE SANZIONI ===
+            # === SANZIONI (campi di preparazione) ===
             st.markdown(f"### {get_testo('sez_sanzioni', lingua)}")
             mie_sanz = [s for s in recs_sanz if s_str(s.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_sanz.sort(key=lambda x: data_ord(x.get("date")) or (0, 0, 0), reverse=True)
@@ -1610,26 +1547,14 @@ def pagina_dashboard(lingua):
                     )
             else:
                 st.success("✅ " + get_testo("no_sanzioni", lingua))
-            with st.form(f"form_sanzione_{i}"):
-                sc1, sc2 = st.columns(2)
-                new_tipo_s = select_canonico("tipo_sanzione", lingua, get_testo("tipo_sanzione", lingua), f"new_tipo_s_{i}")
-                new_grav = select_canonico("gravita", lingua, get_testo("gravita", lingua), f"new_grav_{i}")
-                new_data_s = sc1.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_sdata_{i}")
-                new_desc = st.text_area(get_testo("descrizione", lingua), key=f"new_desc_{i}")
-                new_note = st.text_input(get_testo("note", lingua), key=f"new_note_{i}")
-                sub_san = st.form_submit_button(get_testo("nuova_sanzione", lingua))
-                if sub_san and new_desc:
-                    row_san = {"code_travailleur": s_str(r.get("codice")), "nom_prenom": nome_completo,
-                               "date": new_data_s, "type": new_tipo_s, "description": new_desc,
-                               "gravite": new_grav, "sanctionneur": "admin", "note": new_note}
-                    ok, msg = salva_append("STORICO_SANZIONI", row_san)
-                    if ok:
-                        st.success(get_testo("modifiche_salvate", lingua))
-                        st.rerun()
-                    else:
-                        st.error(msg)
+            sc1, sc2 = st.columns(2)
+            new_tipo_s = select_canonico("tipo_sanzione", lingua, get_testo("tipo_sanzione", lingua), f"new_tipo_s_{i}")
+            new_grav = select_canonico("gravita", lingua, get_testo("gravita", lingua), f"new_grav_{i}")
+            new_data_s = sc1.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_sdata_{i}")
+            new_desc = st.text_area(get_testo("descrizione", lingua), key=f"new_desc_{i}")
+            new_note = st.text_input(get_testo("note", lingua), key=f"new_note_{i}")
 
-            # === SEZIONE PERFORMANCE REVIEW ===
+            # === PERFORMANCE (campi di preparazione) ===
             st.markdown(f"### {get_testo('sez_performance', lingua)}")
             st.info("💡 " + get_testo("regola_oro", lingua))
             mie_perf = [p for p in recs_perf if s_str(p.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
@@ -1644,30 +1569,16 @@ def pagina_dashboard(lingua):
                     )
             else:
                 st.caption(get_testo("no_performance", lingua))
-            with st.form(f"form_perf_{i}"):
-                pc1, pc2 = st.columns(2)
-                new_crit = select_canonico("criteri_perf", lingua, get_testo("critere", lingua), f"new_crit_{i}")
-                new_voto = pc1.slider(get_testo("nota_1_5", lingua), 1, 5, 3, key=f"new_voto_{i}")
-                new_data_p = pc2.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_pdata_{i}")
-                new_comp = st.text_area(get_testo("comportamento_osservato", lingua), key=f"new_comp_{i}",
-                                        help="Descrivi solo fatti osservabili, non impressioni")
-                new_contesto = st.text_input(get_testo("contesto", lingua), key=f"new_cont_{i}")
-                new_freq = st.text_input(get_testo("frequenza", lingua), key=f"new_freq_{i}", placeholder="es: quotidien, hebdomadaire, occasionnel")
-                new_azione = st.text_input(get_testo("azione_proposta", lingua), key=f"new_az_{i}")
-                new_eval = st.text_input(get_testo("evaluateur", lingua), value="admin", key=f"new_eval_{i}")
-                sub_perf = st.form_submit_button(get_testo("nuova_review", lingua))
-                if sub_perf and new_comp:
-                    row_perf = {"code_travailleur": s_str(r.get("codice")), "nom_prenom": nome_completo,
-                                "date_review": new_data_p, "evaluateur": new_eval,
-                                "critere": new_crit, "comportement_observé": new_comp,
-                                "contexte": new_contesto, "frequence": new_freq,
-                                "note_1_5": new_voto, "action_proposee": new_azione}
-                    ok, msg = salva_append("PERFORMANCE_REVIEW", row_perf)
-                    if ok:
-                        st.success(get_testo("modifiche_salvate", lingua))
-                        st.rerun()
-                    else:
-                        st.error(msg)
+            pc1, pc2 = st.columns(2)
+            new_crit = select_canonico("criteri_perf", lingua, get_testo("critere", lingua), f"new_crit_{i}")
+            new_voto = pc1.slider(get_testo("nota_1_5", lingua), 1, 5, 3, key=f"new_voto_{i}")
+            new_data_p = pc2.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_pdata_{i}")
+            new_comp = st.text_area(get_testo("comportamento_osservato", lingua), key=f"new_comp_{i}",
+                                    help="Descrivi solo fatti osservabili, non impressioni")
+            new_contesto = st.text_input(get_testo("contesto", lingua), key=f"new_cont_{i}")
+            new_freq = st.text_input(get_testo("frequenza", lingua), key=f"new_freq_{i}", placeholder="es: quotidien, hebdomadaire, occasionnel")
+            new_azione = st.text_input(get_testo("azione_proposta", lingua), key=f"new_az_{i}")
+            new_eval = st.text_input(get_testo("evaluateur", lingua), value="admin", key=f"new_eval_{i}")
 
             st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
             mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == s_str(r.get("codice"))]
@@ -1710,10 +1621,16 @@ def pagina_dashboard(lingua):
             st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
                                file_name=f"Proacier_{s_str(r.get('codice')) or i}.pdf", mime="application/pdf",
                                use_container_width=True, key=f"adm_pdf_{i}")
+
+    # === UNICO BOTTONE SALVA TUTTO (modifiche esistenti + nuove mansioni/sanzioni/performance) ===
     if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
         cambi = 0
+        # rileggi fresco per chiudere correttamente le mansioni aperte
+        _, fresh_man = leggi_foglio("STORICO_MANSIONI", force=True)
         for i, r in vista:
             cod = s_str(r.get("codice"))
+            nome_completo = f"{s_str(r.get('nome'))} {s_str(r.get('cognome'))}"
+            # --- modifiche esistenti ---
             upd = {}
             orig_turno = s_str(r.get("turno"))
             n_turno = st.session_state.get(f"adm_turno_{i}", orig_turno)
@@ -1746,6 +1663,43 @@ def pagina_dashboard(lingua):
                                                       "data_inizio_validita": datetime.now().strftime("%d/%m/%Y"),
                                                       "data_fine_validita": "", "note": ""})
                     if ok2: cambi += 1
+            # --- nuova mansione (chiude la precedente aperta) ---
+            new_poste = s_str(st.session_state.get(f"new_poste_{i}"))
+            if new_poste and cod:
+                for idx_r, rr in enumerate(fresh_man):
+                    if s_str(rr.get("code_travailleur")).upper() == cod.upper() and not s_str(rr.get("date_fin")):
+                        salva_update("STORICO_MANSIONI", idx_r, {"date_fin": datetime.now().strftime("%d/%m/%Y")})
+                row_man = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                           "date_debut": s_str(st.session_state.get(f"new_mdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
+                           "date_fin": "", "poste": new_poste,
+                           "departement": s_str(st.session_state.get(f"new_dept_{i}")),
+                           "motif": s_str(st.session_state.get(f"new_motivo_{i}")),
+                           "upgrade": "SI" if st.session_state.get(f"new_upgrade_{i}") else "NO"}
+                ok, _ = salva_append("STORICO_MANSIONI", row_man)
+                if ok: cambi += 1
+            # --- nuova sanzione ---
+            new_desc = s_str(st.session_state.get(f"new_desc_{i}"))
+            if new_desc and cod:
+                row_san = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                           "date": s_str(st.session_state.get(f"new_sdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
+                           "type": s_str(st.session_state.get(f"new_tipo_s_{i}")), "description": new_desc,
+                           "gravite": s_str(st.session_state.get(f"new_grav_{i}")), "sanctionneur": "admin",
+                           "note": s_str(st.session_state.get(f"new_note_{i}"))}
+                ok, _ = salva_append("STORICO_SANZIONI", row_san)
+                if ok: cambi += 1
+            # --- nuova performance review ---
+            new_comp = s_str(st.session_state.get(f"new_comp_{i}"))
+            if new_comp and cod:
+                row_perf = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                            "date_review": s_str(st.session_state.get(f"new_pdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
+                            "evaluateur": s_str(st.session_state.get(f"new_eval_{i}")) or "admin",
+                            "critere": s_str(st.session_state.get(f"new_crit_{i}")), "comportement_observé": new_comp,
+                            "contexte": s_str(st.session_state.get(f"new_cont_{i}")),
+                            "frequence": s_str(st.session_state.get(f"new_freq_{i}")),
+                            "note_1_5": st.session_state.get(f"new_voto_{i}", 3),
+                            "action_proposee": s_str(st.session_state.get(f"new_az_{i}"))}
+                ok, _ = salva_append("PERFORMANCE_REVIEW", row_perf)
+                if ok: cambi += 1
         st.success(f"✅ {cambi} {get_testo('salvate_n', lingua)}")
         st.rerun()
     if not cerca and len(mostrati) > limite:
