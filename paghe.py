@@ -595,9 +595,9 @@ def sezione_import(A, lingua):
         token = A.cfg_get("url_upload_token", "")
         nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
         try:
-            r = requests.post(url_up, data={"token": token, "filename": nome_file},
-                              files={"file": (nome_file, up.getvalue(), up.type)},
-                              auth=auth, timeout=120)   # v07.05 auth
+            import base64
+            r = requests.post(url_up, data={"token": token, "filename": nome_file,
+                              "file_b64": base64.b64encode(up.getvalue()).decode()}, timeout=120)
             if r.status_code == 200:
                 st.success("✅ " + nome_file)
             else:
