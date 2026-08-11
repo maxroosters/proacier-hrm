@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.27
+# HRM_PA_ver_20.18
 """
-PROACIER HRM - v20.27 - FILE COMPLETO
-✅ PDF: titoli centrati; blocco lavoratore sotto linea logo (dx); firma + riga Data
-✅ Pannello successo: zona azzurra (conserva+codice+pin+scarica) + tasti Règlement/Privacy
-✅ Include tutto v20.26: chiavi widget dashboard su indice riga (fix DuplicateElementKey),
-   ambiente test/produzione, FRA/ENG/ITA, footer, PDF documento AD Trading, FASE 6 (paghe.py)
-Richiede: Apps Script v6.1 + paghe.py + requirements (streamlit, requests, fpdf2)
+PROACIER HRM - v20.28 - FILE COMPLETO
+✅ Telegram rimesso a fine registrazione (5 righe sotto Scarica PDF)
+✅ Figli: contatori parificati (somma mogli ↔ totale manuale, salvataggio coerente, PDF aggiornato)
+✅ PDF: aggiunti servizi telefono (Wave/Orange/...) e n° mogli/figli
+✅ Admin: blocco statico con dati personali completi in alto nell'expander
+✅ Include tutto v20.17: PDF documento AD Trading, FRA/ENG/ITA, ambiente test/produzione, FASE 6
+Richiede: Apps Script v6.1 + paghe.py + index.html che inoltra i parametri
 """
 import sys
 import importlib
@@ -23,7 +24,7 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.27"
+VERSIONE = "v20.18"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -265,9 +266,9 @@ T = {
     "form_hint": ("ℹ️ Modifiez ce que vous voulez, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas.",
                   "ℹ️ Modifica ciò che vuoi, poi clicca UNA volta su « Salva tutte le modifiche » in fondo.",
                   "ℹ️ Edit what you need, then click “Save all changes” once at the bottom."),
-    "mogli_hint": ("Après modification du nombre d'épouses, enregistrez pour afficher les champs des nouvelles épouses.",
-                   "Dopo aver cambiato il numero di mogli, salva per visualizzare i campi delle nuove mogli.",
-                   "After changing the number of wives, save to display the fields of the new wives."),
+    "mogli_hint": ("Le total se met à jour automatiquement quand vous changez les enfants d'une épouse; ajustez manuellement seulement pour adoption/décès.",
+                   "Il totale si aggiorna da solo quando cambi i figli di una moglie; ajusta manualmente solo per adozione/decesso.",
+                   "The total auto-updates when you change a wife's children; adjust manually only for adoption/death."),
     "mostra_altri": ("➕ Afficher 15 de plus", "➕ Mostrane altri 15", "➕ Show 15 more"),
     "pdf_titolo": ("FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES", "SCHEDA DI REGISTRAZIONE - RISORSE UMANE", "REGISTRATION FORM - HUMAN RESOURCES"),
     "pdf_nfiche": ("N° fiche: ", "N° scheda: ", "File No.: "),
@@ -477,6 +478,16 @@ def parse_mogli(s):
         res = re.sub(r"\s*\(\d+\s*enfants?\)\s*$", "", res).strip()
         out.append({"res": res, "fig": fig})
     return out
+
+
+def servizi_di(r):
+    parti = []
+    for n in (1, 2, 3):
+        tel = s_str(r.get(f"telefono_{n}"))
+        sv = s_str(r.get(f"servizi_tel{n}"))
+        if tel:
+            parti.append(f"{tel}" + (f" ({sv})" if sv else ""))
+    return " / ".join(parti)
 
 
 def _post_json(payload):
@@ -756,14 +767,12 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.alias_nb_pages()
     pdf.add_page()
-    # logo in alto a sinistra
     try:
         lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
         if lg.status_code == 200 and lg.content:
             pdf.image(lg.content, x=10, y=8, w=30)
     except Exception:
         pass
-    # blocco lavoratore ABBASSATO sotto la linea del logo, allineato a destra
     pdf.set_xy(110, 34)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
@@ -773,7 +782,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(0, 4, s_str(d.get("indirizzo")), 0, 1, "R")
     pdf.cell(0, 4, f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip(), 0, 1, "R")
     pdf.cell(0, 4, etichetta("paesi", d.get("paese_origine"), lingua) or "Sénégal", 0, 1, "R")
-    # titolo CENTRATO sotto il blocco
     pdf.set_xy(10, 62)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "C")
@@ -787,6 +795,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.campo_doppio(get_testo("pdf_ne_le", lingua), formatta_data(d.get("data_nascita")), get_testo("pdf_a", lingua), d.get("luogo_nascita"))
     pdf.campo_doppio(get_testo("pdf_nationalite", lingua), etichetta("paesi", d.get("nazionalita"), lingua), get_testo("pdf_pays", lingua), etichetta("paesi", d.get("paese_origine"), lingua))
     pdf.campo_doppio(get_testo("pdf_etat_civil", lingua), etichetta("stato_civile", d.get("stato_civile"), lingua), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
+    pdf.campo_doppio(get_testo("pdf_epouses", lingua), d.get("numero_mogli"), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
     if s_int(d.get("numero_mogli")) > 0:
         pdf.set_font("Helvetica", "B", 8)
         pdf.cell(60, 5, get_testo("pdf_epouses", lingua), 0, 0)
@@ -796,6 +805,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.sezione(get_testo("pdf_sez2", lingua))
     pdf.campo(get_testo("pdf_adresse", lingua), f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
     pdf.campo_doppio(get_testo("pdf_tel1", lingua), d.get("telefono_1"), get_testo("pdf_tel2", lingua), d.get("telefono_2"))
+    pdf.campo(get_testo("servizi_telefono", lingua), servizi_di(d))
     pdf.campo_doppio("CNI: ", d.get("cni"), "CSS: ", d.get("css"))
     pdf.campo_doppio("NIF: ", d.get("nif"), "IPRES: ", d.get("ipres"))
     pdf.ln(1)
@@ -820,7 +830,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(95, 6, get_testo("pdf_candidat", lingua), 1, 0, "C")
     pdf.cell(95, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
     pdf.set_font("Helvetica", "", 9)
-    # spazio firma aumentato + riga Data sotto
     pdf.cell(95, 22, "", 1, 0)
     pdf.cell(95, 22, "", 1, 1)
     pdf.ln(2)
@@ -894,15 +903,17 @@ def step_1(lingua):
         if stato_civile == "coniugato":
             numero_mogli = st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=1, key="s1_mog")
             det = []
+            somma = 0
             for i in range(1, numero_mogli + 1):
                 st.markdown(f"Épouse {i}")
                 cr, cf = st.columns(2)
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', key=f"s1_res{i}")
                 fig = cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=0, key=f"s1_fig{i}")
-                figli_tot += fig
+                somma += fig
                 det.append(f"Épouse {i}: {res} ({fig} enfants)")
             dettagli_mogli = " | ".join(det)
-            st.info(f'ℹ️ {get_testo("figli_totale", lingua)}: {figli_tot}')
+            figli_tot = somma
+            st.info(f'ℹ️ {get_testo("somma_mogli", lingua)}: {somma}')
     return {"cognome": cognome, "nome": nome, "data_nascita": f"{giorno:02d}/{mese:02d}/{anno}",
             "luogo_nascita": luogo, "nazionalita": naz, "paese_origine": por, "sesso": sesso,
             "stato_civile": stato_civile, "numero_mogli": numero_mogli, "dettagli_mogli": dettagli_mogli,
@@ -1006,10 +1017,26 @@ def step_7(lingua):
             "taglia_giacca": tg, "taglia_cappello": tc, "taglia_guanti": tgu}
 
 
+def blocco_telegram(lingua):
+    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
+    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
+    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
+    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+<div style="display:flex;gap:10px;">
+<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
+<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
+</div>
+<div style="display:flex;gap:10px;margin-top:10px;">
+<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
+<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
+</div>
+''', unsafe_allow_html=True)
+
+
 def pannello_successo(lingua):
     u = st.session_state.ultimo_salvataggio
-    if not u.get("dup"):
-        st.success(f'✅ {get_testo("pdf_generato", lingua)}')
+    st.success(f'✅ {get_testo("pdf_generato", lingua)}')
     st.info(get_testo("conserva_credenziali", lingua))
     c1, c2 = st.columns(2)
     c1.info(f'{get_testo("codice_accesso", lingua)}: {u["codice"]}')
@@ -1017,11 +1044,8 @@ def pannello_successo(lingua):
     st.download_button(label=f'📥 {get_testo("scarica", lingua)} PDF', data=u["pdf"],
                        file_name=f'Proacier_{u["codice"]}.pdf', mime="application/pdf",
                        use_container_width=True, key="btn_dl_ok")
-    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
-    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
-    c1, c2 = st.columns(2)
-    c1.link_button(get_testo("doc_regolamento", lingua), url_reg, use_container_width=True)
-    c2.link_button(get_testo("doc_privacy", lingua), url_priv, use_container_width=True)
+    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
+    blocco_telegram(lingua)
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button(get_testo("nuova_registrazione", lingua), use_container_width=True):
         st.session_state.ultimo_salvataggio = None
@@ -1173,11 +1197,11 @@ def pagina_candidatura(lingua):
     if st.session_state.get("cand_fp") and st.button(get_testo("nouvelle_candidature", lingua), use_container_width=True, key="btn_cand_new"):
         for k in ("c_cognome", "c_nome", "c_email", "c_tel", "c_ind", "c_com", "c_skills", "c_sal", "c_note", "c_studi"):
             st.session_state.pop(k, None)
-        for k in list(st.session_state.keys()):
-            if k.startswith("c_man_"):
-                st.session_state.pop(k, None)
-        st.session_state.cand_fp = None
-        st.rerun()
+    for k in list(st.session_state.keys()):
+        if k.startswith("c_man_"):
+            st.session_state.pop(k, None)
+    st.session_state.cand_fp = None
+    st.rerun()
 
 
 def pagina_area_lavoratore(lingua):
@@ -1275,22 +1299,25 @@ def pagina_area_lavoratore(lingua):
             if n_stato == "coniugato":
                 n_mogli = int(st.number_input(get_testo("numero_mogli", lingua), min_value=1, max_value=4, value=max(1, s_int(mio.get("numero_mogli"))), key="ar_mogli"))
             esistenti = parse_mogli(mio.get("dettagli_mogli"))
-            dettagli = ""
-            if n_stato == "coniugato":
-                st.caption(get_testo("mogli_hint", lingua))
-                det, somma_mogli = [], 0
-                for i in range(1, n_mogli + 1):
-                    st.markdown(f"Épouse {i}")
-                    cr, cf = st.columns(2)
-                    old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
-                    res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                    fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
-                    somma_mogli += fig
-                    det.append(f"Épouse {i}: {res} ({fig} enfants)")
-                dettagli = " | ".join(det)
-                st.info(f'ℹ️ {get_testo("somma_mogli", lingua)}: {somma_mogli}')
-            n_figli = int(st.number_input(get_testo("figli_totale", lingua), min_value=0,
-                                          value=s_int(mio.get("figli_totale")), key="ar_fig_tot"))
+            st.caption(get_testo("mogli_hint", lingua))
+            somma_mogli = 0
+            for i in range(1, n_mogli + 1):
+                st.markdown(f"Épouse {i}")
+                cr, cf = st.columns(2)
+                old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
+                res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
+                somma_mogli += fig
+            # parifica: se la somma mogli cambia, aggiorna il totale; il totale manuale resta per adozione/decesso
+            prev = st.session_state.get("prev_somma_mogli")
+            if prev is None:
+                if "ar_fig_tot" not in st.session_state:
+                    st.session_state["ar_fig_tot"] = s_int(mio.get("figli_totale"))
+            elif somma_mogli != prev:
+                st.session_state["ar_fig_tot"] = somma_mogli
+            st.session_state["prev_somma_mogli"] = somma_mogli
+            st.info(f'ℹ️ {get_testo("somma_mogli", lingua)}: {somma_mogli}')
+            n_figli = int(st.number_input(get_testo("figli_totale", lingua), min_value=0, key="ar_fig_tot"))
         st.markdown("---")
         st.subheader(get_testo("sezione_vestiario", lingua))
         xs = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"]
@@ -1313,7 +1340,9 @@ def pagina_area_lavoratore(lingua):
             upd = {"telefono_1": n_tel1, "telefono_2": n_tel2, "telefono_3": n_tel3,
                    "indirizzo": n_ind, "quartiere": n_qua, "comune": n_com, "regione_senegal": n_reg,
                    "emergenza_nome": n_em_nome, "emergenza_tel": n_em_tel, "stato_civile": n_stato,
-                   "figli_totale": n_figli, "numero_mogli": n_mogli, "dettagli_mogli": dettagli,
+                   "figli_totale": n_figli if n_stato == "coniugato" else s_int(mio.get("figli_totale")),
+                   "numero_mogli": n_mogli,
+                   "dettagli_mogli": " | ".join([f"Épouse {i}: {st.session_state.get(f'ar_res{i}','')} ({st.session_state.get(f'ar_fig{i}',0)} enfants)" for i in range(1, n_mogli+1)]) if n_stato == "coniugato" else "",
                    "taglia_maglia": n_tm, "taglia_pantaloni": n_tp, "taglia_scarpe": n_ts,
                    "taglia_giacca": n_tg, "taglia_cappello": n_tc, "taglia_guanti": n_tgu}
             with st.spinner(get_testo("saving", lingua)):
@@ -1362,23 +1391,6 @@ def bacheca_avvisi(lingua):
             st.error(f"**⚠️ URGENTE — {s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
         else:
             st.info(f"**{s_str(r.get('titolo'))}** — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-
-
-def blocco_telegram(lingua):
-    link_canale = cfg_get("telegram_link_canale") or CONFIG["base_url"]
-    url_reg = cfg_get("url_regolamento", CONFIG["base_url"])
-    url_priv = cfg_get("url_privacy", CONFIG["base_url"])
-    st.markdown(f'<div class="tg-banner">📲 <b>{get_testo("tg_obbligo", lingua)}</b></div>', unsafe_allow_html=True)
-    st.markdown(f'''
-<div style="display:flex;gap:10px;">
-<a class="docbtn" style="background:#a03030;" href="https://telegram.org/download" target="_blank">1️⃣ {get_testo("tg_install", lingua)}</a>
-<a class="docbtn" style="background:#a03030;" href="{link_canale}" target="_blank">2️⃣ {get_testo("tg_join", lingua)}</a>
-</div>
-<div style="display:flex;gap:10px;margin-top:10px;">
-<a class="docbtn" style="background:#2b4a6b;" href="{url_reg}" target="_blank">📄 {get_testo("doc_regolamento", lingua)}</a>
-<a class="docbtn" style="background:#2b4a6b;" href="{url_priv}" target="_blank">🔒 {get_testo("doc_privacy", lingua)}</a>
-</div>
-''', unsafe_allow_html=True)
 
 
 def pagina_dashboard(lingua):
@@ -1454,14 +1466,13 @@ def pagina_dashboard(lingua):
     for i, r in vista:
         cod = s_str(r.get("codice")) or f"(senza codice riga {i})"
         with st.expander(f"{cod} — {s_str(r.get('cognome'))} {s_str(r.get('nome'))} | {get_testo('turno', lingua)}: {s_str(r.get('turno')) or '—'}"):
+            # blocco statico dati personali completi in alto
             st.markdown(
-                f'{get_testo("data_nascita", lingua)}: {formatta_data(r.get("data_nascita"))} '
-                f'— {get_testo("telefono_1", lingua)}: {s_str(r.get("telefono_1"))} '
-                f'— {get_testo("regione_senegal", lingua)}: {s_str(r.get("regione_senegal"))}\n'
-                f'{get_testo("stato_civile", lingua)}: {etichetta("stato_civile", r.get("stato_civile"), lingua)} '
-                f'— {get_testo("figli_totale", lingua)}: {s_str(r.get("figli_totale"))} '
-                f'— {get_testo("idoneita", lingua)}: {etichetta("idoneita", r.get("idoneita"), lingua)} '
-                f'({formatta_data(r.get("data_visita"))})')
+                f"**{s_str(r.get('nome'))} {s_str(r.get('cognome'))}** — {s_str(r.get('indirizzo'))}, {s_str(r.get('comune'))} {s_str(r.get('quartiere'))}\n\n"
+                f"🎂 {formatta_data(r.get('data_nascita'))} — {s_str(r.get('luogo_nascita'))}\n\n"
+                f"📞 {servizi_di(r)}\n\n"
+                f"🚨 {get_testo('emergenza_nome', lingua)}: {s_str(r.get('emergenza_nome'))} — {s_str(r.get('emergenza_tel'))}\n\n"
+                f"👥 {get_testo('numero_mogli', lingua)}: {s_int(r.get('numero_mogli'))} — {get_testo('figli_totale', lingua)}: {s_int(r.get('figli_totale'))}")
             st.markdown(f'### {get_testo("sez_admin", lingua)}')
             ca, cb = st.columns(2)
             with ca:
