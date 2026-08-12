@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.08]
-✅ v07.08: bottone "Analyser le fichier chargé" = analizza il file XLS direttamente
-   in memoria (niente cPanel, niente POST bloccato dal firewall)
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.09]
+✅ v07.09: al salvataggio, se il parsed in memoria è vuoto ma il file è caricato,
+   lo ri-analizza prima di scrivere → non scrive più 0
+✅ v07.08: bottone "Analyser le fichier chargé" (analisi in memoria, niente cPanel)
 ✅ Include: parser List of Logs, anomalie, paghe quindicina, acconti,
    storico mansioni/sanzioni/performance, upload/download XLS
 Richiede: Apps Script v6.1
@@ -18,7 +19,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_PAGHE = "07.08"
+VERSIONE_PAGHE = "07.09"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -669,11 +670,20 @@ def sezione_import(A, lingua):
                    f"{parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — "
                    f"{len(parsed['blocchi'])} {t6('import_workers', lingua)}")
         if st.button("💾 " + t6("import_write_btn", lingua), type="primary"):
-            with st.spinner("..."):
-                esito = scrivi_presenze(A, parsed)
-            st.session_state.f6_esito_import = esito
-            st.session_state.pop("f6_parsed", None)
-            st.rerun()
+            # v07.09: se il parsed in memoria è vuoto ma il file è caricato, ri-analizza
+            if not parsed.get("blocchi") and up is not None:
+                try:
+                    parsed = parse_matrix(_xls_matrix(up.getvalue()))
+                except Exception:
+                    parsed = None
+            if parsed and parsed.get("blocchi"):
+                with st.spinner("..."):
+                    esito = scrivi_presenze(A, parsed)
+                st.session_state.f6_esito_import = esito
+                st.session_state.pop("f6_parsed", None)
+                st.rerun()
+            else:
+                st.error(t6("parsed_none", lingua))
     esito = st.session_state.get("f6_esito_import")
     if esito:
         if esito.get("ok"):
