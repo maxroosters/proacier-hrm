@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.12]
-✅ v07.12: get_name robusto per celle unite di Excel (Name : + nome stessa cella)
-✅ v07.12: salvataggio batch veloce (salva_append_many se presente, altrimenti ciclo)
-✅ Include: parser List of Logs, analisi in memoria (niente cPanel), anomalie,
-   paghe quindicina, acconti, storico mansioni/sanzioni/performance
-Richiede: Apps Script v6.1 (append batch con rows) + xlrd in requirements
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.13]
+✅ v07.13: tab "🖨️ Fiche de paie" (admin): scegli operaio+periodo, genera/stampa busta PDF,
+   storico buste ristampabile, rimborso a rate visibile (Tabaski ecc.)
+✅ Loghi/dati azienda letti da CONFIG (logo_azienda) → cambio azienda senza codice
+✅ Include: import in memoria (niente cloud), anomalie, paghe quindicina, acconti
+Richiede: Apps Script v6.1 + fpdf2 + xlrd
 """
 import re
 import math
@@ -16,9 +16,11 @@ import io
 import base64
 import requests
 from datetime import datetime, date
+from fpdf import FPDF
 import streamlit as st
 
-VERSIONE_PAGHE = "07.12"
+VERSIONE_PAGHE = "07.13"
+LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -35,13 +37,10 @@ T6 = {
  "import_hint": ("Collez le contenu « List of Logs » OU chargez le fichier .XLS et « Analyser le fichier chargé ».","Incolla il contenuto « List of Logs » OPPURE carica il file .XLS e usa « Analyser le fichier chargé ».","Paste the “List of Logs” content OR load the .XLS and use “Analyser le fichier chargé”."),
  "import_da_testo": ("Contenu du fichier","Contenuto del file","File content"),
  "import_up_label": ("Fichier .XLS à analyser","File .XLS da analizzare",".XLS file to analyse"),
- "import_up_btn": ("Envoyer au cloud","Invia al cloud","Send to cloud"),
  "import_mem_btn": ("Analyser le fichier chargé","Analizza il file caricato","Analyse the loaded file"),
- "import_cloud_btn": ("Prélever du cloud (mois choisi)","Preleva dal cloud (mese scelto)","Fetch from cloud (chosen month)"),
  "import_parse_btn": ("Analyser le fichier","Analizza il file","Parse file"),
  "import_write_btn": ("Enregistrer dans PRESENZE","Scrivi in PRESENZE","Write to PRESENZE"),
  "import_empty": ("Collez d'abord le contenu du fichier","Prima incolla il contenuto del file","Paste the file content first"),
- "import_up_err": ("Échec de l'envoi. Vérifiez upload.php / token.","Invio fallito. Verifica upload.php / token.","Upload failed. Check upload.php / token."),
  "parsed_none": ("❌ Impossible de lire le fichier.","❌ Impossibile leggere il file.","❌ Cannot read the file."),
  "parsed_ok": ("✅ Fichier analysé","✅ File analizzato","✅ File parsed"),
  "import_period": ("Période","Periodo","Period"),
@@ -110,6 +109,13 @@ T6 = {
  "acc_none": ("ℹ️ Aucune avance ouverte.","ℹ️ Nessun acconto aperto.","ℹ️ No open advances."),
  "acc_err": ("Sélectionnez un travailleur et un montant > 0","Seleziona un lavoratore e un importo > 0","Select a worker and amount > 0"),
  "acc_dedotto": ("sera déduit à la prochaine paie","sarà dedotto alla prossima paga","will be deducted at next payroll"),
+ "buste_title": ("🖨️ Fiche de paie","🖨️ Busta paga","🖨️ Pay slip"),
+ "buste_worker": ("Travailleur","Lavoratore","Worker"),
+ "buste_period": ("Période (quinzaine)","Periodo (quindicina)","Period (fortnight)"),
+ "buste_gen": ("🖨️ Générer / imprimer la fiche","🖨️ Genera / stampa busta","🖨️ Generate / print slip"),
+ "buste_none": ("ℹ️ Aucune paie enregistrée pour ce travailleur.","ℹ️ Nessuna paga registrata per questo lavoratore.","ℹ️ No payroll recorded for this worker."),
+ "buste_hist": ("Historique des paies (ristampabile)","Storico buste (ristampabile)","Pay history (reprintable)"),
+ "buste_avances": ("Avances & remboursements","Acconti e rimborsi","Advances & repayments"),
 }
 
 def t6(k, lingua="fr"):
@@ -441,7 +447,6 @@ def scrivi_presenze(A, parsed):
             esistenti.add(key)
             rows.append(r)
     if rows:
-        # v07.12: batch se disponibile, altrimenti ciclo
         if hasattr(A, "salva_append_many"):
             ok, msg = A.salva_append_many("PRESENZE", rows)
         else:
@@ -625,6 +630,124 @@ def conferma_paghe(A, ant):
         A.salva_update("ACCONTI", idx, upd)
     return True, "ok", len(rows)
 
+# ============================================================
+# BUSTA PAGA (FICHE DE PAIE) — v07.13
+# ============================================================
+def genera_busta_paga(A, lingua, dip, det, pago, storico, acconti):
+    az = A.azienda_info()
+    logo_file = A.cfg_get("logo_azienda", "adtrading.png")
+    pdf = FPDF()
+    pdf.add_page()
+    try:
+        lg = requests.get(LOGO_BASE + logo_file, timeout=20)
+        if lg.status_code == 200 and lg.content:
+            pdf.image(lg.content, x=10, y=8, w=30)
+    except Exception: pass
+    pdf.set_xy(60, 10)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 6, az.get("nome",""), 0, 1, "R")
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_xy(60, 17)
+    pdf.multi_cell(130, 4, az.get("indirizzo",""), align="R")
+    pdf.set_xy(60, 26)
+    pdf.cell(0, 4, f"tel. {az.get('tel','')} - {az.get('email','')}", 0, 1, "R")
+    pdf.set_xy(10, 40)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 8, t6("buste_title", lingua).replace("🖨️ ","").upper(), 0, 1, "C")
+    pdf.set_font("Helvetica", "", 9)
+    nome = f"{A.s_str(dip.get('cognome'))} {A.s_str(dip.get('nome'))}"
+    pdf.cell(0, 6, f"{t6('buste_worker', lingua)}: {nome}  —  {A.s_str(dip.get('codice'))}", 0, 1, "L")
+    pdf.cell(0, 6, f"{t6('buste_period', lingua)}: {A.s_str(pago.get('periodo_da'))} → {A.s_str(pago.get('periodo_a'))}", 0, 1, "L")
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(95, 6, t6("col_giorni", lingua), 1, 0, "C")
+    pdf.cell(95, 6, t6("col_ore", lingua), 1, 1, "C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(95, 6, str(det.get("n_giorni", 0)) if det else "-", 1, 0, "C")
+    pdf.cell(95, 6, f"{det.get('ore_tot',0):.1f}" if det else "-", 1, 1, "C")
+    pdf.cell(95, 6, t6("col_stra", lingua), 1, 0, "C")
+    pdf.cell(95, 6, f"{det.get('ore_stra',0):.1f}" if det else "-", 1, 1, "C")
+    pdf.cell(95, 6, t6("col_rit", lingua), 1, 0, "C")
+    pdf.cell(95, 6, str(det.get("mezzore", 0)) if det else "-", 1, 1, "C")
+    pdf.cell(95, 6, t6("col_abs", lingua), 1, 0, "C")
+    pdf.cell(95, 6, str(det.get("n_assenze", 0)) if det else "-", 1, 1, "C")
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 6, f"{t6('tot_lordo', lingua)}: {to_float(pago.get('importo_lordo')):,.0f} FCFA", 0, 1, "L")
+    pdf.cell(0, 6, f"{t6('tot_acc', lingua)}: -{to_float(pago.get('acconti_dedotti')):,.0f} FCFA", 0, 1, "L")
+    pdf.cell(0, 6, f"{t6('premi_title', lingua)}: +{to_float(pago.get('premi_produzione')):,.0f} FCFA", 0, 1, "L")
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, f"NET: {to_float(pago.get('importo_netto')):,.0f} FCFA", 0, 1, "L")
+    if acconti:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(0, 6, t6("buste_avances", lingua), 0, 1, "L")
+        pdf.set_font("Helvetica", "", 8)
+        for a in acconti:
+            mod = A.s_str(a.get("modalita_rimborso"))
+            info = etichetta("acc_tipo", a.get("tipo_acconto"), lingua) if False else (A.s_str(a.get("tipo_acconto")) or "generico")
+            if "rate" in mod.lower():
+                piano = f" — rate {A.s_str(a.get('rate_pagate')) or '0'}/{A.s_str(a.get('numero_rate')) or '-'}"
+            else:
+                piano = " — unica"
+            pdf.cell(0, 5, f"- {info}: {to_float(a.get('importo')):,.0f} FCFA{piano}", 0, 1, "L")
+    if storico:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(0, 6, t6("buste_hist", lingua), 0, 1, "L")
+        pdf.set_font("Helvetica", "", 8)
+        for p in storico:
+            pdf.cell(0, 5, f"- {A.s_str(p.get('periodo_da'))}→{A.s_str(p.get('periodo_a'))}: "
+                           f"NET {to_float(p.get('importo_netto')):,.0f} FCFA", 0, 1, "L")
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(95, 6, "Signature travailleur", 1, 0, "C")
+    pdf.cell(95, 6, "Signature employeur", 1, 1, "C")
+    pdf.cell(95, 15, "", 0, 0)
+    pdf.cell(95, 15, "", 0, 1)
+    out = pdf.output(dest="S")
+    if isinstance(out, str): out = out.encode("latin-1", errors="ignore")
+    return bytes(out)
+
+def sezione_buste(A, lingua):
+    st.subheader(t6("buste_title", lingua))
+    b = A.leggi_admin()
+    dips = b.get("DIPENDENTI", [])
+    pays = b.get("PAGAMENTI", [])
+    _, accs = A.leggi_foglio("ACCONTI", force=True)
+    opzioni, codmap = [], {}
+    for d in dips:
+        cod = A.s_str(d.get("codice"))
+        if cod:
+            lab = f"{cod} — {A.s_str(d.get('cognome'))} {A.s_str(d.get('nome'))}"
+            opzioni.append(lab); codmap[lab] = cod
+    if not opzioni:
+        st.info(t6("buste_none", lingua)); return
+    lab = st.selectbox(t6("buste_worker", lingua), opzioni, key="f6_buste_worker")
+    code = codmap[lab]
+    dip = next((d for d in dips if A.s_str(d.get("codice")) == code), {})
+    miei = [p for p in pays if A.s_str(p.get("codice_lavoratore")).upper() == code.upper()]
+    miei.sort(key=lambda p: data_ord(p.get("periodo_da")) or (0,0,0), reverse=True)
+    if not miei:
+        st.info(t6("buste_none", lingua)); return
+    opts_periodo = [f"{A.s_str(p.get('periodo_da'))} → {A.s_str(p.get('periodo_a'))}" for p in miei]
+    sel = st.selectbox(t6("buste_period", lingua), opts_periodo, key="f6_buste_period")
+    pago = miei[opts_periodo.index(sel)]
+    # ricalcola il dettaglio per il periodo scelto
+    d0 = parse_data(pago.get("periodo_da"))
+    det = None
+    if d0:
+        quind = 1 if d0.day == 1 else 2
+        ant = calcola_anteprima(A, lingua, d0.year, d0.month, quind)
+        det = next((x for x in ant["dets"] if x["code"].upper() == code.upper()), None)
+    acconti = [a for a in accs if A.s_str(a.get("codice_lavoratore")).upper() == code.upper()
+               and A.s_str(a.get("stato")).lower() not in ("annullato",)]
+    if st.button(t6("buste_gen", lingua), type="primary", use_container_width=True):
+        pdf_bytes = genera_busta_paga(A, lingua, dip, det, pago, miei, acconti)
+        st.download_button("📥 PDF", data=pdf_bytes,
+                           file_name=f"Busta_{code}_{A.s_str(pago.get('periodo_da'))}.pdf",
+                           mime="application/pdf", use_container_width=True)
+
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua))
     st.caption(t6("import_hint", lingua))
@@ -644,39 +767,6 @@ def sezione_import(A, lingua):
                 st.error(t6("parsed_none", lingua))
         except Exception as e:
             st.error(f"{t6('parsed_none', lingua)} — {e}")
-    if up is not None and st.button("📤 " + t6("import_up_btn", lingua), use_container_width=True):
-        url_up = A.cfg_get("url_upload_presenze", "")
-        token = A.cfg_get("url_upload_token", "")
-        nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
-        try:
-            r = requests.post(url_up, data={"token": token, "filename": nome_file,
-                              "file_b64": base64.b64encode(up.getvalue()).decode()}, timeout=120)
-            if r.status_code == 200:
-                st.success("✅ " + nome_file)
-            else:
-                st.error(f"{t6('import_up_err', lingua)} — HTTP {r.status_code}")
-        except Exception as e:
-            st.error(f"{t6('import_up_err', lingua)} — {e}")
-    if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
-        url_cart = A.cfg_get("url_cartella_presenze", "").rstrip("/")
-        nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
-        try:
-            r = requests.get(f"{url_cart}/{nome_file}", timeout=120)
-            if r.status_code == 200 and r.content:
-                try:
-                    parsed = parse_matrix(_xls_matrix(r.content))
-                except Exception:
-                    parsed = None
-                if parsed and parsed["blocchi"]:
-                    st.session_state.f6_parsed = parsed
-                    st.session_state.pop("f6_esito_import", None)
-                    st.rerun()
-                else:
-                    st.error(t6("parsed_none", lingua))
-            else:
-                st.error(f"{t6('import_up_err', lingua)} — HTTP {r.status_code}")
-        except Exception as e:
-            st.error(f"{t6('import_up_err', lingua)} — {e}")
     testo = st.text_area(t6("import_da_testo", lingua), height=200, key="f6_ta")
     if st.button("🔎 " + t6("import_parse_btn", lingua), type="primary"):
         if not testo.strip():
@@ -891,8 +981,9 @@ def pagina_fase6(lingua, app_module):
         c5.metric("Penale assenza", f"{cfg['assenza_penale_percent']:.0f}%")
         st.caption("Riposo: " + ", ".join(sorted(cfg.get('_riposo', {"sabato","domenica"}))) +
                    " — Flottanti: " + (", ".join(sorted(cfg.get('_flottanti', set()))) or "—"))
-    tab1, tab2, tab3, tab4 = st.tabs(["📥 Import", "🔍 " + t6("anom_title", lingua), "💰 " + t6("paghe_title", lingua), "💸 " + t6("acc_title", lingua)])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📥 Import", "🔍 " + t6("anom_title", lingua), "💰 " + t6("paghe_title", lingua), "💸 " + t6("acc_title", lingua), "🖨️ " + t6("buste_title", lingua)])
     with tab1: sezione_import(A, lingua)
     with tab2: sezione_anomalie(A, lingua)
     with tab3: sezione_paghe(A, lingua)
     with tab4: sezione_acconti(A, lingua)
+    with tab5: sezione_buste(A, lingua)
