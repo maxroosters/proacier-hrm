@@ -615,9 +615,8 @@ def sezione_import(A, lingua):
                 st.success("✅ " + nome_file)
             else:
                 st.error(f"{t6('import_up_err', lingua)} — HTTP {r.status_code}")
-        except Exception as e:
-            st.error(f"{t6('import_up_err', lingua)} — {e}")
-    if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
+      
+        if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
         url_cart = A.cfg_get("url_cartella_presenze", "").rstrip("/")
         nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
         try:
