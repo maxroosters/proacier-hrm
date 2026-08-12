@@ -301,8 +301,13 @@ def parse_list_of_logs(testo):
 def parse_matrix(rows):
     def get_name(r):
         for ci, cv in enumerate(r):
-            if re.search(r"Name\s*:", str(cv), re.I):
-                return str(r[ci+1]).strip() if ci+1 < len(r) else ""
+            m2 = re.search(r"Name\s*:\s*(.*)", str(cv), re.I)
+            if m2:
+                rest = m2.group(1).strip().strip('"')
+                if rest:
+                    return rest
+                if ci + 1 < len(r):
+                    return str(r[ci + 1]).strip()
         return ""
     return _build_blocchi(rows, get_name)
 
