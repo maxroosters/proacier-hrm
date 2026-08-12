@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.07]
-✅ v07.07: upload "Envoyer au cloud" in BASE64 (POST normale, niente multipart)
-   → non bloccato da firewall/WAF; funziona con Directory Privacy OFF
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.08]
+✅ v07.08: bottone "Analyser le fichier chargé" = analizza il file XLS direttamente
+   in memoria (niente cPanel, niente POST bloccato dal firewall)
 ✅ Include: parser List of Logs, anomalie, paghe quindicina, acconti,
    storico mansioni/sanzioni/performance, upload/download XLS
-Richiede: Apps Script v6.1 + upload.php (versione base64) su /presenze/
+Richiede: Apps Script v6.1
 """
 import re
 import math
@@ -18,7 +18,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_PAGHE = "07.07"
+VERSIONE_PAGHE = "07.08"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -32,10 +32,11 @@ GIORNI_SETTIMANA = ["lunedi","martedi","mercoledi","giovedi","venerdi","sabato",
 T6 = {
  "titolo": ("🕒 Présences & Paies","🕒 Presenze e Paghe","🕒 Attendance & Payroll"),
  "import_title": ("Importation des pointages","Importazione presenze","Attendance import"),
- "import_hint": ("Collez le contenu « List of Logs » OU chargez/prélevez le fichier .XLS du cloud.","Incolla il contenuto « List of Logs » OPPURE carica/preleva il file .XLS dal cloud.","Paste the “List of Logs” content OR upload/fetch the .XLS from the cloud."),
+ "import_hint": ("Collez le contenu « List of Logs » OU chargez le fichier .XLS et « Analyser le fichier chargé ».","Incolla il contenuto « List of Logs » OPPURE carica il file .XLS e usa « Analyser le fichier chargé ».","Paste the “List of Logs” content OR load the .XLS and use “Analyser le fichier chargé”."),
  "import_da_testo": ("Contenu du fichier","Contenuto del file","File content"),
- "import_up_label": ("Fichier .XLS à envoyer au cloud","File .XLS da inviare al cloud",".XLS file to send to cloud"),
+ "import_up_label": ("Fichier .XLS à analyser","File .XLS da analizzare",".XLS file to analyse"),
  "import_up_btn": ("Envoyer au cloud","Invia al cloud","Send to cloud"),
+ "import_mem_btn": ("Analyser le fichier chargé","Analizza il file caricato","Analyse the loaded file"),
  "import_cloud_btn": ("Prélever du cloud (mois choisi)","Preleva dal cloud (mese scelto)","Fetch from cloud (chosen month)"),
  "import_parse_btn": ("Analyser le fichier","Analizza il file","Parse file"),
  "import_write_btn": ("Enregistrer dans PRESENZE","Scrivi in PRESENZE","Write to PRESENZE"),
@@ -433,6 +434,28 @@ def scrivi_presenze(A, parsed):
         "abs": sum(1 for r in rows if r["stato"]=="ASSENTE"),
         "dup": dup, "unmapped": sorted(unmapped)}
 
+def _xls_matrix(data):
+    import xlrd
+    wb = xlrd.open_workbook(file_contents=data)
+    sh = None
+    for s in wb.sheets():
+        if "log" in s.name.lower(): sh = s; break
+    if sh is None: sh = wb.sheet_by_index(0)
+    rows = []
+    for ri in range(sh.nrows):
+        cells = []
+        for ci in range(sh.ncols):
+            v = sh.cell_value(ri, ci)
+            if isinstance(v, float) and 0 < v < 1:
+                hh, mm, ss = xlrd.xld_as_time(v)
+                cells.append(f"{hh:02d}:{mm:02d}")
+            elif isinstance(v, float) and v == int(v):
+                cells.append(str(int(v)))
+            else:
+                cells.append("" if v is None else str(v))
+        rows.append(cells)
+    return rows
+
 def calcola_busta(pp_list, tipo_paga, base, cfg, turno_start):
     ore_norm = cfg.get("ore_normali_giorno", 8) or 8
     s1 = cfg.get("straordinario_1_percent", 25)
@@ -574,28 +597,6 @@ def conferma_paghe(A, ant):
         A.salva_update("ACCONTI", idx, upd)
     return True, "ok", len(rows)
 
-def _xls_matrix(data):
-    import xlrd
-    wb = xlrd.open_workbook(file_contents=data)
-    sh = None
-    for s in wb.sheets():
-        if "log" in s.name.lower(): sh = s; break
-    if sh is None: sh = wb.sheet_by_index(0)
-    rows = []
-    for ri in range(sh.nrows):
-        cells = []
-        for ci in range(sh.ncols):
-            v = sh.cell_value(ri, ci)
-            if isinstance(v, float) and 0 < v < 1:
-                hh, mm, ss = xlrd.xld_as_time(v)
-                cells.append(f"{hh:02d}:{mm:02d}")
-            elif isinstance(v, float) and v == int(v):
-                cells.append(str(int(v)))
-            else:
-                cells.append("" if v is None else str(v))
-        rows.append(cells)
-    return rows
-
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua))
     st.caption(t6("import_hint", lingua))
@@ -604,6 +605,18 @@ def sezione_import(A, lingua):
     nomi = MESI.get(lingua, MESI["fr"])
     mese_sel = c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_imp_mese")
     up = st.file_uploader(t6("import_up_label", lingua), type=["xls","xlsx"])
+    # v07.08: analizza il file caricato direttamente in memoria (niente cPanel)
+    if up is not None and st.button("🔎 " + t6("import_mem_btn", lingua), use_container_width=True):
+        try:
+            parsed = parse_matrix(_xls_matrix(up.getvalue()))
+            if parsed and parsed["blocchi"]:
+                st.session_state.f6_parsed = parsed
+                st.session_state.pop("f6_esito_import", None)
+                st.rerun()
+            else:
+                st.error(t6("parsed_none", lingua))
+        except Exception as e:
+            st.error(f"{t6('parsed_none', lingua)} — {e}")
     if up is not None and st.button("📤 " + t6("import_up_btn", lingua), use_container_width=True):
         url_up = A.cfg_get("url_upload_presenze", "")
         token = A.cfg_get("url_upload_token", "")
@@ -615,8 +628,9 @@ def sezione_import(A, lingua):
                 st.success("✅ " + nome_file)
             else:
                 st.error(f"{t6('import_up_err', lingua)} — HTTP {r.status_code}")
-      
-        if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
+        except Exception as e:
+            st.error(f"{t6('import_up_err', lingua)} — {e}")
+    if st.button("📥 " + t6("import_cloud_btn", lingua), use_container_width=True):
         url_cart = A.cfg_get("url_cartella_presenze", "").rstrip("/")
         nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
         try:
