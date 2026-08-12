@@ -600,7 +600,13 @@ def salva_update(nome_foglio, row_index, row):
     ok, msg = _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
     if ok: _svuota_cache(nome_foglio)
     return ok, msg
-
+def salva_append_many(nome_foglio, rows):
+    if not rows:
+        return True, "ok"
+    ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "rows": rows})
+    if ok:
+        _svuota_cache(nome_foglio)
+    return ok, msg
 def trova_duplicato_reg(dati):
     oggi = datetime.now().strftime("%d/%m/%Y")
     _, recs = leggi_foglio("DIPENDENTI", force=True)
