@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.09]
-✅ v07.09: al salvataggio, se il parsed in memoria è vuoto ma il file è caricato,
-   lo ri-analizza prima di scrivere → non scrive più 0
-✅ v07.08: bottone "Analyser le fichier chargé" (analisi in memoria, niente cPanel)
-✅ Include: parser List of Logs, anomalie, paghe quindicina, acconti,
-   storico mansioni/sanzioni/performance, upload/download XLS
-Richiede: Apps Script v6.1
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.12]
+✅ v07.12: get_name robusto per celle unite di Excel (Name : + nome stessa cella)
+✅ v07.12: salvataggio batch veloce (salva_append_many se presente, altrimenti ciclo)
+✅ Include: parser List of Logs, analisi in memoria (niente cPanel), anomalie,
+   paghe quindicina, acconti, storico mansioni/sanzioni/performance
+Richiede: Apps Script v6.1 (append batch con rows) + xlrd in requirements
 """
 import re
 import math
@@ -19,7 +18,7 @@ import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_PAGHE = "07.09"
+VERSIONE_PAGHE = "07.12"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -295,10 +294,20 @@ def parse_list_of_logs(testo):
     rows = list(csv.reader(io.StringIO(testo.replace("\r","")), delimiter="\t"))
     def get_name(r):
         m = re.search(r"Name\s*:\s*([^|\t]+)", "\t".join(r), re.I)
-        return m.group(1).strip().strip('"') if m else ""
+        if m:
+            rest = m.group(1).strip().strip('"')
+            if rest: return rest
+        for ci, cv in enumerate(r):
+            m2 = re.search(r"Name\s*:\s*(.*)", str(cv), re.I)
+            if m2:
+                rest = m2.group(1).strip().strip('"')
+                if rest: return rest
+                if ci+1 < len(r): return str(r[ci+1]).strip()
+        return ""
     return _build_blocchi(rows, get_name)
 
 def parse_matrix(rows):
+    # v07.12: gestisce celle unite di Excel ("Name :" + nome nella stessa cella)
     def get_name(r):
         for ci, cv in enumerate(r):
             m2 = re.search(r"Name\s*:\s*(.*)", str(cv), re.I)
@@ -432,20 +441,20 @@ def scrivi_presenze(A, parsed):
             esistenti.add(key)
             rows.append(r)
     if rows:
+        # v07.12: batch se disponibile, altrimenti ciclo
         if hasattr(A, "salva_append_many"):
             ok, msg = A.salva_append_many("PRESENZE", rows)
         else:
             ok, msg = True, "ok"
             for rr in rows:
                 ok, msg = A.salva_append("PRESENZE", rr)
-                if not ok:
-                    break
+                if not ok: break
         if not ok: return {"ok": False, "msg": msg}
     return {"ok": True, "scritte": len(rows),
         "okn": sum(1 for r in rows if r["stato"]=="OK"),
         "dar": sum(1 for r in rows if r["stato"]=="DA_RIVEDERE"),
         "abs": sum(1 for r in rows if r["stato"]=="ASSENTE"),
-        "dup": dup, "unmapped": sorted(unmapped)}
+        "dup": dup, "unmapped": sorted(x for x in unmapped if x)}
 
 def _xls_matrix(data):
     import xlrd
@@ -604,7 +613,13 @@ def conferma_paghe(A, ant):
         for idx, upd, imp, _src in det["piani"]:
             if imp > 0: piani_totali.append((idx, upd))
     if rows:
-        ok, msg = A.salva_append_many("PAGAMENTI", rows)
+        if hasattr(A, "salva_append_many"):
+            ok, msg = A.salva_append_many("PAGAMENTI", rows)
+        else:
+            ok, msg = True, "ok"
+            for rr in rows:
+                ok, msg = A.salva_append("PAGAMENTI", rr)
+                if not ok: break
         if not ok: return False, msg, 0
     for idx, upd in piani_totali:
         A.salva_update("ACCONTI", idx, upd)
@@ -618,7 +633,6 @@ def sezione_import(A, lingua):
     nomi = MESI.get(lingua, MESI["fr"])
     mese_sel = c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_imp_mese")
     up = st.file_uploader(t6("import_up_label", lingua), type=["xls","xlsx"])
-    # v07.08: analizza il file caricato direttamente in memoria (niente cPanel)
     if up is not None and st.button("🔎 " + t6("import_mem_btn", lingua), use_container_width=True):
         try:
             parsed = parse_matrix(_xls_matrix(up.getvalue()))
@@ -682,7 +696,6 @@ def sezione_import(A, lingua):
                    f"{parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — "
                    f"{len(parsed['blocchi'])} {t6('import_workers', lingua)}")
         if st.button("💾 " + t6("import_write_btn", lingua), type="primary"):
-            # v07.09: se il parsed in memoria è vuoto ma il file è caricato, ri-analizza
             if not parsed.get("blocchi") and up is not None:
                 try:
                     parsed = parse_matrix(_xls_matrix(up.getvalue()))
