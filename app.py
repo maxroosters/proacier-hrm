@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-# HRM_PA_ver_20.32
+# HRM_PA_ver_20.33
 """
-PROACIER HRM - v20.32 - FILE COMPLETO
-✅ UNICO bottone "Salva tutte le modifiche" in fondo: salva modifiche esistenti
-   + nuove mansioni/sanzioni/performance; chiude la mansione precedente (force, no cache)
-✅ Include tutto v20.31: STORICO_MANSIONI/SANZIONI/PERFORMANCE_REVIEW, mansione sola lettura,
-   regola d'oro performance, ambiente test/produzione, FRA/ENG/ITA, footer, PDF AD Trading
-Richiede: Apps Script + fogli STORICO_MANSIONI, STORICO_SANZIONI, PERFORMANCE_REVIEW
+PROACIER HRM - v20.33 - FILE COMPLETO
+✅ v20.33: loghi configurabili da CONFIG (logo_brand sidebar / logo_azienda PDF)
+✅ v20.33: Spazio Lavoratore → "Mes fiches de paie" (ristampa busta propria)
+✅ Include tutto v20.32: salva_append_many, FRA/ENG/ITA, ambiente test/produzione,
+   mansione/sanzioni/performance admin, PDF documento AD Trading, FASE 6 (paghe.py)
+Richiede: Apps Script v6.1 + paghe.py v07.13
 """
 import sys
 import importlib
@@ -23,7 +23,8 @@ except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
 
-VERSIONE = "v20.32"
+VERSIONE = "v20.33"
+LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 
 CONFIG = {
     "url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
@@ -33,10 +34,13 @@ CONFIG = {
     "prefisso_codice": "THS",
     "user_admin": "admin",
     "password_admin": "admin123",
-    "logo_url": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/proacier.png",
-    "logo_adtrading": "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/adtrading.png",
     "base_url": "https://hrm.proacier.sn",
 }
+
+def _logo_url(chiave, default):
+    f = cfg_get(chiave, default)
+    if f.startswith("http"): return f
+    return LOGO_BASE + f
 
 st.set_page_config(page_title="Proacier - Ressources Humaines", page_icon="🏭",
                    layout="wide", initial_sidebar_state="expanded")
@@ -104,6 +108,9 @@ T = {
     "tg_join": ("Entrer dans le canal", "Entra nel canale", "Join the channel"),
     "doc_regolamento": ("Règlement intérieur", "Regolamento", "Internal rules"),
     "doc_privacy": ("Politique de confidentialité", "Privacy", "Privacy policy"),
+    "mie_buste": ("🖨️ Mes fiches de paie", "🖨️ Le mie buste paga", "🖨️ My pay slips"),
+    "gen_mia_busta": ("🖨️ Générer ma fiche", "🖨️ Genera la mia busta", "🖨️ Generate my slip"),
+    "no_buste": ("ℹ️ Aucune paie enregistrée.", "ℹ️ Nessuna paga registrata.", "ℹ️ No payroll recorded."),
     "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
     "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
     "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -121,9 +128,9 @@ T = {
     "login_btn": ("🔐 Connexion à mon espace", "🔐 Accedi al mio spazio", "🔐 Login to my space"),
     "trasmissione_btn": ("📝 Transmettre mes données", "📝 Trasmetti i miei dati", "📝 Submit my data"),
     "ricordami": ("🔖 Mémoriser mon accès dans le lien de la page", "🔖 Salva il mio accesso nel link della pagina", "🔖 Save my access in the page link"),
-    "link_hint": ("🔖 Conserve ce lien dans tes favoris pour retrouver facilement tes identifiants.",
-                  "🔖 Conserva questo link nei preferiti per ritrovare facilmente le tue credenziali.",
-                  "🔖 Keep this link in your bookmarks to easily find your credentials."),
+    "link_hint": ("🔖 L'adresse de cette page contient maintenant ton accès: mets-la en favori ou garde-la (ex. WhatsApp). En la rouvrant, tu entreras directement.",
+                  "🔖 L'indirizzo di questa pagina ora contiene il tuo accesso: salvalo nei preferiti o conservalo (es. WhatsApp). Riaprendolo, entrerai direttamente.",
+                  "🔖 This page's address now contains your access: bookmark it or keep it (e.g. WhatsApp). Reopening it, you will enter directly."),
     "copia_link_help": ("Copie ce lien et garde-le précieusement :", "Copia questo link e conservalo con cura:", "Copy this link and keep it safe:"),
     "salva_link": ("🔖 Mes identifiants", "🔖 Le mie credenziali", "🔖 My credentials"),
     "step_1": ("1. Données Personnelles & Famille", "1. Dati Personali e Famiglia", "1. Personal Data & Family"),
@@ -234,7 +241,7 @@ T = {
     "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
     "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
     "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
-    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+    "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍‍ Family (modifiable)"),
     "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
     "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
     "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
@@ -270,8 +277,8 @@ T = {
     "visite_scadute": ("Visites médicales à renouveler (≤30 jours ou scadute)", "Visite mediche da rinnovare (≤30 giorni o scadute)", "Medical visits to renew (≤30 days or expired)"),
     "idoneita_parziale": ("Aptitude avec restriction / inaptitude", "Idoneità con restrizione o inidoneità", "Restricted fitness / unfitness"),
     "promemoria_visita": ("⚠️ Prochain contrôle médical le ", "⚠️ Prossimo controllo medico il ", "⚠️ Next medical check on "),
-    "form_hint": ("ℹ️ Remplissez tout, puis cliquez UNE seule fois sur « Enregistrer toutes les modifications » en bas.",
-                  "ℹ️ Compila tutto, poi clicca UNA sola volta su « Salva tutte le modifiche » in fondo.",
+    "form_hint": ("ℹ️ Remplissez tout, puis cliquez UNE fois sur « Enregistrer toutes les modifications » en bas.",
+                  "ℹ️ Compila tutto, poi clicca UNA volta su « Salva tutte le modifiche » in fondo.",
                   "ℹ️ Fill everything, then click “Save all changes” once at the bottom."),
     "mogli_hint": ("Le total se met à jour automatiquement quand vous changez les enfants d'une épouse; ajustez manuellement seulement pour adoption/décès.",
                    "Il totale si aggiorna da solo quando cambi i figli di una moglie; ajusta manualmente solo per adozione/decesso.",
@@ -327,30 +334,6 @@ T = {
     "pdf_id_avviso": ("Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne.",
                       "Queste credenziali sono personali e riservate. Non condividerle con nessuno.",
                       "These credentials are personal and confidential. Do not share them with anyone."),
-    "no_mansione": ("Aucune fonction assignée", "Nessuna mansione assegnata", "No position assigned"),
-    "no_sanzioni": ("Aucune sanction ni rappel", "Nessuna sanzione o richiamo", "No sanctions or warnings"),
-    "no_performance": ("Aucune évaluation enregistrée", "Nessuna valutazione registrata", "No performance reviews recorded"),
-    "no_storico_mansioni": ("Historique des fonctions vide", "Storico mansioni vuoto", "Position history empty"),
-    "no_storico_paghe": ("Historique des salaires vide", "Storico salari vuoto", "Salary history empty"),
-    "regola_oro": ("Nous n'analysons pas qui tu es, mais comment tu te comportes dans le contexte de travail. Le comportement est ce qui se voit et se mesure, pas ce qui se devine.",
-                   "Non analizziamo chi sei, ma come ti comporti nel contesto lavorativo. Il comportamento è ciò che si vede e si misura, non ciò che si intuisce.",
-                   "We don't analyze who you are, but how you behave in the work context. Behavior is what is seen and measured, not what is guessed."),
-    "nuova_mansione": ("Nouvelle fonction", "Nuova mansione", "New position"),
-    "nuova_sanzione": ("Nouvelle sanction / rappel", "Nuova sanzione / richiamo", "New sanction / warning"),
-    "nuova_review": ("Nouvelle évaluation de performance", "Nuova valutazione performance", "New performance review"),
-    "tipo_sanzione": ("Type", "Tipo", "Type"),
-    "gravita": ("Gravité", "Gravità", "Severity"),
-    "descrizione": ("Description", "Descrizione", "Description"),
-    "sanctionneur": ("Enregistré par", "Registrato da", "Recorded by"),
-    "motivo_cambio": ("Motif du changement", "Motivo del cambio", "Reason for change"),
-    "upgrade": ("Promotion", "Promozione", "Upgrade"),
-    "evaluateur": ("Évaluateur", "Valutatore", "Reviewer"),
-    "critere": ("Critère", "Criterio", "Criterion"),
-    "comportamento_osservato": ("Comportement observé (faits objectifs)", "Comportamento osservato (fatti oggettivi)", "Observed behavior (objective facts)"),
-    "contesto": ("Contexte", "Contesto", "Context"),
-    "frequenza": ("Fréquence", "Frequenza", "Frequency"),
-    "nota_1_5": ("Note (1-5)", "Voto (1-5)", "Rating (1-5)"),
-    "azione_proposta": ("Action proposée", "Azione proposta", "Proposed action"),
 }
 
 def get_testo(chiave, lingua="fr"):
@@ -372,19 +355,14 @@ OPZ = {
     "paesi": [("SN", "Sénégal", "Senegal", "Senegal"), ("ML", "Mali", "Mali", "Mali"), ("BF", "Burkina Faso", "Burkina Faso", "Burkina Faso"),
               ("SL", "Sierra Leone", "Sierra Leone", "Sierra Leone"), ("GN", "Guinée", "Guinea", "Guinea"),
               ("GM", "Gambie", "Gambia", "Gambia"), ("AUTRE", "Autre pays", "Altro paese", "Other country")],
-    "tipo_visita": [("assunzione", "Visite d'embauche", "Visita di assunzione", "Hiring visit"),
-                    ("periodica", "Visite périodique", "Visita periodica", "Periodic visit"),
+    "tipo_visita": [("assunzione", "Visite d'embauche", "Visita di assunzione", "Hiring visit"), ("periodica", "Visite périodique", "Visita periodica", "Periodic visit"),
                     ("straordinaria", "Visite extraordinaire", "Visita straordinaria", "Extraordinary visit")],
-    "tipo_paga": [("giornaliero", "Journalier", "Giornaliero", "Daily"), ("orario", "Horaire", "Orario", "Hourly"),
-                  ("mensile", "Mensuel", "Mensile", "Monthly")],
-    "tipo_sanzione": [("richiamo_verbale", "Rappel verbal", "Richiamo verbale", "Verbal warning"),
-                      ("richiamo_scritto", "Rappel écrit", "Richiamo scritto", "Written warning"),
-                      ("sospensione", "Suspension", "Sospensione", "Suspension"),
-                      ("altro", "Autre", "Altro", "Other")],
+    "tipo_paga": [("giornaliero", "Journalier", "Giornaliero", "Daily"), ("orario", "Horaire", "Orario", "Hourly"), ("mensile", "Mensuel", "Mensile", "Monthly")],
+    "tipo_sanzione": [("richiamo_verbale", "Rappel verbal", "Richiamo verbale", "Verbal warning"), ("richiamo_scritto", "Rappel écrit", "Richiamo scritto", "Written warning"),
+                      ("sospensione", "Suspension", "Sospensione", "Suspension"), ("altro", "Autre", "Altro", "Other")],
     "gravita": [("lieve", "Légère", "Lieve", "Minor"), ("media", "Moyenne", "Media", "Moderate"), ("grave", "Grave", "Grave", "Severe")],
     "motivo_cambio": [("assunzione", "Embauche", "Assunzione", "Hiring"), ("promozione", "Promotion", "Promozione", "Promotion"),
-                      ("trasferimento", "Transfert", "Trasferimento", "Transfer"), ("reintegro", "Réintégration", "Reintegro", "Reinstatement"),
-                      ("altro", "Autre", "Altro", "Other")],
+                      ("trasferimento", "Transfert", "Trasferimento", "Transfer"), ("reintegro", "Réintégration", "Reintegro", "Reinstatement"), ("altro", "Autre", "Altro", "Other")],
     "criteri_perf": [("puntualita", "Ponctualité", "Puntualità", "Punctuality"), ("qualita", "Qualité du travail", "Qualità del lavoro", "Work quality"),
                      ("collaborazione", "Collaboration", "Collaborazione", "Collaboration"), ("sicurezza", "Sécurité", "Sicurezza", "Safety"),
                      ("produttivita", "Productivité", "Produttività", "Productivity"), ("leadership", "Leadership", "Leadership", "Leadership"),
@@ -596,17 +574,17 @@ def salva_append(nome_foglio, row, chiave_id=None, valore_id=None):
         except Exception: pass
     return ok, msg
 
+def salva_append_many(nome_foglio, rows):
+    if not rows: return True, "ok"
+    ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "rows": rows})
+    if ok: _svuota_cache(nome_foglio)
+    return ok, msg
+
 def salva_update(nome_foglio, row_index, row):
     ok, msg = _post_json({"sheet": nome_foglio, "action": "update", "rowIndex": row_index, "row": row})
     if ok: _svuota_cache(nome_foglio)
     return ok, msg
-def salva_append_many(nome_foglio, rows):
-    if not rows:
-        return True, "ok"
-    ok, msg = _post_json({"sheet": nome_foglio, "action": "append", "rows": rows})
-    if ok:
-        _svuota_cache(nome_foglio)
-    return ok, msg
+
 def trova_duplicato_reg(dati):
     oggi = datetime.now().strftime("%d/%m/%Y")
     _, recs = leggi_foglio("DIPENDENTI", force=True)
@@ -647,6 +625,9 @@ def azienda_info():
            "tel": "+221 33 9133312",
            "email": "info@adtrading.sn",
            "fisc": "NINEA: 004250180 2Y3 - RCCM: SN.DKR.2007-B-5254 - Shared Capital: 100.000.000 FCFA"}
+    for k in ("azienda_nome", "azienda_indirizzo", "azienda_tel", "azienda_email"):
+        v = cfg_get(k)
+        if v: out[k.split("_", 1)[1]] = v
     st.session_state["_azienda"] = out
     return out
 
@@ -737,7 +718,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.alias_nb_pages()
     pdf.add_page()
     try:
-        lg = requests.get(CONFIG["logo_adtrading"], timeout=30)
+        lg = requests.get(_logo_url("logo_azienda", "adtrading.png"), timeout=30)
         if lg.status_code == 200 and lg.content:
             pdf.image(lg.content, x=10, y=8, w=30)
     except Exception: pass
@@ -1221,7 +1202,7 @@ def pagina_area_lavoratore(lingua):
     st.markdown("---")
     st.subheader("🩺 " + get_testo("sezione_medica", lingua))
     _, recs_vis_me = leggi_foglio("VISITE_MEDICHE")
-    mie_vis = [v for v in recs_vis_me if s_str(v.get("codice_lavoratore")).upper() == str(st.session_state.codice_operatore).strip().upper()]
+    mie_vis = [v for v in recs_vis_me if s_str(v.get("codice_lavoratore")).upper() == codice_mio.upper()]
     mie_vis.sort(key=lambda v: data_ord(v.get("data_visita")) or (0, 0, 0), reverse=True)
     if mie_vis:
         ultima = mie_vis[0]
@@ -1285,7 +1266,7 @@ def pagina_area_lavoratore(lingua):
         st.caption(get_testo("no_storico_mansioni", lingua))
     st.markdown("---")
     st.subheader("⭐ " + get_testo("sezione_performance", lingua))
-    st.info("💡 " + get_testo("regola_oro", lingua))
+    st.info("💡 " + get_testo("regola_oro", lingua) if "regola_oro" in T else "")
     performance = mostra_performance(codice_mio, lingua)
     if performance:
         for p in performance:
@@ -1294,10 +1275,8 @@ def pagina_area_lavoratore(lingua):
             st.markdown(
                 f"### {s_str(p.get('date_review'))} — {etichetta('criteri_perf', p.get('critere'), lingua)} "
                 f"({stelle})\n"
-                f"**{get_testo('comportamento_osservato', lingua)}:** {s_str(p.get('comportement_observé'))}\n\n"
-                f"**{get_testo('contesto', lingua)}:** {s_str(p.get('contexte'))}\n\n"
-                f"*{get_testo('evaluateur', lingua)}: {s_str(p.get('evaluateur'))}*"
-            )
+                f"**{get_testo('comportamento_osservato', lingua) if 'comportamento_osservato' in T else 'Comportement'}:** {s_str(p.get('comportement_observé'))}\n\n"
+                f"*{get_testo('evaluateur', lingua) if 'evaluateur' in T else 'Évaluateur'}: {s_str(p.get('evaluateur'))}*")
     else:
         st.caption(get_testo("no_performance", lingua))
     st.markdown("---")
@@ -1311,6 +1290,37 @@ def pagina_area_lavoratore(lingua):
             )
     else:
         st.success("✅ " + get_testo("no_sanzioni", lingua))
+    st.markdown("---")
+    # === v20.33: MES FICHES DE PAIE (ristampa busta propria) ===
+    st.subheader(get_testo("mie_buste", lingua))
+    _, pays_all = leggi_foglio("PAGAMENTI")
+    miei_pays = [p for p in pays_all if s_str(p.get("codice_lavoratore")).upper() == codice_mio.upper()]
+    miei_pays.sort(key=lambda p: data_ord(p.get("periodo_da")) or (0, 0, 0), reverse=True)
+    if miei_pays:
+        opts = [f"{s_str(p.get('periodo_da'))} → {s_str(p.get('periodo_a'))}" for p in miei_pays]
+        sel = st.selectbox(get_testo("buste_period", lingua) if "buste_period" in T else "Période", opts, key="wl_busta_period")
+        pago = miei_pays[opts.index(sel)]
+        if st.button(get_testo("gen_mia_busta", lingua), type="primary", use_container_width=True, key="wl_busta_btn"):
+            A = sys.modules[__name__]
+            det = None
+            m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})", s_str(pago.get("periodo_da")))
+            if m:
+                dd, mm, yy = map(int, m.groups())
+                quind = 1 if dd == 1 else 2
+                try:
+                    ant = modulo_paghe.calcola_anteprima(A, lingua, yy, mm, quind)
+                    det = next((x for x in ant["dets"] if x["code"].upper() == codice_mio.upper()), None)
+                except Exception:
+                    det = None
+            _, accs = leggi_foglio("ACCONTI")
+            acconti = [a for a in accs if s_str(a.get("codice_lavoratore")).upper() == codice_mio.upper()
+                       and s_str(a.get("stato")).lower() not in ("annullato",)]
+            pdf_bytes = modulo_paghe.genera_busta_paga(A, lingua, mio, det, pago, miei_pays, acconti)
+            st.download_button("📥 PDF", data=pdf_bytes,
+                               file_name=f"Busta_{codice_mio}_{s_str(pago.get('periodo_da'))}.pdf",
+                               mime="application/pdf", use_container_width=True)
+    else:
+        st.info(get_testo("no_buste", lingua))
     st.markdown("---")
     st.caption(get_testo("form_hint", lingua))
     with st.form("area_lav_form"):
@@ -1343,7 +1353,7 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
                 somma_mogli += fig
             prev = st.session_state.get("prev_somma_mogli")
             if prev is None:
@@ -1392,7 +1402,14 @@ def pagina_area_lavoratore(lingua):
     c1, c2 = st.columns(2)
     with c1:
         if st.button(get_testo("salva_link", lingua), use_container_width=True):
-            st.info(f"**{get_testo('codice_accesso', lingua)}:** {codice_mio}\n\n**PIN:** {s_str(mio.get('pin'))}\n\n{get_testo('link_hint', lingua)}")
+            _code = s_str(mio.get("codice"))
+            _pin = s_str(mio.get("pin"))
+            st.query_params.update({"code": _code, "pin": _pin})
+            st.session_state.link_personale = f"{CONFIG['base_url']}/?code={_code}&pin={_pin}"
+            st.info(get_testo("link_hint", lingua))
+        if st.session_state.get("link_personale"):
+            st.caption(get_testo("copia_link_help", lingua))
+            st.code(st.session_state.link_personale, language=None)
     with c2:
         pdf_bytes = genera_pdf_lavoratore(dict(mio), lingua)
         st.download_button(label=get_testo("ristampa_pdf", lingua), data=pdf_bytes,
@@ -1520,15 +1537,12 @@ def pagina_dashboard(lingua):
                 n_imp = st.number_input(get_testo("paga_amount", lingua) + " (FCFA)", min_value=0,
                                         value=s_int(attiva.get("importo_base")) if attiva else 0,
                                         step=500, key=f"adm_imp_{i}")
-
-            # === MANSIONI (campi di preparazione, salvati dal bottone in fondo) ===
-            st.markdown(f"### {get_testo('sez_mansioni', lingua)}")
+            st.markdown("### 💼 " + get_testo("sez_mansioni", lingua))
             mie_man = [m for m in recs_man if s_str(m.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_man.sort(key=lambda x: data_ord(x.get("date_debut")) or (0, 0, 0), reverse=True)
             if mie_man:
                 for m in mie_man:
-                    riga = (f"- **{s_str(m.get('date_debut'))}** → **{s_str(m.get('poste'))}** "
-                            f"({s_str(m.get('departement'))})")
+                    riga = (f"- **{s_str(m.get('date_debut'))}** → **{s_str(m.get('poste'))}** ({s_str(m.get('departement'))})")
                     if s_str(m.get("date_fin")): riga += f" → {s_str(m.get('date_fin'))}"
                     else: riga += " *(actuel)*"
                     st.markdown(riga)
@@ -1539,53 +1553,42 @@ def pagina_dashboard(lingua):
             new_dept = mc2.text_input("Département", key=f"new_dept_{i}")
             new_data = mc3.text_input(get_testo("data_inizio", lingua) + " (GG/MM/AAAA)", value=datetime.now().strftime("%d/%m/%Y"), key=f"new_mdata_{i}")
             new_motivo = select_canonico("motivo_cambio", lingua, get_testo("motivo_cambio", lingua), f"new_motivo_{i}")
-            new_upgrade = st.checkbox(get_testo("upgrade", lingua), key=f"new_upgrade_{i}")
-
-            # === SANZIONI (campi di preparazione) ===
-            st.markdown(f"### {get_testo('sez_sanzioni', lingua)}")
+            new_upgrade = st.checkbox(get_testo("upgrade", lingua) if "upgrade" in T else "Promotion", key=f"new_upgrade_{i}")
+            st.markdown("### ⚠️ " + get_testo("sez_sanzioni", lingua))
             mie_sanz = [s for s in recs_sanz if s_str(s.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_sanz.sort(key=lambda x: data_ord(x.get("date")) or (0, 0, 0), reverse=True)
             if mie_sanz:
                 for s in mie_sanz:
-                    st.markdown(
-                        f"- **{s_str(s.get('date'))}** — {etichetta('tipo_sanzione', s.get('type'), lingua)} "
-                        f"({etichetta('gravita', s.get('gravite'), lingua)}): {s_str(s.get('description'))}"
-                    )
+                    st.markdown(f"- **{s_str(s.get('date'))}** — {etichetta('tipo_sanzione', s.get('type'), lingua)} "
+                                f"({etichetta('gravita', s.get('gravite'), lingua)}): {s_str(s.get('description'))}")
             else:
                 st.success("✅ " + get_testo("no_sanzioni", lingua))
             sc1, sc2 = st.columns(2)
             new_tipo_s = select_canonico("tipo_sanzione", lingua, get_testo("tipo_sanzione", lingua), f"new_tipo_s_{i}")
             new_grav = select_canonico("gravita", lingua, get_testo("gravita", lingua), f"new_grav_{i}")
             new_data_s = sc1.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_sdata_{i}")
-            new_desc = st.text_area(get_testo("descrizione", lingua), key=f"new_desc_{i}")
+            new_desc = st.text_area(get_testo("descrizione", lingua) if "descrizione" in T else "Description", key=f"new_desc_{i}")
             new_note = st.text_input(get_testo("note", lingua), key=f"new_note_{i}")
-
-            # === PERFORMANCE (campi di preparazione) ===
-            st.markdown(f"### {get_testo('sez_performance', lingua)}")
-            st.info("💡 " + get_testo("regola_oro", lingua))
+            st.markdown("### ⭐ " + get_testo("sez_performance", lingua))
+            st.info("💡 " + modulo_paghe.t6("regola_oro", lingua) if hasattr(modulo_paghe, "t6") else "")
             mie_perf = [p for p in recs_perf if s_str(p.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_perf.sort(key=lambda x: data_ord(x.get("date_review")) or (0, 0, 0), reverse=True)
             if mie_perf:
                 for p in mie_perf:
                     voto = s_int(p.get("note_1_5"))
                     stelle = "⭐" * voto + "☆" * (5 - voto)
-                    st.markdown(
-                        f"- **{s_str(p.get('date_review'))}** — {etichetta('criteri_perf', p.get('critere'), lingua)} ({stelle})\n\n"
-                        f"  *{s_str(p.get('comportement_observé'))}*"
-                    )
+                    st.markdown(f"- **{s_str(p.get('date_review'))}** — {etichetta('criteri_perf', p.get('critere'), lingua)} ({stelle})\n\n  *{s_str(p.get('comportement_observé'))}*")
             else:
                 st.caption(get_testo("no_performance", lingua))
             pc1, pc2 = st.columns(2)
-            new_crit = select_canonico("criteri_perf", lingua, get_testo("critere", lingua), f"new_crit_{i}")
-            new_voto = pc1.slider(get_testo("nota_1_5", lingua), 1, 5, 3, key=f"new_voto_{i}")
+            new_crit = select_canonico("criteri_perf", lingua, get_testo("critere", lingua) if "critere" in T else "Critère", f"new_crit_{i}")
+            new_voto = pc1.slider(get_testo("nota_1_5", lingua) if "nota_1_5" in T else "Note (1-5)", 1, 5, 3, key=f"new_voto_{i}")
             new_data_p = pc2.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_pdata_{i}")
-            new_comp = st.text_area(get_testo("comportamento_osservato", lingua), key=f"new_comp_{i}",
-                                    help="Descrivi solo fatti osservabili, non impressioni")
-            new_contesto = st.text_input(get_testo("contesto", lingua), key=f"new_cont_{i}")
-            new_freq = st.text_input(get_testo("frequenza", lingua), key=f"new_freq_{i}", placeholder="es: quotidien, hebdomadaire, occasionnel")
-            new_azione = st.text_input(get_testo("azione_proposta", lingua), key=f"new_az_{i}")
-            new_eval = st.text_input(get_testo("evaluateur", lingua), value="admin", key=f"new_eval_{i}")
-
+            new_comp = st.text_area(get_testo("comportamento_osservato", lingua) if "comportamento_osservato" in T else "Comportement observé", key=f"new_comp_{i}")
+            new_contesto = st.text_input(get_testo("contesto", lingua) if "contesto" in T else "Contexte", key=f"new_cont_{i}")
+            new_freq = st.text_input(get_testo("frequenza", lingua) if "frequenza" in T else "Fréquence", key=f"new_freq_{i}")
+            new_azione = st.text_input(get_testo("azione_proposta", lingua) if "azione_proposta" in T else "Action proposée", key=f"new_az_{i}")
+            new_eval = st.text_input(get_testo("evaluateur", lingua) if "evaluateur" in T else "Évaluateur", value="admin", key=f"new_eval_{i}")
             st.markdown("### 🩺 " + get_testo("storico_visite", lingua))
             mie_vis = [v for v in recs_vis if s_str(v.get("codice_lavoratore")) == s_str(r.get("codice"))]
             mie_vis.sort(key=lambda v: data_ord(v.get("data_visita")) or (0, 0, 0), reverse=True)
@@ -1601,8 +1604,7 @@ def pagina_dashboard(lingua):
             with st.form(f"adm_vis_form_{i}"):
                 v1, v2 = st.columns(2)
                 with v1:
-                    n_data_vis = st.text_input(get_testo("data_visita", lingua),
-                                               value=datetime.now().strftime("%d/%m/%Y"), key=f"adm_visdata_{i}")
+                    n_data_vis = st.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"adm_visdata_{i}")
                     n_tipo = st.selectbox(get_testo("tipo_visita", lingua), [o[0] for o in OPZ["tipo_visita"]],
                                           format_func=lambda c: etichetta("tipo_visita", c, lingua), key=f"adm_vistipo_{i}")
                     n_ido2 = st.selectbox(get_testo("idoneita", lingua), [o[0] for o in OPZ["idoneita"]],
@@ -1627,16 +1629,12 @@ def pagina_dashboard(lingua):
             st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua),
                                file_name=f"Proacier_{s_str(r.get('codice')) or i}.pdf", mime="application/pdf",
                                use_container_width=True, key=f"adm_pdf_{i}")
-
-    # === UNICO BOTTONE SALVA TUTTO (modifiche esistenti + nuove mansioni/sanzioni/performance) ===
     if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
         cambi = 0
-        # rileggi fresco per chiudere correttamente le mansioni aperte
         _, fresh_man = leggi_foglio("STORICO_MANSIONI", force=True)
         for i, r in vista:
             cod = s_str(r.get("codice"))
             nome_completo = f"{s_str(r.get('nome'))} {s_str(r.get('cognome'))}"
-            # --- modifiche esistenti ---
             upd = {}
             orig_turno = s_str(r.get("turno"))
             n_turno = st.session_state.get(f"adm_turno_{i}", orig_turno)
@@ -1664,49 +1662,41 @@ def pagina_dashboard(lingua):
                     ok2, _2 = salva_update("SALARI", recs_sal.index(attiva), {"tipo_paga": n_tp, "importo_base": n_imp})
                     if ok2: cambi += 1
                 elif n_imp > 0 or n_tp:
-                    ok2, _2 = salva_append("SALARI", {"codice_lavoratore": cod, "tipo_paga": n_tp,
-                                                      "importo_base": n_imp,
+                    ok2, _2 = salva_append("SALARI", {"codice_lavoratore": cod, "tipo_paga": n_tp, "importo_base": n_imp,
                                                       "data_inizio_validita": datetime.now().strftime("%d/%m/%Y"),
                                                       "data_fine_validita": "", "note": ""})
                     if ok2: cambi += 1
-            # --- nuova mansione (chiude la precedente aperta) ---
             new_poste = s_str(st.session_state.get(f"new_poste_{i}"))
             if new_poste and cod:
                 for idx_r, rr in enumerate(fresh_man):
                     if s_str(rr.get("code_travailleur")).upper() == cod.upper() and not s_str(rr.get("date_fin")):
                         salva_update("STORICO_MANSIONI", idx_r, {"date_fin": datetime.now().strftime("%d/%m/%Y")})
-                row_man = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                ok, _ = salva_append("STORICO_MANSIONI", {"code_travailleur": cod, "nom_prenom": nome_completo,
                            "date_debut": s_str(st.session_state.get(f"new_mdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
-                           "date_fin": "", "poste": new_poste,
-                           "departement": s_str(st.session_state.get(f"new_dept_{i}")),
+                           "date_fin": "", "poste": new_poste, "departement": s_str(st.session_state.get(f"new_dept_{i}")),
                            "motif": s_str(st.session_state.get(f"new_motivo_{i}")),
-                           "upgrade": "SI" if st.session_state.get(f"new_upgrade_{i}") else "NO"}
-                ok, _ = salva_append("STORICO_MANSIONI", row_man)
+                           "upgrade": "SI" if st.session_state.get(f"new_upgrade_{i}") else "NO"})
                 if ok: cambi += 1
-            # --- nuova sanzione ---
             new_desc = s_str(st.session_state.get(f"new_desc_{i}"))
             if new_desc and cod:
-                row_san = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                ok, _ = salva_append("STORICO_SANZIONI", {"code_travailleur": cod, "nom_prenom": nome_completo,
                            "date": s_str(st.session_state.get(f"new_sdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
                            "type": s_str(st.session_state.get(f"new_tipo_s_{i}")), "description": new_desc,
                            "gravite": s_str(st.session_state.get(f"new_grav_{i}")), "sanctionneur": "admin",
-                           "note": s_str(st.session_state.get(f"new_note_{i}"))}
-                ok, _ = salva_append("STORICO_SANZIONI", row_san)
+                           "note": s_str(st.session_state.get(f"new_note_{i}"))})
                 if ok: cambi += 1
-            # --- nuova performance review ---
             new_comp = s_str(st.session_state.get(f"new_comp_{i}"))
             if new_comp and cod:
-                row_perf = {"code_travailleur": cod, "nom_prenom": nome_completo,
+                ok, _ = salva_append("PERFORMANCE_REVIEW", {"code_travailleur": cod, "nom_prenom": nome_completo,
                             "date_review": s_str(st.session_state.get(f"new_pdata_{i}")) or datetime.now().strftime("%d/%m/%Y"),
                             "evaluateur": s_str(st.session_state.get(f"new_eval_{i}")) or "admin",
                             "critere": s_str(st.session_state.get(f"new_crit_{i}")), "comportement_observé": new_comp,
                             "contexte": s_str(st.session_state.get(f"new_cont_{i}")),
                             "frequence": s_str(st.session_state.get(f"new_freq_{i}")),
                             "note_1_5": st.session_state.get(f"new_voto_{i}", 3),
-                            "action_proposee": s_str(st.session_state.get(f"new_az_{i}"))}
-                ok, _ = salva_append("PERFORMANCE_REVIEW", row_perf)
+                            "action_proposee": s_str(st.session_state.get(f"new_az_{i}"))})
                 if ok: cambi += 1
-        st.success(f"✅ {cambi} {get_testo('salvate_n', lingua)}")
+        st.success(f"✅ {cambi} {get_testo('salvate_n', lingua) if 'salvate_n' in T else 'modifiche salvate'}")
         st.rerun()
     if not cerca and len(mostrati) > limite:
         if st.button(get_testo("mostra_altri", lingua), key="adm_more"):
@@ -1735,45 +1725,55 @@ def main():
             st.session_state.lingua = ql
     except Exception: pass
     CONFIG["url_api"] = CONFIG["url_api_produzione"] if st.session_state.get("ambiente") == "produzione" else CONFIG["url_api_test"]
+    if not st.session_state.logged_in:
+        try:
+            qp = st.query_params
+            qc, qpin = qp.get("code"), qp.get("pin")
+            au, ap = qp.get("adm_u"), qp.get("adm_p")
+        except Exception:
+            qc, qpin, au, ap = None, None, None, None
+        if au and ap and au == CONFIG["user_admin"] and ap == CONFIG["password_admin"]:
+            st.session_state.logged_in = True
+            st.session_state.user_type = "admin"
+            st.session_state.pagina = "dashboard"
+        elif qc and qpin:
+            _, recs = leggi_foglio("DIPENDENTI")
+            for r in recs:
+                if s_str(r.get("codice")).upper() == str(qc).strip().upper() and s_str(r.get("pin")) == str(qpin).strip():
+                    st.session_state.logged_in = True
+                    st.session_state.user_type = "lavoratore"
+                    st.session_state.codice_operatore = str(qc).strip()
+                    st.session_state.pagina = "area_lavoratore"
+                    break
     lingua = st.session_state.lingua
     with st.sidebar:
         lf1, lf2, lf3 = st.columns(3)
         if lf1.button("FRA", use_container_width=True, key="lang_fr"):
-            st.session_state.lingua = "fr"
-            st.rerun()
+            st.session_state.lingua = "fr"; st.rerun()
         if lf2.button("ENG", use_container_width=True, key="lang_en"):
-            st.session_state.lingua = "en"
-            st.rerun()
+            st.session_state.lingua = "en"; st.rerun()
         if lf3.button("ITA", use_container_width=True, key="lang_it"):
-            st.session_state.lingua = "it"
-            st.rerun()
-        st.image(CONFIG["logo_url"], use_container_width=True)
+            st.session_state.lingua = "it"; st.rerun()
+        st.image(_logo_url("logo_brand", "proacier.png"), use_container_width=True)
         if st.button(get_testo("home", lingua), use_container_width=True, key="sb_home"):
-            _do_logout()
-            st.rerun()
+            _do_logout(); st.rerun()
         if st.session_state.logged_in:
             st.success(f'{get_testo("benvenuto", lingua)}')
             if st.session_state.user_type == "admin":
                 if st.button(get_testo("dashboard", lingua), use_container_width=True, key="sb_dash"):
-                    st.session_state.pagina = "dashboard"
-                    st.rerun()
+                    st.session_state.pagina = "dashboard"; st.rerun()
             if st.session_state.user_type == "lavoratore":
                 if st.button(get_testo("i_miei_dati", lingua), use_container_width=True, key="sb_miei"):
-                    st.session_state.pagina = "area_lavoratore"
-                    st.rerun()
+                    st.session_state.pagina = "area_lavoratore"; st.rerun()
             if st.button(get_testo("logout", lingua), use_container_width=True, key="sb_out"):
-                _do_logout()
-                st.rerun()
+                _do_logout(); st.rerun()
         else:
             if st.button(get_testo("candidatura_spontanea", lingua), use_container_width=True, key="sb_cand"):
-                st.session_state.pagina = "candidatura"
-                st.rerun()
+                st.session_state.pagina = "candidatura"; st.rerun()
             if st.button(get_testo("area_lavoratore", lingua), use_container_width=True, key="sb_area"):
-                st.session_state.pagina = "espace"
-                st.rerun()
+                st.session_state.pagina = "espace"; st.rerun()
             if st.button(get_testo("dashboard", lingua), use_container_width=True, key="sb_admin"):
-                st.session_state.pagina = "login_admin"
-                st.rerun()
+                st.session_state.pagina = "login_admin"; st.rerun()
         st.markdown("---")
         st.markdown(f'### {get_testo("titolo_sidebar", lingua)}', unsafe_allow_html=True)
         st.markdown(get_testo("sottotitolo", lingua))
@@ -1792,14 +1792,11 @@ def main():
         st.subheader(get_testo("home_navigation", lingua))
         c1, c2, c3 = st.columns(3)
         if c1.button(get_testo("candidatura_spontanea", lingua), use_container_width=True, type="primary"):
-            st.session_state.pagina = "candidatura"
-            st.rerun()
+            st.session_state.pagina = "candidatura"; st.rerun()
         if c2.button(get_testo("area_lavoratore", lingua), use_container_width=True, type="primary"):
-            st.session_state.pagina = "espace"
-            st.rerun()
+            st.session_state.pagina = "espace"; st.rerun()
         if c3.button(get_testo("dashboard", lingua), use_container_width=True):
-            st.session_state.pagina = "login_admin"
-            st.rerun()
+            st.session_state.pagina = "login_admin"; st.rerun()
     elif st.session_state.pagina == "espace":
         st.title(get_testo("area_lavoratore", lingua))
         st.markdown("---")
@@ -1807,8 +1804,7 @@ def main():
         c1.markdown(f'### 👤 {get_testo("giornalieri_titolo", lingua)}')
         c1.info(get_testo("giornalieri_desc", lingua))
         if c1.button(get_testo("login_btn", lingua), use_container_width=True, type="primary"):
-            st.session_state.pagina = "login_lavoratore"
-            st.rerun()
+            st.session_state.pagina = "login_lavoratore"; st.rerun()
         c2.markdown(f'### 📝 {get_testo("nuovo_giornaliero_titolo", lingua)}')
         c2.info(get_testo("nuovo_giornaliero_desc", lingua))
         if c2.button(get_testo("trasmissione_btn", lingua), use_container_width=True, type="primary"):
