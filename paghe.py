@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.05]
-✅ v07.05: upload "Envoyer au cloud" e download "Prélever du cloud" con auth Basic
-   (legge url_presenze_user/pass dal CONFIG) → funziona con Directory Privacy ATTIVA
+PROACIER HRM – FASE 6 (Pagina 2) : Présences & Paies  [v07.07]
+✅ v07.07: upload "Envoyer au cloud" in BASE64 (POST normale, niente multipart)
+   → non bloccato da firewall/WAF; funziona con Directory Privacy OFF
 ✅ Include: parser List of Logs, anomalie, paghe quindicina, acconti,
-   storico mansioni/sanzioni/performance letti da app, upload/download XLS
-Richiede: Apps Script v6.1 + upload.php su /presenze/ + Directory Privacy attiva
+   storico mansioni/sanzioni/performance, upload/download XLS
+Richiede: Apps Script v6.1 + upload.php (versione base64) su /presenze/
 """
 import re
 import math
@@ -13,11 +13,12 @@ import random
 import calendar
 import csv
 import io
+import base64
 import requests
 from datetime import datetime, date
 import streamlit as st
 
-VERSIONE_PAGHE = "07.05"
+VERSIONE_PAGHE = "07.07"
 
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 
@@ -39,7 +40,7 @@ T6 = {
  "import_parse_btn": ("Analyser le fichier","Analizza il file","Parse file"),
  "import_write_btn": ("Enregistrer dans PRESENZE","Scrivi in PRESENZE","Write to PRESENZE"),
  "import_empty": ("Collez d'abord le contenu du fichier","Prima incolla il contenuto del file","Paste the file content first"),
- "import_up_err": ("Échec de l'envoi. Vérifiez upload.php / token / Directory Privacy.","Invio fallito. Verifica upload.php / token / Directory Privacy.","Upload failed. Check upload.php / token / Directory Privacy."),
+ "import_up_err": ("Échec de l'envoi. Vérifiez upload.php / token.","Invio fallito. Verifica upload.php / token.","Upload failed. Check upload.php / token."),
  "parsed_none": ("❌ Impossible de lire le fichier.","❌ Impossibile leggere il file.","❌ Cannot read the file."),
  "parsed_ok": ("✅ Fichier analysé","✅ File analizzato","✅ File parsed"),
  "import_period": ("Période","Periodo","Period"),
@@ -213,14 +214,6 @@ def leggi_config(A):
     cfg["_flottanti"] = flottanti
     cfg["_soglia_notte"] = soglia_notte
     return cfg, festivi
-
-def _auth_presenze(A):
-    """v07.05: legge url_presenze_user/pass dal CONFIG → tuple (user,pass) per auth Basic."""
-    up = A.cfg_get("url_presenze_user/pass", "")
-    if up and ":" in up:
-        u, p = up.split(":", 1)
-        return (u.strip(), p.strip())
-    return None
 
 def mappa_turni(A, recs_turni):
     info = {}
@@ -581,10 +574,31 @@ def conferma_paghe(A, ant):
         A.salva_update("ACCONTI", idx, upd)
     return True, "ok", len(rows)
 
+def _xls_matrix(data):
+    import xlrd
+    wb = xlrd.open_workbook(file_contents=data)
+    sh = None
+    for s in wb.sheets():
+        if "log" in s.name.lower(): sh = s; break
+    if sh is None: sh = wb.sheet_by_index(0)
+    rows = []
+    for ri in range(sh.nrows):
+        cells = []
+        for ci in range(sh.ncols):
+            v = sh.cell_value(ri, ci)
+            if isinstance(v, float) and 0 < v < 1:
+                hh, mm, ss = xlrd.xld_as_time(v)
+                cells.append(f"{hh:02d}:{mm:02d}")
+            elif isinstance(v, float) and v == int(v):
+                cells.append(str(int(v)))
+            else:
+                cells.append("" if v is None else str(v))
+        rows.append(cells)
+    return rows
+
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua))
     st.caption(t6("import_hint", lingua))
-    auth = _auth_presenze(A)   # v07.05
     c1, c2 = st.columns([3, 1])
     anno_sel = c1.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035, value=datetime.now().year, key="f6_imp_anno")
     nomi = MESI.get(lingua, MESI["fr"])
@@ -595,7 +609,6 @@ def sezione_import(A, lingua):
         token = A.cfg_get("url_upload_token", "")
         nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
         try:
-            import base64
             r = requests.post(url_up, data={"token": token, "filename": nome_file,
                               "file_b64": base64.b64encode(up.getvalue()).decode()}, timeout=120)
             if r.status_code == 200:
@@ -608,7 +621,7 @@ def sezione_import(A, lingua):
         url_cart = A.cfg_get("url_cartella_presenze", "").rstrip("/")
         nome_file = f"001_{int(anno_sel)}_{int(mese_sel)}_MON.XLS"
         try:
-            r = requests.get(f"{url_cart}/{nome_file}", auth=auth, timeout=120)   # v07.05 auth
+            r = requests.get(f"{url_cart}/{nome_file}", timeout=120)
             if r.status_code == 200 and r.content:
                 try:
                     parsed = parse_matrix(_xls_matrix(r.content))
@@ -658,28 +671,6 @@ def sezione_import(A, lingua):
             if esito["unmapped"]: st.warning(t6("import_unmapped", lingua) + ", ".join(esito["unmapped"]))
         else:
             st.error("❌ " + str(esito.get("msg")))
-
-def _xls_matrix(data):
-    import xlrd
-    wb = xlrd.open_workbook(file_contents=data)
-    sh = None
-    for s in wb.sheets():
-        if "log" in s.name.lower(): sh = s; break
-    if sh is None: sh = wb.sheet_by_index(0)
-    rows = []
-    for ri in range(sh.nrows):
-        cells = []
-        for ci in range(sh.ncols):
-            v = sh.cell_value(ri, ci)
-            if isinstance(v, float) and 0 < v < 1:
-                hh, mm, ss = xlrd.xld_as_time(v)
-                cells.append(f"{hh:02d}:{mm:02d}")
-            elif isinstance(v, float) and v == int(v):
-                cells.append(str(int(v)))
-            else:
-                cells.append("" if v is None else str(v))
-        rows.append(cells)
-    return rows
 
 def sezione_anomalie(A, lingua):
     st.subheader("🔍 " + t6("anom_title", lingua))
@@ -731,7 +722,7 @@ def sezione_anomalie(A, lingua):
 
 def render_anteprima(lingua, ant):
     if ant.get("festivi_default"):
-        st.warning("⚠️ " + "Jours fériés par défaut — complétez CONFIG.")
+        st.warning("⚠️ Jours fériés par défaut — complétez CONFIG.")
     if ant["dar_count"] > 0:
         st.warning(f"⚠️ {ant['dar_count']} {t6('dar_warn', lingua)}")
     for av in ant["avvisi"]: st.caption("• " + av)
