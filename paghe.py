@@ -307,7 +307,6 @@ def parse_list_of_logs(testo):
     return _build_blocchi(rows, get_name)
 
 def parse_matrix(rows):
-    # v07.12: gestisce celle unite di Excel ("Name :" + nome nella stessa cella)
     def get_name(r):
         for ci, cv in enumerate(r):
             m2 = re.search(r"Name\s*:\s*(.*)", str(cv), re.I)
@@ -315,8 +314,9 @@ def parse_matrix(rows):
                 rest = m2.group(1).strip().strip('"')
                 if rest:
                     return rest
-                if ci + 1 < len(r):
-                    return str(r[ci + 1]).strip()
+                for k in range(ci + 1, min(len(r), ci + 4)):
+                    if str(r[k]).strip():
+                        return str(r[k]).strip()
         return ""
     return _build_blocchi(rows, get_name)
 
