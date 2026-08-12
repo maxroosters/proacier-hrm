@@ -432,7 +432,14 @@ def scrivi_presenze(A, parsed):
             esistenti.add(key)
             rows.append(r)
     if rows:
-        ok, msg = A.salva_append_many("PRESENZE", rows)
+        if hasattr(A, "salva_append_many"):
+            ok, msg = A.salva_append_many("PRESENZE", rows)
+        else:
+            ok, msg = True, "ok"
+            for rr in rows:
+                ok, msg = A.salva_append("PRESENZE", rr)
+                if not ok:
+                    break
         if not ok: return {"ok": False, "msg": msg}
     return {"ok": True, "scritte": len(rows),
         "okn": sum(1 for r in rows if r["stato"]=="OK"),
