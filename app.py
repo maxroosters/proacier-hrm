@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM - v21.0 - FILE COMPLETO
-✅ v21.0: PDF registrazione riorganizzato: formulario + Consentement Privacy (Loi 2008-12)
-   + Règlement intérieur + Règles générales usine + accettazione Manuale + credenziali
-✅ v21.0: Manuale operativo FR/EN/IT (MANUAL_FR/EN/IT + MANUAL_CONFIG) con placeholder,
-   ricerca full-text insensibile ad accenti, filtro sezione, PDF manuale, solo loggati
-✅ v21.0: accettazione manuale versionata (CONFIG manuale_versione) con banner bloccante
-✅ v21.0: Avvisi admin ripristinati (bacheca + Telegram bot API, urgente=rosso)
-✅ v21.0: stato lavorativo (prova/assunto/esterno/dimissionario/licenziato), società formale,
-   fine prova con promemoria, paga_fissa; contatori attivi/archiviati
-✅ Include tutto v20.33 (loghi, sandbox, FASE 7 paghe, salva tutto, candidature, ecc.)
-Richiede: Apps Script v6.1 + paghe.py v08.02 + fpdf2
+"""PROACIER HRM - v21.1 - FILE COMPLETO
+✅ v21.1: pagina "📘 Manuel des procédures" (loggati): indice capitoli cliccabile, ricerca
+   full-text, PDF on-demand nella lingua attiva, pulsante ricarica, avviso diagnostico
+✅ v21.1: sanitizer _pdf_safe (fix crash FPDF su → ≤ € ecc. nei testi del manuale)
+✅ v21.1: icone doppie eliminate; CSS compatto (meno spazio in alto, menu più corto)
+✅ v21.1: cache fogli 120s (riduce "ombra" nel cambio pagina 1→2)
+✅ v21.1: banner ri-accettazione manuale con link alla pagina manuale
+✅ Include tutto v21.0: PDF registrazione con pagine legali firmabili, stati lavorativi,
+   paga_fissa, avvisi+Telegram, trattenute via paghe v08.02, sandbox, 7 step, ecc.
+Richiede: Apps Script v6.1 + paghe.py v08.02+ + fpdf2
 """
 import sys, importlib, random, re, unicodedata
 import streamlit as st
@@ -21,7 +20,7 @@ try:
 except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
-VERSIONE = "v21.0"
+VERSIONE = "v21.1"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 CONFIG = {"url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
           "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
@@ -50,13 +49,20 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"]{background-color:#5EA529 !important;}
 [data-testid="stSidebar"] *{color:white !important;}
-[data-testid="stSidebar"] button{background-color:rgba(0,0,0,0.18)!important;color:white!important;padding:0.35rem 0.5rem !important;min-height:2.1rem !important;}
+[data-testid="stSidebar"] button{background-color:rgba(0,0,0,0.18)!important;color:white!important;padding:0.3rem 0.5rem !important;min-height:2rem !important;}
 [data-testid="stSidebar"] select{color:white!important;background-color:rgba(0,0,0,0.3)!important;}
 [data-testid="stSidebar"] option{color:black!important;}
-[data-testid="stSidebar"] .element-container{margin-bottom:0.25rem !important;}
+[data-testid="stSidebar"] .element-container{margin-bottom:0.2rem !important;}
+[data-testid="stSidebar"] .block-container{padding-top:1rem !important;padding-bottom:0 !important;}
+[data-testid="stSidebar"] img{max-height:105px !important;object-fit:contain !important;}
+[data-testid="stSidebar"] hr{margin:0.35rem 0 !important;}
+[data-testid="stSidebar"] h3{margin:0.2rem 0 !important;font-size:1.1rem !important;}
 section.main{background-color:#0e1117 !important;min-height:100vh !important;}
-[data-testid="stMain"] h1{font-size:1.9rem !important;margin:0.2rem 0 0.5rem 0;}
-[data-testid="stMain"] h2{font-size:1.35rem !important;margin:0.5rem 0 0.3rem 0;}
+[data-testid="stMainBlockContainer"]{padding-top:0.9rem !important;padding-bottom:2.5rem !important;}
+[data-testid="stMain"] h1{font-size:1.8rem !important;margin:0.15rem 0 0.4rem 0 !important;}
+[data-testid="stMain"] h2{font-size:1.3rem !important;margin:0.4rem 0 0.25rem 0 !important;}
+[data-testid="stMain"] h3{font-size:1.02rem !important;margin:0.25rem 0 !important;}
+[data-testid="stMain"] hr{margin:0.45rem 0 !important;}
 [data-testid="stDownloadButton"] button{background-color:#2b4a6b !important;color:#fff !important;}
 @media (max-width:768px){.stTextInput >div >div >input,.stSelectbox >div >div >select{font-size:16px;}}
 .phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
@@ -91,6 +97,7 @@ T = {
  "doc_regolamento": ("Règlement intérieur", "Regolamento", "Internal rules"), "doc_privacy": ("Politique de confidentialité", "Privacy", "Privacy policy"),
  "mie_buste": ("🖨️ Mes fiches de paie", "🖨️ Le mie buste paga", "🖨️ My pay slips"), "gen_mia_busta": ("🖨️ Générer ma fiche", "🖨️ Genera la mia busta", "🖨️ Generate my slip"),
  "no_buste": ("ℹ️ Aucune paie enregistrée.", "ℹ️ Nessuna paga registrata.", "ℹ️ No payroll recorded."),
+ "buste_period": ("Période (quinzaine)", "Periodo (quindicina)", "Period (fortnight)"),
  "home_titolo": ("📋 À quoi sert cette application?", "📋 A cosa serve questa applicazione?", "📋 What is this application for?"),
  "home_p1_t": ("Transmission de données nouveaux travailleurs", "Trasmissione dati nuovi lavoratori", "Data transmission new workers"),
  "home_p1_d": ("Formulaire en 7 étapes + PDF automatique", "Modulo in 7 fasi + PDF automatico", "7-step form + automatic PDF"),
@@ -171,14 +178,14 @@ T = {
  "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
  "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
  "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
- "sezione_famille": ("👨‍👩‍👧 Famille (modifiable)", "👨‍‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+ "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍‍👧 Famiglia (modificabile)", "👨‍👩‍👧 Family (modifiable)"),
  "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
  "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
  "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
  "sezione_storico_mansioni": ("📜 Historique des fonctions", "📜 Storico mansioni", "📜 Position history"),
- "sezione_storico_paghe": ("💰 Historique des salaires", "💰 Storico salari", "💰 Salary history"),
- "sezione_performance": ("⭐ Mes évaluations de performance", "⭐ Le mie valutazioni", "⭐ My performance reviews"),
- "sezione_sanzioni": ("⚠️ Sanctions / Rappels", "⚠️ Sanzioni / Richiami", "⚠️ Sanctions / Warnings"),
+ "sezione_storico_paghe": ("Historique des salaires", "Storico salari", "Salary history"),
+ "sezione_performance": ("Mes évaluations de performance", "Le mie valutazioni", "My performance reviews"),
+ "sezione_sanzioni": ("Sanctions / Rappels", "Sanzioni / Richiami", "Sanctions / Warnings"),
  "paga_desc": ("Votre salaire est géré par l'administration.", "Il tuo salario è gestito dall'amministrazione.", "Your salary is managed by administration."),
  "paga_type": ("Type de paiement", "Tipo di pagamento", "Payment type"), "paga_amount": ("Montant", "Importo", "Amount"),
  "salva_modifiche": ("💾 Enregistrer les modifications", "💾 Salva modifiche", "💾 Save changes"),
@@ -191,9 +198,9 @@ T = {
  "dash_p1": ("1 - Employés & Salaires", "1 - Dipendenti & Salari", "1 - Employees & Salaries"),
  "dash_p2": ("2 - Présences & Paies", "2 - Presenze & Paghe", "2 - Attendance & Payroll"),
  "sez_admin": ("🛠️ Gestion administrative", "🛠️ Gestione amministrativa", "🛠️ Administrative management"),
- "sez_mansioni": ("💼 Gestion des fonctions", "💼 Gestione mansioni", "💼 Position management"),
- "sez_sanzioni": ("⚠️ Sanctions et rappels", "⚠️ Sanzioni e richiami", "⚠️ Sanctions and warnings"),
- "sez_performance": ("⭐ Performance Review", "⭐ Valutazioni", "⭐ Performance Reviews"),
+ "sez_mansioni": ("Gestion des fonctions", "Gestione mansioni", "Position management"),
+ "sez_sanzioni": ("Sanctions et rappels", "Sanzioni e richiami", "Sanctions and warnings"),
+ "sez_performance": ("Performance Review", "Valutazioni", "Performance Reviews"),
  "storico_visite": ("Historique des visites médicales", "Storico visite mediche", "Medical visit history"),
  "nuova_visita": ("Nouvelle visite médicale", "Nuova visita medica", "New medical visit"),
  "tipo_visita": ("Type de visite", "Tipo di visita", "Visit type"), "esito": ("Résultat médical", "Esito medico", "Medical outcome"),
@@ -226,12 +233,10 @@ T = {
  "pdf_urgence": ("Urgence: ", "Emergenza: ", "Emergency: "), "pdf_tel": ("Tel: ", "Tel: ", "Phone: "),
  "pdf_certifie": ("Je certifie l'exactitude des informations et accepte les conditions.", "Certifico l'esattezza delle informazioni e accetto le condizioni.", "I certify the accuracy of the information and accept the conditions."),
  "pdf_candidat": ("CANDIDAT", "CANDIDATO", "CANDIDATE"), "pdf_employeur": ("EMPLOYEUR", "DATORE DI LAVORO", "EMPLOYER"),
- "pdf_data_firma": ("Data / Date: ", "Data: ", "Date: "), "pdf_signature": ("Signature: ", "Firma: ", "Signature: "),
  "pdf_id_titolo": ("IDENTIFIANTS DE CONNEXION", "CREDENZIALI DI ACCESSO", "LOGIN CREDENTIALS"),
  "pdf_id_desc": ("Conservez precieusement ces identifiants:", "Conserva con cura queste credenziali:", "Keep these credentials safe:"),
  "pdf_id_code": ("Code d'acces: ", "Codice di accesso: ", "Access code: "),
  "pdf_id_avviso": ("Ces identifiants sont personnels et confidentiels. Ne les partagez avec personne.", "Queste credenziali sono personali e riservate. Non condividerle.", "These credentials are personal and confidential. Do not share them."),
- # === v21.0 ===
  "salva_tutto": ("💾 Enregistrer toutes les modifications", "💾 Salva tutte le modifiche", "💾 Save all changes"),
  "salvate_n": ("modifications enregistrées", "modifiche salvate", "changes saved"),
  "no_mansione": ("ℹ️ Aucune fonction enregistrée.", "ℹ️ Nessuna mansione registrata.", "ℹ️ No position recorded."),
@@ -265,7 +270,12 @@ T = {
  "man_reload": ("🔄 Recharger le manuel", "🔄 Ricarica manuale", "🔄 Reload manual"),
  "man_accept_box": ("J'ai lu et j'accepte le Manuel des procédures", "Ho letto e accetto il Manuale delle procedure", "I have read and accept the Procedures Manual"),
  "man_updated": ("📘 Manuel mis à jour : veuillez le relire et l'accepter pour continuer.", "📘 Manuale aggiornato: rileggilo e accettalo per continuare.", "📘 Manual updated: please re-read and accept to continue."),
- "reg_man_box": ("J'ai lu et j'accepte le Manuel des procédures", "Ho letto e accetto il Manuale delle procedure", "I have read and accept the Procedures Manual"),
+ "man_vuoto": ("⚠️ Manuel introuvable ou vide. Vérifiez que les onglets MANUAL_FR, MANUAL_EN, MANUAL_IT et MANUAL_CONFIG existent avec ces noms exacts (sans « Copy of »).",
+               "⚠️ Manuale non trovato o vuoto. Verifica che i tab MANUAL_FR, MANUAL_EN, MANUAL_IT e MANUAL_CONFIG esistano con questi nomi esatti (senza « Copy of »).",
+               "⚠️ Manual not found or empty. Check that tabs MANUAL_FR, MANUAL_EN, MANUAL_IT and MANUAL_CONFIG exist with these exact names (no « Copy of »)."),
+ "man_sommaire": ("SOMMAIRE", "SOMMARIO", "CONTENTS"),
+ "man_index": ("Cliquez sur un chapitre pour le filtrer", "Clicca su un capitolo per filtrarlo", "Click a chapter to filter it"),
+ "man_apri": ("📘 Ouvrir le manuel", "📘 Apri il manuale", "📘 Open the manual"),
 }
 def get_testo(chiave, lingua="fr"):
     t = T.get(chiave)
@@ -314,6 +324,15 @@ def data_ord(s):
     return (y, mo, d)
 def _norm_acc(s):
     return unicodedata.normalize("NFD", str(s or "").lower()).encode("ascii", "ignore").decode()
+_PDF_MAP = {"→": "->", "–": "-", "—": "-", "•": "-", "…": "...", "’": "'", "‘": "'", "“": '"', "”": '"', "≤": "<=", "≥": ">=", "€": "EUR", "Œ": "OE", "œ": "oe", "→": "->", "⚠": "!", "✅": "[OK]", "⭐": "*", "📈": "^", "⛔": "X", "➡": "->", "ℹ": "i"}
+def _pdf_safe(s):
+    out = []
+    for ch in str(s or ""):
+        if ch in _PDF_MAP: out.append(_PDF_MAP[ch]); continue
+        try:
+            ch.encode("latin-1"); out.append(ch)
+        except Exception: out.append("?")
+    return "".join(out)
 AREE_AZIENDALI = [
  {"label": ("Direction & Staff", "Direzione e Staff", "Management & Staff"), "ruoli": ["Directeur / Responsable d'Usine", "Responsable Production", "Responsable Qualité", "Responsable HSE", "Responsable RH / Administration", "Responsable Achats & Logistique", "Comptable / Assistant Comptable"]},
  {"label": ("Marketing & Ventes", "Marketing e Vendite", "Marketing & Sales"), "ruoli": ["Responsable Commercial / Directeur Commercial", "Commercial / Vendeur (B2B)", "Responsable Marketing", "Community Manager / Social Media Manager", "Responsable Communication & Promotion", "Assistant Commercial / Assistant Marketing"]},
@@ -404,7 +423,7 @@ def leggi_foglio(nome_foglio, force=False):
     cache = st.session_state.get("_cache", {})
     if not force and nome_foglio in cache:
         ts, h, recs = cache[nome_foglio]
-        if (datetime.now() - ts).total_seconds() < 30: return h, recs
+        if (datetime.now() - ts).total_seconds() < 120: return h, recs
     data = None
     try:
         r = requests.post(CONFIG["url_api"], json={"sheet": nome_foglio, "action": "read"}, timeout=60)
@@ -544,7 +563,7 @@ def promemoria_festivita(lingua, consiglio=False):
         delta = (d - oggi).days
         quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
         righe.append(f"- {n} — {d.strftime('%d/%m/%Y')} ({quando})")
-    msg = "🗓️ " + get_testo("fest_box_titolo", lingua) + "\n\n" + "\n".join(righe)
+    msg = get_testo("fest_box_titolo", lingua) + "\n\n" + "\n".join(righe)
     if consiglio: msg += "\n\n" + get_testo("fest_stop", lingua)
     st.info(msg)
 def invia_telegram(testo):
@@ -574,10 +593,7 @@ def leggi_manual_config(force=False):
     return out
 def _parc_machines(lingua, conf):
     col = {"fr": "fr", "it": "it", "en": "en"}.get(lingua, "fr")
-    lines = []
-    for m in conf["machines"]:
-        lines.append(f"- {s_str(m.get('code'))} x{s_str(m.get('quantite'))} ({s_str(m.get('statut'))}) : {s_str(m.get(col))}")
-    return "\n".join(lines)
+    return "\n".join([f"- {s_str(m.get('code'))} x{s_str(m.get('quantite'))} ({s_str(m.get('statut'))}) : {s_str(m.get(col))}" for m in conf["machines"]])
 def _apply_placeholders(texto, lingua, conf):
     texto = texto.replace("{{PARC_MACHINES}}", _parc_machines(lingua, conf))
     for code, val in conf["params"].items():
@@ -609,59 +625,88 @@ def leggi_manuale(lingua, force=False):
         sections[sez]["paras"].append({"title": tit, "text": _apply_placeholders(tex, lingua, conf)})
     secs = sorted([sections[s] for s in order], key=lambda x: x["pref"])
     out = {"meta": meta, "sections": secs}
-    st.session_state[ck] = out
+    if secs: st.session_state[ck] = out
     return out
 def manuale_versione():
     man = leggi_manuale("fr")
     return cfg_get("manuale_versione") or _meta_get(man["meta"], ["version du manuel", "manual version", "versione del manuale"]) or "1"
 def genera_pdf_manuale(lingua):
     man = leggi_manuale(lingua)
+    if not man["sections"]: raise ValueError("Manuale vuoto: verificare fogli MANUAL_*")
     az = azienda_info()
     pdf = FPDF()
     pdf.set_auto_page_break(True, 15)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, az.get("nome", ""), 0, 1, "C")
-    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
     titolo = _meta_get(man["meta"], ["titre du manuel", "title of the manual", "titolo del manuale"]) or "Manuel des Procédures"
-    pdf.multi_cell(0, 7, titolo, align="C")
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.multi_cell(0, 7, _pdf_safe(titolo), align="C")
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, f"Version {manuale_versione()} - {_meta_get(man['meta'], ['date de la version', 'version date', 'data della versione'])}", 0, 1, "C")
+    dat = _meta_get(man["meta"], ["date de la version", "version date", "data della versione"])
+    pdf.cell(0, 6, _pdf_safe(f"Version {manuale_versione()} - {dat}"), 0, 1, "C")
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(0, 7, "SOMMAIRE / CONTENTS / SOMMARIO", 0, 1, "L")
+    pdf.cell(0, 7, _pdf_safe(get_testo("man_sommaire", lingua)), 0, 1, "L")
     pdf.set_font("Helvetica", "", 9)
     for s in man["sections"]:
         if s["pref"] <= 2: continue
-        pdf.cell(0, 6, "- " + s["id"], 0, 1, "L")
+        pdf.cell(0, 6, _pdf_safe("- " + s["id"]), 0, 1, "L")
     for s in man["sections"]:
         if s["pref"] == 0: continue
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 11)
-        pdf.cell(0, 7, s["id"], 0, 1, "L")
+        pdf.cell(0, 7, _pdf_safe(s["id"]), 0, 1, "L")
         for p in s["paras"]:
             pdf.set_font("Helvetica", "B", 9)
-            pdf.multi_cell(0, 5, p["title"])
+            pdf.multi_cell(0, 5, _pdf_safe(p["title"]))
             pdf.set_font("Helvetica", "", 9)
-            pdf.multi_cell(0, 5, p["text"])
+            pdf.multi_cell(0, 5, _pdf_safe(p["text"]))
             pdf.ln(2)
     out = pdf.output(dest="S")
     return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
-def render_manuale_ui(lingua, kp):
+def pagina_manuale(lingua):
+    st.title(get_testo("man_title", lingua))
     man = leggi_manuale(lingua)
-    st.caption(f"{get_testo('man_title', lingua)} — v{manuale_versione()}")
+    if not man["sections"]:
+        st.error(get_testo("man_vuoto", lingua))
+        return
+    st.caption(f"v{manuale_versione()} — {_meta_get(man['meta'], ['date de la version', 'version date', 'data della versione'])}")
     c1, c2 = st.columns([2, 1])
-    q = c1.text_input(get_testo("man_search", lingua), key=kp + "_q")
-    opts = ["*"] + [s["id"] for s in man["sections"]]
-    sel = c2.selectbox(get_testo("man_section", lingua), opts, format_func=lambda x: get_testo("man_all", lingua) if x == "*" else x, key=kp + "_s")
-    st.download_button(get_testo("man_download", lingua), data=genera_pdf_manuale(lingua),
-                       file_name=f"Manuel_Proacier_{lingua}.pdf", mime="application/pdf", key=kp + "_dl")
+    q = c1.text_input(get_testo("man_search", lingua), key="pgman_q")
+    secs = [s for s in man["sections"] if s["pref"] >= 3]
+    opts = ["*"] + [s["id"] for s in secs]
+    if st.session_state.get("pgman_s") not in opts: st.session_state["pgman_s"] = "*"
+    sel = c2.selectbox(get_testo("man_section", lingua), opts, format_func=lambda x: get_testo("man_all", lingua) if x == "*" else x, key="pgman_s")
+    b1, b2 = st.columns(2)
+    if b1.button(get_testo("man_download", lingua), type="primary", key="pgman_pdf"):
+        try:
+            st.session_state["pgman_bytes"] = genera_pdf_manuale(lingua)
+            st.session_state["pgman_lang"] = lingua
+        except Exception as e:
+            st.error(f"PDF: {e}")
+    if b2.button(get_testo("man_reload", lingua), key="pgman_rl"):
+        for k in list(st.session_state.keys()):
+            if k.startswith("_manual_") or k == "_manconf": st.session_state.pop(k, None)
+        st.rerun()
+    if st.session_state.get("pgman_bytes"):
+        st.download_button("📥 PDF", data=st.session_state["pgman_bytes"],
+                           file_name=f"Manuel_Proacier_{st.session_state.get('pgman_lang', lingua)}.pdf",
+                           mime="application/pdf", key="pgman_dl", use_container_width=True)
+    st.caption(get_testo("man_index", lingua))
+    ic = st.columns(3)
+    for n, s in enumerate(secs):
+        if ic[n % 3].button(s["id"], key=f"pgman_toc_{s['pref']}", use_container_width=True):
+            st.session_state["pgman_s"] = s["id"]
+            st.rerun()
+    st.markdown("---")
     nq = _norm_acc(q)
     for s in man["sections"]:
+        if s["pref"] == 0: continue
         if sel != "*" and s["id"] != sel: continue
         paras = [p for p in s["paras"] if not nq or nq in _norm_acc(p["title"] + " " + p["text"])]
         if nq and not paras: continue
-        with st.expander(s["id"]):
+        with st.expander(s["id"], expanded=(sel != "*" or bool(nq))):
             for p in paras:
                 st.markdown(f"**{p['title']}**")
                 st.write(p["text"])
@@ -690,27 +735,27 @@ class PDFProacier(FPDF):
         self.set_font("Helvetica", "B", 8)
         self.cell(60, 5, et, 0, 0)
         self.set_font("Helvetica", "", 8)
-        self.cell(0, 5, s_str(val) or "___", 0, 1)
+        self.cell(0, 5, _pdf_safe(s_str(val) or "___"), 0, 1)
     def campo_doppio(self, e1, v1, e2, v2):
         self.set_font("Helvetica", "B", 8)
         self.cell(50, 5, e1, 0, 0)
         self.set_font("Helvetica", "", 8)
-        self.cell(45, 5, s_str(v1) or "", 0, 0)
+        self.cell(45, 5, _pdf_safe(s_str(v1) or ""), 0, 0)
         self.set_font("Helvetica", "B", 8)
         self.cell(50, 5, e2, 0, 0)
         self.set_font("Helvetica", "", 8)
-        self.cell(0, 5, s_str(v2) or "", 0, 1)
+        self.cell(0, 5, _pdf_safe(s_str(v2) or ""), 0, 1)
     def pagina_firma(self, titolo_fr, testo_fr, extra=""):
         self.add_page()
         self.set_font("Helvetica", "B", 12)
-        self.multi_cell(0, 6, titolo_fr, align="C")
+        self.multi_cell(0, 6, _pdf_safe(titolo_fr), align="C")
         self.ln(2)
         self.set_font("Helvetica", "", 8)
-        self.multi_cell(0, 4.5, testo_fr)
+        self.multi_cell(0, 4.5, _pdf_safe(testo_fr))
         if extra:
             self.ln(2)
             self.set_font("Helvetica", "B", 8)
-            self.multi_cell(0, 4.5, extra)
+            self.multi_cell(0, 4.5, _pdf_safe(extra))
         self.ln(6)
         self.set_font("Helvetica", "", 9)
         self.cell(0, 6, "Signature : ______________________", 0, 1, "L")
@@ -729,10 +774,10 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
     pref = "M. " if s_str(d.get("sesso")) == "M" else ("Mme " if s_str(d.get("sesso")) == "F" else "")
-    pdf.cell(0, 5, f"{pref}{s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip(), 0, 1, "R")
+    pdf.cell(0, 5, _pdf_safe(f"{pref}{s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip()), 0, 1, "R")
     pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 4, s_str(d.get("indirizzo")), 0, 1, "R")
-    pdf.cell(0, 4, f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip(), 0, 1, "R")
+    pdf.cell(0, 4, _pdf_safe(s_str(d.get("indirizzo"))), 0, 1, "R")
+    pdf.cell(0, 4, _pdf_safe(f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip()), 0, 1, "R")
     pdf.set_xy(10, 62)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "C")
@@ -751,7 +796,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
         pdf.set_font("Helvetica", "B", 8)
         pdf.cell(60, 5, get_testo("pdf_epouses", lingua), 0, 0)
         pdf.set_font("Helvetica", "", 8)
-        pdf.multi_cell(0, 4, s_str(d.get("dettagli_mogli")))
+        pdf.multi_cell(0, 4, _pdf_safe(s_str(d.get("dettagli_mogli"))))
         pdf.ln(1)
     pdf.sezione(get_testo("pdf_sez2", lingua))
     pdf.campo(get_testo("pdf_adresse", lingua), f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
@@ -782,7 +827,6 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(95, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
     pdf.cell(95, 22, "", 1, 0)
     pdf.cell(95, 22, "", 1, 1)
-    # v21.0: pagine legali firmabili (FR, lingua ufficiale)
     pdf.pagina_firma("CONSENTEMENT AU TRAITEMENT DES DONNEES PERSONNELLES", PRIVACY_FR)
     pdf.pagina_firma("REGLEMENT INTERIEUR (SYNTHESE)", REGLEMENT_FR)
     pdf.pagina_firma("REGLES GENERALES DE L'USINE", REGLES_USINE_FR,
@@ -994,10 +1038,9 @@ def pagina_registrazione(lingua):
                     st.session_state.step += 1
                     st.rerun()
         else:
-            # v21.0: doppia accettazione (condizioni + manuale versionato)
             conferma = st.checkbox(get_testo("checkbox_confirm", lingua), key="s7_conf")
             st.caption(f'{get_testo("man_title", lingua)} — v{manuale_versione()}')
-            acc_man = st.checkbox(get_testo("reg_man_box", lingua), key="s7_man")
+            acc_man = st.checkbox(get_testo("man_accept_box", lingua), key="s7_man")
             if conferma and acc_man:
                 if st.button(get_testo("genera_pdf", lingua), type="primary", use_container_width=True):
                     genera_e_salva(st.session_state.dati_form, lingua)
@@ -1128,7 +1171,7 @@ def bacheca_avvisi(lingua):
     except Exception: return
     recs = [r for r in recs if s_str(r.get("titolo")) or s_str(r.get("testo"))]
     if not recs: return
-    st.markdown("📢 " + get_testo("bacheca_title", lingua))
+    st.markdown(get_testo("bacheca_title", lingua))
     for r in list(reversed(recs))[:5]:
         urg = s_str(r.get("urgente")).upper() == "SI"
         if urg: st.error(f"⚠️ URGENTE — {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
@@ -1147,14 +1190,15 @@ def pagina_area_lavoratore(lingua):
         st.error(get_testo("nessun_risultato", lingua))
         return
     codice_mio = s_str(mio.get("codice"))
-    # v21.0: banner bloccante manuale aggiornato
+    # v21.1: banner bloccante manuale aggiornato con link alla pagina manuale
     man_ver = manuale_versione()
     if s_str(mio.get("accetta_manuale")) != "SI" or s_str(mio.get("accetta_manuale_versione")) != man_ver:
         st.warning(get_testo("man_updated", lingua))
-        with st.expander(get_testo("man_title", lingua), expanded=True):
-            render_manuale_ui(lingua, "wl_man_acc")
+        if st.button(get_testo("man_apri", lingua), key="wl_open_man"):
+            st.session_state.pagina = "manuale"
+            st.rerun()
         if st.checkbox(get_testo("man_accept_box", lingua), key="wl_acc_chk"):
-            if st.button("✅ " + get_testo("man_accept_box", lingua), type="primary", key="wl_acc_btn"):
+            if st.button("✅ OK", type="primary", key="wl_acc_btn"):
                 ok, _ = salva_update("DIPENDENTI", mio_idx, {"accetta_manuale": "SI",
                                      "accetta_manuale_versione": man_ver,
                                      "accetta_manuale_data": datetime.now().strftime("%d/%m/%Y")})
@@ -1163,10 +1207,6 @@ def pagina_area_lavoratore(lingua):
     promemoria_festivita(lingua)
     bacheca_avvisi(lingua)
     blocco_telegram(lingua)
-    st.markdown("---")
-    # v21.0: sezione manuale
-    st.subheader(get_testo("man_title", lingua))
-    render_manuale_ui(lingua, "wl_man")
     st.markdown("---")
     st.subheader(get_testo("sezione_mansione", lingua))
     mansioni = mostra_storico_mansioni(codice_mio, lingua)
@@ -1227,7 +1267,7 @@ def pagina_area_lavoratore(lingua):
         c2.text_input(get_testo("paga_amount", lingua), value=s_str(mia_paga[0].get("importo_base")) + " FCFA", disabled=True)
     else:
         st.info(get_testo("paga_desc", lingua))
-    with st.expander("💰 " + get_testo("sezione_storico_paghe", lingua)):
+    with st.expander(get_testo("sezione_storico_paghe", lingua)):
         storico_paghe = mostra_storico_paghe(codice_mio, lingua)
         if storico_paghe:
             for p in storico_paghe:
@@ -1275,7 +1315,7 @@ def pagina_area_lavoratore(lingua):
     miei_pays.sort(key=lambda p: data_ord(p.get("periodo_da")) or (0, 0, 0), reverse=True)
     if miei_pays:
         opts = [f"{s_str(p.get('periodo_da'))} → {s_str(p.get('periodo_a'))}" for p in miei_pays]
-        sel = st.selectbox(get_testo("buste_period", lingua) if "buste_period" in T else "Période", opts, key="wl_busta_period")
+        sel = st.selectbox(get_testo("buste_period", lingua), opts, key="wl_busta_period")
         pago = miei_pays[opts.index(sel)]
         if st.button(get_testo("gen_mia_busta", lingua), type="primary", use_container_width=True, key="wl_busta_btn"):
             A = sys.modules[__name__]
@@ -1386,7 +1426,7 @@ def pagina_area_lavoratore(lingua):
     if st.button(get_testo("logout", lingua), use_container_width=True):
         _do_logout()
         st.rerun()
-# ------------------------- v21.0 AVVISI ADMIN -------------------------
+# ------------------------- AVVISI ADMIN -------------------------
 def sezione_avvisi_admin(lingua):
     st.markdown("### " + get_testo("avv_title", lingua))
     with st.form("avv_form"):
@@ -1410,7 +1450,7 @@ def sezione_avvisi_admin(lingua):
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
-    with st.expander("🧪 " + get_testo("amb_title", lingua), expanded=(env == "test")):
+    with st.expander(get_testo("amb_title", lingua), expanded=(env == "test")):
         sel_env = st.radio("Ambiente", ["produzione", "test"], index=0 if env == "produzione" else 1, horizontal=True, key="amb_sel", label_visibility="collapsed")
         st.caption(get_testo("amb_hint", lingua))
         if sel_env != env:
@@ -1428,7 +1468,6 @@ def pagina_dashboard(lingua):
     recs_man, recs_sanz, recs_perf = b.get("STORICO_MANSIONI", []), b.get("STORICO_SANZIONI", []), b.get("PERFORMANCE_REVIEW", [])
     turni_codes = [s_str(r.get("codice_turno")) for r in recs_turni if s_str(r.get("codice_turno")) and s_str(r.get("ora_inizio"))]
     if not turni_codes: turni_codes = ["T1", "T2", "T3", "EQUIPE"]
-    # v21.0: contatori stati
     attivi = sum(1 for r in recs_dip if (s_str(r.get("stato_lavorativo")).lower() or "prova") in ("prova", "assunto", "esterno"))
     archiviati = sum(1 for r in recs_dip if (s_str(r.get("stato_lavorativo")).lower()) in ("dimissionario", "licenziato"))
     cfg_prova_gg = s_int(cfg_get("promemoria_prova_giorni_prima", "7")) or 7
@@ -1467,14 +1506,7 @@ def pagina_dashboard(lingua):
     if scaduti: st.warning("⚠️ " + get_testo("visite_scadute", lingua) + ": " + "; ".join(scaduti))
     if restritti: st.error("🩺 " + get_testo("idoneita_parziale", lingua) + ": " + "; ".join(restritti))
     st.markdown("---")
-    # v21.0: avvisi + manuale (admin)
     sezione_avvisi_admin(lingua)
-    with st.expander("📘 " + get_testo("man_title", lingua) + " (admin)"):
-        if st.button(get_testo("man_reload", lingua), key="adm_man_reload"):
-            for k in list(st.session_state.keys()):
-                if k.startswith("_manual_") or k == "_manconf": st.session_state.pop(k, None)
-            st.rerun()
-        render_manuale_ui(lingua, "adm_man")
     st.markdown("---")
     cerca = st.text_input(get_testo("cerca_dip", lingua), key="adm_cerca")
     mostrati = []
@@ -1506,7 +1538,6 @@ def pagina_dashboard(lingua):
                 ido_val = s_str(r.get("idoneita"))
                 n_ido = st.selectbox(get_testo("idoneita", lingua), ido_codes, index=ido_codes.index(ido_val) if ido_val in ido_codes else 0, format_func=lambda c: etichetta("idoneita", c, lingua), key=f"adm_ido_{i}")
                 n_vis = st.text_input(get_testo("data_visita", lingua), value=s_str(r.get("data_visita")), key=f"adm_vis_{i}")
-                # v21.0: stato lavorativo + società + fine prova + paga fissa
                 n_stato = select_canonico("stato_lavorativo", lingua, get_testo("stato_lav", lingua), f"adm_stato_{i}", saved=r.get("stato_lavorativo") or "prova")
                 n_fissa = st.checkbox(get_testo("paga_fissa_lbl", lingua), value=s_str(r.get("paga_fissa")).upper() == "SI", key=f"adm_fissa_{i}")
             with cb:
@@ -1517,7 +1548,7 @@ def pagina_dashboard(lingua):
                 n_imp = st.number_input(get_testo("paga_amount", lingua) + " (FCFA)", min_value=0, value=s_int(attiva.get("importo_base")) if attiva else 0, step=500, key=f"adm_imp_{i}")
                 n_soc = st.text_input(get_testo("soc_formale", lingua), value=s_str(r.get("societa_formale")), key=f"adm_soc_{i}")
                 n_fp = st.text_input(get_testo("fine_prova", lingua), value=s_str(r.get("data_fine_prova")), key=f"adm_fp_{i}")
-            st.markdown("### 💼 " + get_testo("sez_mansioni", lingua))
+            st.markdown("### " + get_testo("sez_mansioni", lingua))
             mie_man = [m for m in recs_man if s_str(m.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_man.sort(key=lambda x: data_ord(x.get("date_debut")) or (0, 0, 0), reverse=True)
             if mie_man:
@@ -1533,7 +1564,7 @@ def pagina_dashboard(lingua):
             mc3.text_input(get_testo("data_inizio", lingua) + " (GG/MM/AAAA)", value=datetime.now().strftime("%d/%m/%Y"), key=f"new_mdata_{i}")
             select_canonico("motivo_cambio", lingua, get_testo("motivo_cambio", lingua), f"new_motivo_{i}")
             st.checkbox(get_testo("upgrade", lingua), key=f"new_upgrade_{i}")
-            st.markdown("### ⚠️ " + get_testo("sez_sanzioni", lingua))
+            st.markdown("### " + get_testo("sez_sanzioni", lingua))
             mie_sanz = [s for s in recs_sanz if s_str(s.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_sanz.sort(key=lambda x: data_ord(x.get("date")) or (0, 0, 0), reverse=True)
             if mie_sanz:
@@ -1547,7 +1578,7 @@ def pagina_dashboard(lingua):
             sc1.text_input(get_testo("data_visita", lingua), value=datetime.now().strftime("%d/%m/%Y"), key=f"new_sdata_{i}")
             st.text_area(get_testo("descrizione", lingua), key=f"new_desc_{i}")
             st.text_input(get_testo("note", lingua), key=f"new_note_{i}")
-            st.markdown("### ⭐ " + get_testo("sez_performance", lingua))
+            st.markdown("### " + get_testo("sez_performance", lingua))
             st.info("💡 " + get_testo("regola_oro", lingua))
             mie_perf = [p for p in recs_perf if s_str(p.get("code_travailleur")).upper() == s_str(r.get("codice")).upper()]
             mie_perf.sort(key=lambda x: data_ord(x.get("date_review")) or (0, 0, 0), reverse=True)
@@ -1724,6 +1755,9 @@ def main():
                 if st.button(get_testo("i_miei_dati", lingua), use_container_width=True, key="sb_miei"):
                     st.session_state.pagina = "area_lavoratore"
                     st.rerun()
+            if st.button(get_testo("man_title", lingua), use_container_width=True, key="sb_man"):
+                st.session_state.pagina = "manuale"
+                st.rerun()
             if st.button(get_testo("logout", lingua), use_container_width=True, key="sb_out"):
                 _do_logout()
                 st.rerun()
@@ -1788,6 +1822,9 @@ def main():
         pagina_candidatura(lingua)
     elif st.session_state.pagina == "area_lavoratore":
         pagina_area_lavoratore(lingua)
+    elif st.session_state.pagina == "manuale":
+        if st.session_state.logged_in: pagina_manuale(lingua)
+        else: st.session_state.pagina = "home"
     elif st.session_state.pagina == "login_lavoratore":
         codice = st.text_input(get_testo("codice", lingua), key="lg_cod")
         pin = st.text_input(get_testo("pin", lingua), type="password", key="lg_pin")
