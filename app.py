@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM - v21.2 - PARTE 1/2"""
+"""PROACIER HRM - v21.3 - PARTE 1/2
+✅ v21.3: logo in cache (_logo_bytes) → dashboard veloce, niente download ripetuti
+✅ v21.3: icone singole, CSS compatto, traduzioni complete (dipartimento, data_sanzione)
+✅ Include tutto v21.2: manuale trilingua, certificato, stati lavorativi, paga_fissa,
+   trattenute legali via paghe, avvisi+Telegram, sandbox, 7 step, candidature
+Richiede: Apps Script v6.1 + paghe.py v08.02+ + fpdf2 + streamlit-js-eval
+"""
 import sys, importlib, random, re, unicodedata
 import streamlit as st
 import requests
@@ -10,7 +16,7 @@ try:
 except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
-VERSIONE = "v21.2"
+VERSIONE = "v21.3"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 CONFIG = {"url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
           "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
@@ -166,7 +172,7 @@ T = {
  "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
  "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
  "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
- "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍👧 Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+ "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
  "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
  "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
  "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
@@ -370,7 +376,7 @@ def servizi_di(r):
 def _logo_url(chiave, default):
     f = cfg_get(chiave, default)
     return f if f.startswith("http") else LOGO_BASE + f
-	_LOGO_CACHE = {}
+_LOGO_CACHE = {}
 def _logo_bytes(chiave, default):
     url = _logo_url(chiave, default)
     if url not in _LOGO_CACHE:
@@ -784,7 +790,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.campo_doppio(get_testo("pdf_epouses", lingua), d.get("numero_mogli"), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
     if s_int(d.get("numero_mogli")) > 0:
         pdf.set_font("Helvetica", "B", 8); pdf.cell(60, 5, get_testo("pdf_epouses", lingua), 0, 0)
-        pdf.set_font("Helvetica", "", 8); pdf.multi_cell(0, 4, _pdf_safe(s_str(d.get("dettagli_mogli")))); pdf.ln(1)
+        pdf.set_font("Helvetica", "", 8); pdf.set_x(10); pdf.multi_cell(0, 4, _pdf_safe(s_str(d.get("dettagli_mogli")))); pdf.ln(1)
     pdf.sezione(get_testo("pdf_sez2", lingua))
     pdf.campo(get_testo("pdf_adresse", lingua), f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
     pdf.campo_doppio(get_testo("pdf_tel1", lingua), d.get("telefono_1"), get_testo("pdf_tel2", lingua), d.get("telefono_2"))
@@ -802,7 +808,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.sezione(get_testo("pdf_sez5", lingua))
     pdf.campo_doppio(get_testo("pdf_groupe", lingua), f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", get_testo("pdf_aptitude", lingua), etichetta("idoneita", d.get("idoneita"), lingua))
     pdf.campo_doppio(get_testo("pdf_urgence", lingua), d.get("emergenza_nome"), get_testo("pdf_tel", lingua), d.get("emergenza_tel")); pdf.ln(3)
-    pdf.set_font("Helvetica", "I", 8); pdf.multi_cell(0, 4, get_testo("pdf_certifie", lingua))
+    pdf.set_font("Helvetica", "I", 8); pdf.set_x(10); pdf.multi_cell(0, 4, get_testo("pdf_certifie", lingua))
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 8, "CONSENTEMENT AU TRAITEMENT DES DONNEES PERSONNELLES", 0, 1, "C")
     pdf.set_font("Helvetica", "", 8)
@@ -819,14 +825,13 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_font("Helvetica", "", 11); pdf.cell(0, 8, get_testo("pdf_id_desc", lingua), 0, 1, "C"); pdf.ln(5)
     pdf.set_font("Helvetica", "B", 16); pdf.cell(0, 12, f"{get_testo('pdf_id_code', lingua)} {s_str(d.get('codice')) or '____'}", 0, 1, "C"); pdf.ln(3)
     pdf.cell(0, 12, f"PIN: {s_str(d.get('pin')) or '_____'}", 0, 1, "C"); pdf.ln(5)
-    pdf.set_font("Helvetica", "I", 9); pdf.set_text_color(150, 0, 0); pdf.multi_cell(0, 5, get_testo("pdf_id_avviso", lingua)); pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Helvetica", "I", 9); pdf.set_text_color(150, 0, 0); pdf.set_x(10); pdf.multi_cell(0, 5, get_testo("pdf_id_avviso", lingua)); pdf.set_text_color(0, 0, 0)
     pdf.add_page()
     pdf.set_fill_color(240, 248, 240); pdf.rect(0, 0, 210, 297, "F")
     pdf.set_draw_color(0, 110, 60); pdf.set_line_width(1.2); pdf.rect(7, 7, 196, 283)
     pdf.set_draw_color(0, 90, 160); pdf.set_line_width(0.4); pdf.rect(10, 10, 190, 277)
     pdf.set_draw_color(120, 180, 140); pdf.set_line_width(0.15)
     for i in range(10): pdf.ellipse(105, 150, 95 - i * 4, 60 - i * 2)
-    lb = _logo_bytes("logo_azienda", "adtrading.png")
     if lb: pdf.image(lb, x=88, y=18, w=34)
     pdf.set_xy(15, 56); pdf.set_font("Helvetica", "B", 14); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
     pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 7, get_testo("cert_titolo", lingua), 0, 1, "C")
@@ -1431,7 +1436,7 @@ def pagina_dashboard(lingua):
         nome_completo = f"{s_str(r.get('nome'))} {s_str(r.get('cognome'))}"
         stato_lbl = etichetta("stato_lavorativo", s_str(r.get("stato_lavorativo")) or "prova", lingua)
         with st.expander(f"{cod} — {nome_completo} | {get_testo('turno', lingua)}: {s_str(r.get('turno')) or '—'} | {stato_lbl}"):
-            st.markdown(f"👤 {nome_completo} — {s_str(r.get('indirizzo'))}, {s_str(r.get('comune'))} {s_str(r.get('quartiere'))}\n\n🎂 {formatta_data(r.get('data_nascita'))} — {s_str(r.get('luogo_nascita'))}\n\n {servizi_di(r)}\n\n🚨 {get_testo('emergenza_nome', lingua)}: {s_str(r.get('emergenza_nome'))} — {s_str(r.get('emergenza_tel'))}\n\n👥 {get_testo('numero_mogli', lingua)}: {s_int(r.get('numero_mogli'))} — {get_testo('figli_totale', lingua)}: {s_int(r.get('figli_totale'))}")
+            st.markdown(f"👤 {nome_completo} — {s_str(r.get('indirizzo'))}, {s_str(r.get('comune'))} {s_str(r.get('quartiere'))}\n\n🎂 {formatta_data(r.get('data_nascita'))} — {s_str(r.get('luogo_nascita'))}\n\n📞 {servizi_di(r)}\n\n🚨 {get_testo('emergenza_nome', lingua)}: {s_str(r.get('emergenza_nome'))} — {s_str(r.get('emergenza_tel'))}\n\n👥 {get_testo('numero_mogli', lingua)}: {s_int(r.get('numero_mogli'))} — {get_testo('figli_totale', lingua)}: {s_int(r.get('figli_totale'))}")
             st.markdown(f'### {get_testo("sez_admin", lingua)}')
             ca, cb = st.columns(2)
             with ca:
