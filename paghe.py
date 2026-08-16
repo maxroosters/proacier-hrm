@@ -304,8 +304,7 @@ def _is_header(r):
 def _build_blocchi(rows, get_name):
     anno = mese = g1 = g2 = None
     for r in rows:
-        m = re.search(r"Period\s*:\s*(\d{4})[/-.](\d{1,2})[/-.](\d{1,2})\s*~\s*(\d{1,2})(?:[/-.](\d{1,2}))?", "\t".join(r), re.I)
-        if m:
+        m = re.search(r"Period\s*:\s*(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\s*~\s*(\d{1,2})(?:[/\-.](\d{1,2}))?", "\t".join(r), re.I)        if m:
             anno, mese, g1 = int(m.group(1)), int(m.group(2)), int(m.group(3))
             g2 = int(m.group(5)) if m.group(5) else int(m.group(4)); break
     if g2 is not None and g2 < (g1 or 1): g2 = g1
