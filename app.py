@@ -370,6 +370,16 @@ def servizi_di(r):
 def _logo_url(chiave, default):
     f = cfg_get(chiave, default)
     return f if f.startswith("http") else LOGO_BASE + f
+	_LOGO_CACHE = {}
+def _logo_bytes(chiave, default):
+    url = _logo_url(chiave, default)
+    if url not in _LOGO_CACHE:
+        try:
+            r = requests.get(url, timeout=30)
+            _LOGO_CACHE[url] = r.content if (r.status_code == 200 and r.content) else b""
+        except Exception:
+            _LOGO_CACHE[url] = b""
+    return _LOGO_CACHE[url]
 def genera_credenziali():
     anno = datetime.now().year
     prefisso = CONFIG["prefisso_codice"]
@@ -754,10 +764,8 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cert_code = s_str(d.get("cert_codice"))
     doc_ts = s_str(d.get("doc_timestamp")) or datetime.now().strftime("%d/%m/%Y %H:%M")
     pdf.add_page()
-    try:
-        lg = requests.get(_logo_url("logo_azienda", "adtrading.png"), timeout=30)
-        if lg.status_code == 200 and lg.content: pdf.image(lg.content, x=10, y=8, w=30)
-    except Exception: pass
+    lb = _logo_bytes("logo_azienda", "adtrading.png")
+    if lb: pdf.image(lb, x=10, y=8, w=30)
     pdf.set_xy(110, 34); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
     pref = "M. " if s_str(d.get("sesso")) == "M" else ("Mme " if s_str(d.get("sesso")) == "F" else "")
     pdf.cell(0, 5, _pdf_safe(f"{pref}{s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip()), 0, 1, "R")
@@ -818,10 +826,8 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_draw_color(0, 90, 160); pdf.set_line_width(0.4); pdf.rect(10, 10, 190, 277)
     pdf.set_draw_color(120, 180, 140); pdf.set_line_width(0.15)
     for i in range(10): pdf.ellipse(105, 150, 95 - i * 4, 60 - i * 2)
-    try:
-        lg = requests.get(_logo_url("logo_azienda", "adtrading.png"), timeout=20)
-        if lg.status_code == 200 and lg.content: pdf.image(lg.content, x=88, y=18, w=34)
-    except Exception: pass
+    lb = _logo_bytes("logo_azienda", "adtrading.png")
+    if lb: pdf.image(lb, x=88, y=18, w=34)
     pdf.set_xy(15, 56); pdf.set_font("Helvetica", "B", 14); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
     pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 7, get_testo("cert_titolo", lingua), 0, 1, "C")
     ufficiale = str(cfg_get("registrazioni_ufficiali", "NO")).upper() == "SI"
