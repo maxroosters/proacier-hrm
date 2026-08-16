@@ -725,8 +725,8 @@ def genera_busta_paga(A, lingua, dip, det, pago, storico, acconti):
     return bytes(out) if not isinstance(out, str) else out.encode("latin-1", errors="ignore")
 def sezione_buste(A, lingua):
     st.subheader(t6("buste_title", lingua))
-    b = A.leggi_admin()
-    dips, pays = b.get("DIPENDENTI", []), b.get("PAGAMENTI", [])
+    dips = A.leggi_admin().get("DIPENDENTI", [])
+    _, pays = A.leggi_foglio("PAGAMENTI")
     _, accs = A.leggi_foglio("ACCONTI", force=True)
     opzioni, codmap = [], {}
     for d in dips:
