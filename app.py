@@ -595,10 +595,10 @@ class PDFProacier(FPDF):
         self.set_font("Helvetica", "B", 11); self.cell(0, 8, self.titolo, 0, 1, "C"); self.ln(2)
     def footer(self):
         az = self.azienda or {}
-        self.set_y(-18); self.set_font("Helvetica", "", 7)
-        self.cell(0, 4, _pdf_safe(f"{az.get('nome','')} - {az.get('indirizzo','')}"), 0, 1, "L")
-        self.cell(90, 4, self.cert_code or "", 0, 0, "L")
-        self.cell(60, 4, _pdf_safe(f"tel. {az.get('tel','')} - {az.get('email','')} - {az.get('fisc','')}"), 0, 0, "L")
+        self.set_y(-22); self.set_font("Helvetica", "", 7)
+        self.set_x(10); self.cell(0, 4, _pdf_safe(f"{az.get('nome','')} - {az.get('indirizzo','')}"), 0, 1, "L")
+        self.set_x(10); self.cell(0, 4, _pdf_safe(f"tel. {az.get('tel','')} - {az.get('email','')} - {az.get('fisc','')}"), 0, 1, "L")
+        self.set_x(10); self.cell(170, 4, self.cert_code or "", 0, 0, "L")
         self.cell(0, 4, f"Pag. {self.page_no()}", 0, 1, "R")
     def sezione(self, titolo):
         self.set_font("Helvetica", "B", 10); self.set_fill_color(217, 225, 242); self.cell(0, 6, titolo, 0, 1, "C", True); self.ln(1)
