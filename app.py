@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM - v21.3 - PARTE 1/2
-✅ v21.3: logo in cache (_logo_bytes) → dashboard veloce, niente download ripetuti
-✅ v21.3: icone singole, CSS compatto, traduzioni complete (dipartimento, data_sanzione)
-✅ Include tutto v21.2: manuale trilingua, certificato, stati lavorativi, paga_fissa,
-   trattenute legali via paghe, avvisi+Telegram, sandbox, 7 step, candidature
+"""PROACIER HRM - v21.4 - PARTE 1/3 (accodare 2/3 e 3/3)
+✅ v21.4: PDF on-demand (dashboard/spazio lavoratore) → apertura istantanea
+✅ Include: manuale trilingua, certificato, testi legali fallback, stati lavorativi,
+   paga_fissa, avvisi+Telegram, traduzioni complete, CSS compatto
 Richiede: Apps Script v6.1 + paghe.py v08.02+ + fpdf2 + streamlit-js-eval
 """
 import sys, importlib, random, re, unicodedata
@@ -16,7 +15,7 @@ try:
 except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
-VERSIONE = "v21.3"
+VERSIONE = "v21.4"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 CONFIG = {"url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
           "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
@@ -172,7 +171,7 @@ T = {
  "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
  "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
  "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
- "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩‍ Family (modifiable)"),
+ "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩‍ Famiglia (modificabile)", "👨‍👩 Family (modifiable)"),
  "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
  "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
  "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
@@ -267,10 +266,6 @@ T = {
  "man_index": ("Cliquez sur un chapitre pour le filtrer", "Clicca su un capitolo per filtrarlo", "Click a chapter to filter it"),
  "man_apri": ("📘 Ouvrir le manuel", "📘 Apri il manuale", "📘 Open the manual"),
  "man_remis": ("Le Manuel des procédures m'a été remis et expliqué par l'administration avant l'inscription.", "Il Manuale delle procedure mi è stato consegnato e spiegato dall'amministrazione prima dell'iscrizione.", "The Procedures Manual was given and explained to me by the administration before registration."),
- "motivo_cambio": ("Motif", "Motivo", "Reason"), "tipo_sanzione": ("Type de sanction", "Tipo sanzione", "Sanction type"),
- "gravita": ("Gravité", "Gravità", "Severity"), "dipartimento": ("Département", "Dipartimento", "Department"),
- "data_sanzione": ("Date de la sanction", "Data sanzione", "Sanction date"),
- "reg_officiali": ("Enregistrements officiels (marque temporelle fixée)", "Registrazioni ufficiali (marca temporale fissa)", "Official registrations (fixed timestamp)"),
  "cert_titolo": ("CERTIFICAT D'ENREGISTREMENT", "CERTIFICATO DI REGISTRAZIONE", "REGISTRATION CERTIFICATE"),
  "cert_ufficiale": ("DOCUMENT OFFICIEL", "DOCUMENTO UFFICIALE", "OFFICIAL DOCUMENT"),
  "cert_copia": ("COPIE DE TRAVAIL - NON OFFICIELLE", "COPIA DI LAVORO - NON UFFICIALE", "WORKING COPY - NOT OFFICIAL"),
@@ -769,8 +764,8 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf = PDFProacier(); pdf.azienda = az; pdf.titolo = get_testo("pdf_titolo", lingua)
     pdf.cert_code = s_str(d.get("cert_codice"))
     doc_ts = s_str(d.get("doc_timestamp")) or datetime.now().strftime("%d/%m/%Y %H:%M")
-    pdf.add_page()
     lb = _logo_bytes("logo_azienda", "adtrading.png")
+    pdf.add_page()
     if lb: pdf.image(lb, x=10, y=8, w=30)
     pdf.set_xy(110, 34); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
     pref = "M. " if s_str(d.get("sesso")) == "M" else ("Mme " if s_str(d.get("sesso")) == "F" else "")
@@ -830,8 +825,10 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_fill_color(240, 248, 240); pdf.rect(0, 0, 210, 297, "F")
     pdf.set_draw_color(0, 110, 60); pdf.set_line_width(1.2); pdf.rect(7, 7, 196, 283)
     pdf.set_draw_color(0, 90, 160); pdf.set_line_width(0.4); pdf.rect(10, 10, 190, 277)
-    pdf.set_draw_color(120, 180, 140); pdf.set_line_width(0.15)
-    for i in range(10): pdf.ellipse(105, 150, 95 - i * 4, 60 - i * 2)
+    try:
+        pdf.set_draw_color(120, 180, 140); pdf.set_line_width(0.15)
+        for i in range(10): pdf.ellipse(105, 150, 95 - i * 4, 60 - i * 2, "D")
+    except Exception: pass
     if lb: pdf.image(lb, x=88, y=18, w=34)
     pdf.set_xy(15, 56); pdf.set_font("Helvetica", "B", 14); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
     pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 7, get_testo("cert_titolo", lingua), 0, 1, "C")
@@ -987,10 +984,13 @@ def pannello_successo(lingua):
     c1.info(f'{get_testo("codice_accesso", lingua)}: {u["codice"]}')
     c2.info(f'{get_testo("pin_accesso", lingua)}: {u["pin"]}')
     st.download_button(label=f'📥 {get_testo("scarica", lingua)} PDF', data=u["pdf"], file_name=f'Proacier_{u["codice"]}.pdf', mime="application/pdf", use_container_width=True, key="btn_dl_ok")
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    try:
-        st.download_button(get_testo("man_download", lingua), data=genera_pdf_manuale(lingua), file_name=f"Manuel_Proacier_{lingua}.pdf", mime="application/pdf", use_container_width=True, key="btn_dl_man")
-    except Exception: pass
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button(get_testo("man_download", lingua), key="btn_dl_man_gen"):
+        try:
+            st.session_state["man_bytes"] = genera_pdf_manuale(lingua)
+        except Exception as e: st.error(f"PDF: {e}")
+    if st.session_state.get("man_bytes"):
+        st.download_button("📥 PDF Manuel", data=st.session_state["man_bytes"], file_name=f"Manuel_Proacier_{lingua}.pdf", mime="application/pdf", use_container_width=True, key="btn_dl_man")
     st.markdown("<br>", unsafe_allow_html=True)
     blocco_telegram(lingua)
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1136,6 +1136,7 @@ def bacheca_avvisi(lingua):
         urg = s_str(r.get("urgente")).upper() == "SI"
         if urg: st.error(f"⚠️ URGENTE — {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
         else: st.info(f"📌 {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+# ------------------------- SPAZIO LAVORATORE -------------------------
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f'{get_testo("benvenuto", lingua)} - {st.session_state.codice_operatore}')
@@ -1154,14 +1155,17 @@ def pagina_area_lavoratore(lingua):
             st.session_state.pagina = "manuale"; st.rerun()
         if st.checkbox(get_testo("man_accept_box", lingua), key="wl_acc_chk"):
             if st.button("✅ OK", type="primary", key="wl_acc_btn"):
-                ok, _ = salva_update("DIPENDENTI", mio_idx, {"accetta_manuale": "SI", "accetta_manuale_versione": man_ver, "accetta_manuale_data": datetime.now().strftime("%d/%m/%Y")})
+                ok, _ = salva_update("DIPENDENTI", mio_idx, {"accetta_manuale": "SI",
+                                     "accetta_manuale_versione": man_ver,
+                                     "accetta_manuale_data": datetime.now().strftime("%d/%m/%Y")})
                 if ok: st.rerun()
         st.stop()
     promemoria_festivita(lingua); bacheca_avvisi(lingua); blocco_telegram(lingua); st.markdown("---")
     st.subheader(get_testo("sezione_mansione", lingua))
     mansioni = mostra_storico_mansioni(codice_mio, lingua)
     attuale = next((m for m in mansioni if not s_str(m.get("date_fin"))), None)
-    if attuale: st.info(f"💼 {s_str(attuale.get('poste'))} — {s_str(attuale.get('departement'))}\n\n{get_testo('data_inizio', lingua)}: {s_str(attuale.get('date_debut'))}")
+    if attuale:
+        st.info(f"💼 {s_str(attuale.get('poste'))} — {s_str(attuale.get('departement'))}\n\n{get_testo('data_inizio', lingua)}: {s_str(attuale.get('date_debut'))}")
     else: st.info(get_testo("no_mansione", lingua))
     st.markdown("---")
     st.subheader(get_testo("sezione_dati_personali", lingua))
@@ -1343,10 +1347,14 @@ def pagina_area_lavoratore(lingua):
         if st.session_state.get("link_personale"):
             st.caption(get_testo("copia_link_help", lingua)); st.code(st.session_state.link_personale, language=None)
     with c2:
-        st.download_button(label=get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(dict(mio), lingua), file_name=f"Proacier_{codice_mio}.pdf", mime="application/pdf", use_container_width=True)
+        if st.button(get_testo("ristampa_pdf", lingua), use_container_width=True, key="wl_ristampa_btn"):
+            st.session_state["wl_pdf_req"] = True
+        if st.session_state.get("wl_pdf_req"):
+            st.download_button(label="📥 PDF", data=genera_pdf_lavoratore(dict(mio), lingua), file_name=f"Proacier_{codice_mio}.pdf", mime="application/pdf", use_container_width=True, key="wl_ristampa_dl")
     st.markdown("---")
     if st.button(get_testo("logout", lingua), use_container_width=True):
         _do_logout(); st.rerun()
+# ------------------------- AVVISI ADMIN + TELEGRAM -------------------------
 def sezione_avvisi_admin(lingua):
     st.markdown("### " + get_testo("avv_title", lingua))
     with st.form("avv_form"):
@@ -1363,6 +1371,7 @@ def sezione_avvisi_admin(lingua):
                 ok, _ = salva_append("AVVISI", row)
                 if ok: st.success(get_testo("avv_done", lingua) + (" — Telegram ✅" if tg_ok else " — Telegram ❌"))
                 else: st.error("Erreur AVVISI")
+# ------------------------- DASHBOARD -------------------------
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
@@ -1461,7 +1470,7 @@ def pagina_dashboard(lingua):
             if mie_man:
                 for m in mie_man:
                     riga = f"- {s_str(m.get('date_debut'))} → {s_str(m.get('poste'))} ({s_str(m.get('departement'))})"
-                    riga += f" → {s_str(m.get('date_fin'))}" if s_str(m.get("date_fin")) else " (actuel)"
+                    riga += f" → {s_str(m.get('date_fin'))}" if s_str(m.get('date_fin')) else " (actuel)"
                     st.markdown(riga)
             else: st.caption(get_testo("no_storico_mansioni", lingua))
             mc1, mc2, mc3 = st.columns(3)
@@ -1527,7 +1536,10 @@ def pagina_dashboard(lingua):
                     okd, md = salva_update("DIPENDENTI", i, {"idoneita": n_ido2, "data_visita": n_data_vis})
                     if okv and okd: st.success(get_testo("modifiche_salvate", lingua)); st.rerun()
                     else: st.error(f"{get_testo('errore_salvataggio', lingua)} ({mv} {md})")
-            st.download_button(get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(r, lingua), file_name=f"Proacier_{s_str(r.get('codice')) or i}.pdf", mime="application/pdf", use_container_width=True, key=f"adm_pdf_{i}")
+            if st.button("📄 PDF", key=f"adm_pdf_btn_{i}"):
+                st.session_state[f"pdf_req_{cod}"] = True
+            if st.session_state.get(f"pdf_req_{cod}"):
+                st.download_button("📥 PDF", data=genera_pdf_lavoratore(r, lingua), file_name=f"Proacier_{s_str(r.get('codice')) or i}.pdf", mime="application/pdf", use_container_width=True, key=f"adm_pdf_dl_{i}")
     if st.button(get_testo("salva_tutto", lingua), type="primary", use_container_width=True):
         cambi = 0
         _, fresh_man = leggi_foglio("STORICO_MANSIONI", force=True)
