@@ -37,6 +37,8 @@ st.markdown("""
 [data-testid="stSidebar"] img{max-height:105px !important;object-fit:contain !important;}
 [data-testid="stSidebar"] hr{margin:0.35rem 0 !important;}
 section.main{background-color:#0e1117 !important;min-height:100vh !important;}
+html,body,[data-testid="stApp"],[data-testid="stAppViewContainer"],[data-testid="stAppViewBlockContainer"]{background:#0e1117 !important;}
+[data-testid="stDecoration"]{display:none !important;}
 [data-testid="stMainBlockContainer"]{padding-top:0.9rem !important;padding-bottom:2.5rem !important;}
 [data-testid="stMain"] h1{font-size:1.8rem !important;margin:0.15rem 0 0.4rem 0 !important;}
 [data-testid="stMain"] h2{font-size:1.3rem !important;margin:0.4rem 0 0.25rem 0 !important;}
