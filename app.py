@@ -663,7 +663,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.ln(10)
     pdf.set_font("Helvetica", "", 8)
     for ln_ in _pdf_safe(testo_legale("consentement_privacy", privacy_testo(az))).split("\n"):
-        pdf.set_x(7); pdf.multi_cell(0, 4.2, ln_)
+        pdf.set_x(20); pdf.multi_cell(0, 4.2, ln_)
     pdf.ln(18)
     pdf.set_font("Helvetica", "B", 11); pdf.set_x(7); pdf.cell(0, 7, "RÈGLEMENT INTÉRIEUR & RÈGLES GÉNÉRALES DE L'USINE", 0, 1, "C")
     pdf.ln(12)
