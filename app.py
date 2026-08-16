@@ -695,7 +695,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.cell(0, 6, _pdf_safe(f"IP : {s_str(d.get('cert_ip')) or 'n/d'}   Lieu : {s_str(d.get('cert_lieu')) or 'Kiniambour (Sindia)'}"), 0, 1, "C")
     man_ver = manuale_versione()
     pdf.set_font("Helvetica", "B", 10)
-    pdf.set_x(7); pdf.multi_cell(0, 6, _pdf_safe(f"Acceptation : Manuel des procédures (V{man_ver}) + Règlement intérieur + Consentement au traitement des données"), align="C")
+    pdf.set_x(6); pdf.multi_cell(0, 6, _pdf_safe(f"Acceptation : Manuel des procédures (V{man_ver}) + Règlement intérieur + Consentement au traitement des données"), align="C")
     pdf.ln(2)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(90, 6, get_testo("pdf_candidat", lingua), 1, 0, "C"); pdf.cell(20, 6, "", 0, 0); pdf.cell(90, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
