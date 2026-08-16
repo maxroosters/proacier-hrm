@@ -981,8 +981,8 @@ def pagina_fase7(lingua, app_module):
             st.caption(t6("tratt_note", lingua))
         else: st.caption(t6("tratt_off", lingua))
     tabs = st.tabs(["📥 Import", "🔍 " + t6("anom_title", lingua), "💰 " + t6("paghe_title", lingua),
-                    "💸 " + t6("acc_title", lingua), "🖨️ " + t6("buste_title", lingua),
-                    "📤 " + t6("releve_title", lingua), "📤 " + t6("solde_title", lingua)])
+                    "💸 " + t6("acc_title", lingua), t6("buste_title", lingua),
+                    t6("releve_title", lingua), t6("solde_title", lingua)])
     with tabs[0]: sezione_import(A, lingua)
     with tabs[1]: sezione_anomalie(A, lingua)
     with tabs[2]: sezione_paghe(A, lingua)
