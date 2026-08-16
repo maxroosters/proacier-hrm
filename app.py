@@ -542,14 +542,23 @@ TITULAIRE : {az['nome']} – Siège : {az['indirizzo']}
     out = pdf.output(dest="S")
     return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
 def box_telefono(lingua, n, obbligatorio=False):
-    st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
-    tel = st.text_input(f"Numero {n}", value=st.session_state.dati_form.get(f"telefono_{n}", ""), key=f"s2_tel{n}", label_visibility="collapsed")
-    servizi_attivi = s_str(st.session_state.dati_form.get(f"servizi_tel{n}", "")).split(",")
+    titolo = get_testo("telefono_" + str(n), lingua)
+    if obbligatorio:
+        titolo = titolo + " *"
+    st.markdown('<div class="phone-box"><h4>' + titolo + '</h4></div>', unsafe_allow_html=True)
+    key_tel = "s2_tel" + str(n)
+    key_sv = "servizi_tel" + str(n)
+    tel = st.text_input("Numero " + str(n),
+                        value=st.session_state.dati_form.get(key_tel, ""),
+                        key=key_tel, label_visibility="collapsed")
+    servizi_attivi = s_str(st.session_state.dati_form.get(key_sv, "")).split(",")
     cb = st.columns(5)
     sel = {}
-    for i, sv in enumerate(("Wave", "Orange Money", "WhatsApp", "Telegram", "Signal")):
-    sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
-    return tel, ",".join([k for k, v in sel.items() if v])
+    nomi_sv = ("Wave", "Orange Money", "WhatsApp", "Telegram", "Signal")
+    for i, sv in enumerate(nomi_sv):
+        sel[sv] = cb[i].checkbox(sv, value=(sv in servizi_attivi), key="s2_sv" + str(n) + "_" + str(i))
+    servizi = ",".join([k for k, v in sel.items() if v])
+    return tel, servizi
 def step_1(lingua):
     st.subheader(get_testo("step_1", lingua))
     c1, c2 = st.columns(2)
