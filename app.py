@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM - v21.5 - PARTE 1/2
-✅ v21.5: dati aziendali (nome/indirizzo/tel/email/fisc/loghi) letti SOLO da CONFIG ovunque
-✅ v21.5: certificato (ghilloché intero foglio, fondo bianco, IP sync, riga accettazione con (V1),
-   niente riga firma, footer aziendale a sinistra); privacy 1 pagina; règlement formattato
-✅ Include tutto v21.4: manuale trilingua, stati lavorativi, paga_fissa, avvisi+Telegram, ecc.
+"""PROACIER HRM - v21.7 - PARTE 1/2
+✅ v21.7: manuale pagina corretta (chiavi univoche, niente set widget post-render)
+✅ v21.7: PDF 3 pagine: form+credenziali / privacy+règlement accorpati / certificato
+✅ Certificato: bordo, ghilloché intero foglio, lavoratore in colonna, data sotto firme
+✅ Dati azienda (nome/indirizzo/tel/email/fisc) solo da CONFIG
+✅ Privacy con videosorveglianza; règlement con divieto foto/video
 Richiede: Apps Script v6.1 + paghe.py v08.02+ + fpdf2 + streamlit-js-eval
 """
 import sys, importlib, random, re, unicodedata
@@ -16,7 +17,7 @@ try:
 except ImportError:
     import fase6_paghe as modulo_paghe
 importlib.reload(modulo_paghe)
-VERSIONE = "v21.5"
+VERSIONE = "v21.7"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 CONFIG = {"url_api_produzione": "https://script.google.com/macros/s/AKfycbx_fgdqtE0AOdU79yU9UJ-4fuLHR4utpvDylbuWe_q3lZ91cJ2vGqJg1Dt5h5c2WDXGcA/exec",
           "url_api_test": "https://script.google.com/macros/s/AKfycbyUwzt7l_b-K7xsGX2mz1E9lPMRUZ7XptpMU8Z_4c_X-AsHd4X8haEXqlYId0buIw/exec",
@@ -42,9 +43,9 @@ section.main{background-color:#0e1117 !important;min-height:100vh !important;}
 [data-testid="stMain"] h3{font-size:1.02rem !important;margin:0.25rem 0 !important;}
 [data-testid="stMain"] hr{margin:0.45rem 0 !important;}
 [data-testid="stDownloadButton"] button{background-color:#2b4a6b !important;color:#fff !important;}
-footer, #footer, [data-testid="stFooter"], .stFooter{display:none !important;}
+footer,#footer,[data-testid="stFooter"],.stFooter{display:none !important;}
 #MainMenu{visibility:hidden !important;}
-header, [data-testid="stToolbar"], div[role="toolbar"]{visibility:hidden !important;height:0 !important;}
+header,[data-testid="stToolbar"],div[role="toolbar"]{visibility:hidden !important;height:0 !important;}
 @media (max-width:768px){.stTextInput >div >div >input,.stSelectbox >div >div >select{font-size:16px;}}
 .phone-box{background-color:#5EA529;border-radius:10px;padding:10px 14px;margin:8px 0;color:white;}
 .phone-box h4{margin:0 0 6px 0;color:white;font-size:15px;}
@@ -110,7 +111,7 @@ T = {
  "cocher_case": ("Veuillez cocher les cases de confirmation", "Seleziona le caselle di conferma", "Please check the confirmation boxes"),
  "errore_obbligatori": ("Veuillez remplir tous les champs obligatoires (*)", "Compila tutti i campi obbligatori (*)", "Please fill in all required fields (*)"),
  "avviso_non_contratto": ("⚠️ Ceci n'est PAS un contrat d'embauche. Uniquement une transmission de données à l'administration.", "⚠️ Questo NON è un contratto di assunzione. Solo una trasmissione di dati all'amministrazione.", "⚠️ This is NOT an employment contract. Only a data transmission to the administration."),
- "avviso_regole_aziendali": ("📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité.", "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy.", "📋 By submitting this form, you accept the company rules and privacy policy."),
+ "avviso_regole_aziendali": ("📋 En soumettant ce formulaire, vous acceptez les règles de l'entreprise et la politique de confidentialité de PROACIER.", "📋 Inviando questo modulo, accetti le regole aziendali e la politica sulla privacy di PROACIER.", "📋 By submitting this form, you accept the company rules and PROACIER's privacy policy."),
  "nuova_registrazione": ("🆕 Nouvelle inscription", "🆕 Nuova iscrizione", "🆕 New registration"),
  "nouvelle_candidature": ("🆕 Nouvelle candidature", "🆕 Nuova candidatura", "🆕 New application"),
  "candidatura_gia_inviata": ("ℹ️ Candidature déjà envoyée avec ces coordonnées.", "ℹ️ Candidatura già inviata con questi dati.", "ℹ️ Application already submitted with these details."),
@@ -145,7 +146,7 @@ T = {
  "taglia_scarpe": ("Pointure chaussures", "Numero scarpe", "Shoe size"), "taglia_giacca": ("Taille veste/gilet", "Taglia giacca/gilet", "Jacket/vest size"),
  "taglia_cappello": ("Taille casque/casquette", "Taglia casco/cappellino", "Helmet/cap size"), "taglia_guanti": ("Taille gants", "Taglia guanti", "Gloves size"),
  "titolo_candidatura": ("CANDIDATURE SPONTANÉE", "CANDIDATURA SPONTANEA", "SPONTANEOUS APPLICATION"),
- "sottotitolo_candidatura": ("Rejoignez l'équipe.", "Unisciti al team.", "Join the team."),
+ "sottotitolo_candidatura": ("Rejoignez l'équipe PROACIER.", "Unisciti al team PROACIER.", "Join the PROACIER team."),
  "email": ("Adresse Email", "Indirizzo Email", "Email Address"), "settore_richiesto": ("Secteur d'intérêt", "Settore di interesse", "Area of interest"),
  "mansione_richiesta": ("Poste recherché", "Ruolo richiesto", "Desired position"), "altro_specifica": ("Précisez le rôle souhaité", "Specifica il ruolo desiderato", "Specify the desired role"),
  "studi": ("Niveau d'études", "Titolo di studio", "Education level"),
@@ -159,7 +160,7 @@ T = {
  "sezione_medica": ("Informations Médicales (non modifiables)", "Informazioni Mediche (non modificabili)", "Medical Information (non-modifiable)"),
  "sezione_paga": ("💰 Informations Salariales", "💰 Informazioni Salariali", "💰 Salary Information"),
  "sezione_contatti": ("📞 Coordonnées (modifiables)", "📞 Contatti (modificabili)", "📞 Contact Info (modifiable)"),
- "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨👩‍ Famiglia (modificabile)", "👨‍👩 Family (modifiable)"),
+ "sezione_famille": ("👨‍👩‍ Famille (modifiable)", "👨‍👩 Famiglia (modificabile)", "👨‍👩 Family (modifiable)"),
  "sezione_vestiario": ("👕 Vêtements & EPI (modifiables)", "👕 Vestiario e DPI (modificabili)", "👕 Clothing & PPE (modifiable)"),
  "sezione_comunicazioni": ("💬 Communications & Demandes (bientôt disponible)", "💬 Comunicazioni e Richieste (prossimamente)", "💬 Communications & Requests (coming soon)"),
  "sezione_mansione": ("💼 Ma fonction", "💼 La mia mansione", "💼 My position"),
@@ -532,7 +533,167 @@ def privacy_testo(az):
 (Loi n° 2008-12 du 25/01/2008 & Décret n° 2008-721 – République du Sénégal)
 TITULAIRE : {az['nome']} – Siège : {az['indirizzo']}
 {az['fisc']} – DPO/Responsable : Direction RH – {az['email']} / {az['tel']}
-1. FINALITÉS : gestion administrative et paie ; cotisations (IPRES/CSS/IPM) ; sécurité et santé ; présences/absences ; formation ; contrôle des accès ; vidéosurveillance des locaux ; obligatio…ment au traitement des données — acceptés le {doc_ts}"))
+1. FINALITÉS : gestion administrative et paie ; cotisations (IPRES/CSS/IPM) ; sécurité et santé ; présences/absences ; formation ; contrôle des accès ; vidéosurveillance des locaux ; obligations légales.
+2. DONNÉES TRAITÉES : identité, contact, situation familiale, données professionnelles et économiques, données sanitaires (aptitude), images (badge et vidéosurveillance).
+3. BASE JURIDIQUE : exécution du contrat (art.6) ; obligation légale ; consentement (art.8) ; intérêt légitime. Données sanitaires/biométriques/images : art.9 et s., autorisation CDP si requise.
+4. DESTINATAIRES : services internes ; organismes sociaux/fiscaux ; médecin du travail ; assureurs ; autorités sur demande légitime. Aucun transfert hors du Sénégal hors art.19-20.
+5. DURÉE : relation de travail + 5 ans (comptable) ; 10 ans (retraite) ; vidéosurveillance 1 an ; puis suppression/anonymisation.
+6. SÉCURITÉ (art.14) : confidentialité, intégrité, disponibilité ; accès limité aux autorisés ; journalisation des accès.
+7. DROITS (art.10-13) : accès, rectification, opposition, effacement, portabilité ; réclamation à la CDP (Dakar).
+8. VIDÉOSURVEILLANCE ET IMAGES : le travailleur ACCEPTE la vidéosurveillance des locaux pour la sécurité. Il est INTERDIT de filmer ou photographier dans l'enceinte sans autorisation écrite (voir Règlement). Les images sont traitées uniquement pour la sécurité et conservées 1 an.
+9. Le présent consentement est recueilli avec l'enregistrement et vaut signature via le certificat numéroté."""
+def reglement_testo(az):
+    return f"""RÈGLEMENT INTÉRIEUR & RÈGLES GÉNÉRALES DE L'USINE – {az['nome']}
+Site de Kiniambour (Sindia), Région de Thiès.
+Art.1 Horaires/pointage : postes 08h00-16h00 / 16h00-00h00 ; pointage obligatoire ; tolérance 15 min, au-delà retenue par tranches de 30 min ; absence non justifiée sous 24h = retenue + sanction.
+Art.2 Sécurité/EPI : port des EPI obligatoire ; procédure LOTO (cadenas personnel) avant toute intervention ; interdit de nettoyer/débloquer une machine en marche ; accident = alerter superviseur + HSE.
+Art.3 Discipline : tolérance zéro alcool, drogue, vol, violence ; sanctions graduelles après explication du travailleur.
+Art.4 Règles de vie : INTERDICTION de filmer ou photographier dans l'enceinte sans autorisation écrite ; téléphones interdits sur les lignes (autorisés bureaux/aires de repos) ; fumer aux zones prévues ; déchets triés (DND/DIB/DIM) ; visiteurs interdits sans autorisation.
+Art.5 Paie : quinzaine avec retenues légales (CSS, IPRES, IPM, IR) ; avances exceptionnelles remboursées selon échéancier.
+Art.6 Statut : période d'essai jusqu'à confirmation écrite ; ce formulaire n'est PAS un contrat. Le certificat numéroté vaut preuve d'acceptation."""
+def footer():
+    anno = datetime.now().year
+    st.markdown("---")
+    st.markdown(f'<div style="text-align:center;padding:2rem 0 1rem 0;color:#9aa0a6;font-size:0.8rem;">'
+                f'{azienda_info()["nome"]} - tel. {azienda_info()["tel"]} - <span>{azienda_info()["email"]}</span><br><br><br><br><br><br>'
+                f'- powered by Lehev Ltd - © Copyright for Lehev Ltd. {anno} - All rights reserved -</div>', unsafe_allow_html=True)
+def promemoria_festivita(lingua, consiglio=False):
+    try: _, recs = leggi_foglio("CONFIG")
+    except Exception: return
+    giorni_limite = 10
+    fest = []
+    for r in recs:
+        k = s_str(r.get("chiave")).lower().replace(" ", "_")
+        v = s_str(r.get("valore"))
+        if k == "promemoria_festivita_giorni_prima":
+            try:
+                f = int(float(v))
+                if f > 0: giorni_limite = f
+            except Exception: pass
+        elif k.startswith("festivo_"):
+            try:
+                y, m, g = k[8:].split("-")
+                fest.append((date(int(y), int(m), int(g)), v or "Férié"))
+            except Exception: pass
+    oggi = date.today()
+    imminenti = sorted([(d, n) for (d, n) in fest if 0 <= (d - oggi).days <= giorni_limite])
+    if not imminenti: return
+    righe = []
+    for d, n in imminenti:
+        delta = (d - oggi).days
+        quando = get_testo("fest_oggi", lingua) if delta == 0 else get_testo("fest_tra", lingua).format(n=delta)
+        righe.append(f"- {n} — {d.strftime('%d/%m/%Y')} ({quando})")
+    msg = get_testo("fest_box_titolo", lingua) + "\n\n" + "\n".join(righe)
+    if consiglio: msg += "\n\n" + get_testo("fest_stop", lingua)
+    st.info(msg)
+class PDFProacier(FPDF):
+    titolo = "FICHE D'ENREGISTREMENT - RESSOURCES HUMAINES"
+    azienda = {}
+    cert_code = ""
+    def header(self):
+        if self.page_no() == 1: return
+        self.set_font("Helvetica", "B", 11); self.cell(0, 8, self.titolo, 0, 1, "C"); self.ln(2)
+    def footer(self):
+        az = self.azienda or {}
+        self.set_y(-18); self.set_font("Helvetica", "", 7)
+        self.cell(0, 4, _pdf_safe(f"{az.get('nome','')} - {az.get('indirizzo','')}"), 0, 1, "L")
+        self.cell(90, 4, self.cert_code or "", 0, 0, "L")
+        self.cell(60, 4, _pdf_safe(f"tel. {az.get('tel','')} - {az.get('email','')} - {az.get('fisc','')}"), 0, 0, "L")
+        self.cell(0, 4, f"Pag. {self.page_no()}", 0, 1, "R")
+    def sezione(self, titolo):
+        self.set_font("Helvetica", "B", 10); self.set_fill_color(217, 225, 242); self.cell(0, 6, titolo, 0, 1, "C", True); self.ln(1)
+    def campo(self, et, val):
+        self.set_font("Helvetica", "B", 8); self.cell(60, 5, et, 0, 0)
+        self.set_font("Helvetica", "", 8); self.cell(0, 5, _pdf_safe(s_str(val) or "___"), 0, 1)
+    def campo_doppio(self, e1, v1, e2, v2):
+        self.set_font("Helvetica", "B", 8); self.cell(50, 5, e1, 0, 0)
+        self.set_font("Helvetica", "", 8); self.cell(45, 5, _pdf_safe(s_str(v1) or ""), 0, 0)
+        self.set_font("Helvetica", "B", 8); self.cell(50, 5, e2, 0, 0)
+        self.set_font("Helvetica", "", 8); self.cell(0, 5, _pdf_safe(s_str(v2) or ""), 0, 1)
+def genera_pdf_lavoratore(d, lingua="fr"):
+    az = azienda_info()
+    pdf = PDFProacier(); pdf.azienda = az; pdf.titolo = get_testo("pdf_titolo", lingua)
+    pdf.cert_code = s_str(d.get("cert_codice"))
+    doc_ts = s_str(d.get("doc_timestamp")) or datetime.now().strftime("%d/%m/%Y %H:%M")
+    lb = _logo_bytes("logo_azienda", "adtrading.png")
+    pdf.add_page()
+    if lb: pdf.image(lb, x=10, y=8, w=30)
+    pdf.set_xy(110, 34); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 5, s_str(d.get("codice")), 0, 1, "R")
+    pref = "M. " if s_str(d.get("sesso")) == "M" else ("Mme " if s_str(d.get("sesso")) == "F" else "")
+    pdf.cell(0, 5, _pdf_safe(f"{pref}{s_str(d.get('nome'))} {s_str(d.get('cognome'))}".strip()), 0, 1, "R")
+    pdf.set_font("Helvetica", "", 8)
+    pdf.cell(0, 4, _pdf_safe(s_str(d.get("indirizzo"))), 0, 1, "R")
+    pdf.cell(0, 4, _pdf_safe(f"{s_str(d.get('comune'))} {s_str(d.get('quartiere'))}".strip()), 0, 1, "R")
+    pdf.set_xy(10, 62); pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 8, get_testo("pdf_titolo", lingua), 0, 1, "C")
+    pdf.set_xy(10, 72); pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(95, 5, f"{get_testo('pdf_nfiche', lingua)} {s_str(d.get('codice'))}", 0, 0)
+    pdf.cell(0, 5, f"{get_testo('pdf_data', lingua)} {doc_ts}", 0, 1, "R"); pdf.ln(2)
+    pdf.sezione(get_testo("pdf_sez1", lingua))
+    pdf.campo_doppio(get_testo("pdf_nom", lingua), d.get("cognome"), get_testo("pdf_prenoms", lingua), d.get("nome"))
+    pdf.campo_doppio(get_testo("pdf_ne_le", lingua), formatta_data(d.get("data_nascita")), get_testo("pdf_a", lingua), d.get("luogo_nascita"))
+    pdf.campo_doppio(get_testo("pdf_nationalite", lingua), etichetta("paesi", d.get("nazionalita"), lingua), get_testo("pdf_pays", lingua), etichetta("paesi", d.get("paese_origine"), lingua))
+    pdf.campo_doppio(get_testo("pdf_etat_civil", lingua), etichetta("stato_civile", d.get("stato_civile"), lingua), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
+    pdf.campo_doppio(get_testo("pdf_epouses", lingua), d.get("numero_mogli"), get_testo("pdf_enfants", lingua), d.get("figli_totale"))
+    if s_int(d.get("numero_mogli")) > 0:
+        pdf.set_font("Helvetica", "B", 8); pdf.cell(60, 5, get_testo("pdf_epouses", lingua), 0, 0)
+        pdf.set_font("Helvetica", "", 8); pdf.set_x(10); pdf.multi_cell(0, 4, _pdf_safe(s_str(d.get("dettagli_mogli")))); pdf.ln(1)
+    pdf.sezione(get_testo("pdf_sez2", lingua))
+    pdf.campo(get_testo("pdf_adresse", lingua), f"{s_str(d.get('indirizzo'))}, {s_str(d.get('quartiere'))}, {s_str(d.get('regione_senegal'))}")
+    pdf.campo_doppio(get_testo("pdf_tel1", lingua), d.get("telefono_1"), get_testo("pdf_tel2", lingua), d.get("telefono_2"))
+    pdf.campo(get_testo("servizi_telefono", lingua), servizi_di(d))
+    pdf.campo_doppio("CNI: ", d.get("cni"), "CSS: ", d.get("css"))
+    pdf.campo_doppio("NIF: ", d.get("nif"), "IPRES: ", d.get("ipres")); pdf.ln(1)
+    pdf.sezione(get_testo("pdf_sez3", lingua))
+    pdf.campo(get_testo("pdf_poste", lingua), d.get("mansione_1"))
+    pdf.campo(get_testo("pdf_competence", lingua), f"{etichetta('categoria', d.get('categoria_competenza'), lingua)} - {s_str(d.get('dettaglio_competenza'))}")
+    pdf.campo(get_testo("pdf_permis", lingua), d.get("patente")); pdf.ln(1)
+    pdf.sezione(get_testo("pdf_sez4", lingua))
+    pdf.campo_doppio(get_testo("pdf_tshirt", lingua), d.get("taglia_maglia"), get_testo("pdf_pantalon", lingua), d.get("taglia_pantaloni"))
+    pdf.campo_doppio(get_testo("pdf_pointure", lingua), d.get("taglia_scarpe"), get_testo("pdf_gilet", lingua), d.get("taglia_giacca"))
+    pdf.campo_doppio(get_testo("pdf_casque", lingua), d.get("taglia_cappello"), get_testo("pdf_gants", lingua), d.get("taglia_guanti")); pdf.ln(1)
+    pdf.sezione(get_testo("pdf_sez5", lingua))
+    pdf.campo_doppio(get_testo("pdf_groupe", lingua), f"{s_str(d.get('gruppo_sanguigno'))} {s_str(d.get('rh'))}", get_testo("pdf_aptitude", lingua), etichetta("idoneita", d.get("idoneita"), lingua))
+    pdf.campo_doppio(get_testo("pdf_urgence", lingua), d.get("emergenza_nome"), get_testo("pdf_tel", lingua), d.get("emergenza_tel")); pdf.ln(3)
+    pdf.set_font("Helvetica", "I", 8); pdf.set_x(10); pdf.multi_cell(0, 4, get_testo("pdf_certifie", lingua)); pdf.ln(3)
+    pdf.set_fill_color(255, 243, 205); pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, _pdf_safe(f"CODE: {s_str(d.get('codice'))}   -   PIN: {s_str(d.get('pin'))}"), 0, 1, "C", True)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 11); pdf.cell(0, 7, "CONSENTEMENT AU TRAITEMENT DES DONNÉES PERSONNELLES", 0, 1, "C")
+    pdf.ln(12)
+    pdf.set_font("Helvetica", "", 8)
+    for ln_ in _pdf_safe(testo_legale("consentement_privacy", privacy_testo(az))).split("\n"):
+        pdf.set_x(10); pdf.multi_cell(0, 4.2, ln_)
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "B", 11); pdf.cell(0, 7, "RÈGLEMENT INTÉRIEUR & RÈGLES GÉNÉRALES DE L'USINE", 0, 1, "C")
+    pdf.ln(12)
+    pdf.set_font("Helvetica", "", 9)
+    for ln_ in _pdf_safe(testo_legale("reglement_interieur", reglement_testo(az))).split("\n"):
+        pdf.set_x(10); pdf.multi_cell(0, 4.6, ln_)
+    pdf.add_page()
+    pdf.set_draw_color(0, 110, 60); pdf.set_line_width(1.2); pdf.rect(7, 7, 196, 283)
+    pdf.set_draw_color(0, 90, 160); pdf.set_line_width(0.4); pdf.rect(10, 10, 190, 277)
+    try:
+        pdf.set_draw_color(190, 215, 190); pdf.set_line_width(0.15)
+        for i in range(24):
+            w = 40 + i * 9; h = 30 + i * 12
+            pdf.ellipse(105 - w / 2, 148 - h / 2, w, h, "D")
+    except Exception: pass
+    if lb: pdf.image(lb, x=88, y=18, w=34)
+    pdf.set_xy(15, 56); pdf.set_font("Helvetica", "B", 14); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
+    pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 7, get_testo("cert_titolo", lingua), 0, 1, "C")
+    ufficiale = str(cfg_get("registrazioni_ufficiali", "NO")).upper() == "SI"
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 6, get_testo("cert_ufficiale", lingua) if ufficiale else get_testo("cert_copia", lingua), 0, 1, "C"); pdf.ln(6)
+    pdf.set_xy(30, pdf.get_y()); pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 7, f"Nom : {s_str(d.get('cognome'))}", 0, 1, "L")
+    pdf.set_x(30); pdf.cell(0, 7, f"Prénom(s) : {s_str(d.get('nome'))}", 0, 1, "L")
+    pdf.set_x(30); pdf.cell(0, 7, f"CNI : {s_str(d.get('cni')) or '---'}", 0, 1, "L")
+    pdf.set_x(30); pdf.cell(0, 7, f"Code : {s_str(d.get('codice'))}", 0, 1, "L"); pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10); pdf.cell(0, 6, _pdf_safe(f"N° {s_str(d.get('cert_codice')) or genera_cert_codice(s_str(d.get('codice')))[0]}"), 0, 1, "C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(0, 6, _pdf_safe(f"IP : {s_str(d.get('cert_ip')) or 'n/d'}   Lieu : {s_str(d.get('cert_lieu')) or 'Kiniambour (Sindia)'}"), 0, 1, "C")
+    man_ver = manuale_versione()
+    pdf.set_x(10); pdf.multi_cell(0, 5, _pdf_safe(f"Acceptation : Manuel des procédures (V{man_ver}) + Règlement intérieur + Consentement au traitement des données — acceptés le {doc_ts}"))
     pdf.ln(10)
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(90, 6, get_testo("pdf_candidat", lingua), 1, 0, "C"); pdf.cell(20, 6, "", 0, 0); pdf.cell(90, 6, get_testo("pdf_employeur", lingua), 1, 1, "C")
@@ -541,24 +702,122 @@ TITULAIRE : {az['nome']} – Siège : {az['indirizzo']}
     pdf.cell(0, 6, _pdf_safe(f"Data / Date : {doc_ts}"), 0, 1, "C")
     out = pdf.output(dest="S")
     return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
+def genera_cert_codice(codice):
+    seq = s_int(cfg_get("cert_seq", "0")) + 1
+    cfg_set("cert_seq", str(seq))
+    rnd = random.randint(100, 999)
+    return f"CERT-{codice}-{datetime.now().strftime('%Y%m%d')}-{seq:04d}-{rnd}", seq
+def testo_legale(chiave, default):
+    try: _, recs = leggi_foglio("TESTI_LEGALI")
+    except Exception: return default
+    parti = [s_str(r.get("testo")) for r in recs if s_str(r.get("chiave")).lower() == chiave.lower() and s_str(r.get("testo"))]
+    return "\n".join(parti) if parti else default
+def leggi_manual_config(force=False):
+    key = "_manconf"
+    if not force and key in st.session_state: return st.session_state[key]
+    out = {"params": {}, "machines": []}
+    try: _, recs = leggi_foglio("MANUAL_CONFIG", force=force)
+    except Exception: recs = []
+    for r in recs:
+        t = s_str(r.get("type")).upper(); code = s_str(r.get("code"))
+        if not code: continue
+        if t == "PARAM" and s_str(r.get("statut")).lower() == "actif":
+            out["params"][code] = s_str(r.get("quantite"))
+        elif t == "MACHINE" and not code.upper().startswith("NEW"):
+            out["machines"].append(r)
+    st.session_state[key] = out
+    return out
+def _parc_machines(lingua, conf):
+    col = {"fr": "fr", "it": "it", "en": "en"}.get(lingua, "fr")
+    return "\n".join([f"- {s_str(m.get('code'))} x{s_str(m.get('quantite'))} ({s_str(m.get('statut'))}) : {s_str(m.get(col))}" for m in conf["machines"]])
+def _apply_placeholders(texto, lingua, conf):
+    texto = texto.replace("{{PARC_MACHINES}}", _parc_machines(lingua, conf))
+    for code, val in conf["params"].items():
+        texto = texto.replace("{{%s}}" % code, val)
+    return texto
+def _meta_get(meta, keys):
+    for k in keys:
+        for mk, mv in meta.items():
+            if k in mk: return mv
+    return ""
+def leggi_manuale(lingua, force=False):
+    sheet = {"fr": "MANUAL_FR", "en": "MANUAL_EN", "it": "MANUAL_IT"}.get(lingua, "MANUAL_FR")
+    ck = "_manual_" + lingua
+    if not force and ck in st.session_state: return st.session_state[ck]
+    conf = leggi_manual_config(force=force)
+    meta, sections, order = {}, {}, []
+    try: _, recs = leggi_foglio(sheet, force=force)
+    except Exception: recs = []
+    for r in recs:
+        sez, tit, tex = s_str(r.get("sezione")), s_str(r.get("titolo")), s_str(r.get("testo"))
+        if not sez: continue
+        pref = sez.split(".")[0].strip()
+        if pref == "00":
+            meta[_norm_acc(tit)] = tex; continue
+        if sez not in sections:
+            sections[sez] = {"id": sez, "pref": int(pref) if pref.isdigit() else 99, "paras": []}
+            order.append(sez)
+        sections[sez]["paras"].append({"title": tit, "text": _apply_placeholders(tex, lingua, conf)})
+    secs = sorted([sections[s] for s in order], key=lambda x: x["pref"])
+    out = {"meta": meta, "sections": secs}
+    if secs: st.session_state[ck] = out
+    return out
+def manuale_versione():
+    man = leggi_manuale("fr")
+    return cfg_get("manuale_versione") or _meta_get(man["meta"], ["version du manuel", "manual version", "versione del manuale"]) or "1"
+def genera_pdf_manuale(lingua):
+    man = leggi_manuale(lingua)
+    if not man["sections"]: raise ValueError("Manuale vuoto")
+    az = azienda_info()
+    pdf = FPDF(); pdf.set_auto_page_break(True, 15); pdf.set_margins(10, 10)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 12); pdf.set_x(10); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
+    titolo = _meta_get(man["meta"], ["titre du manuel", "title of the manual", "titolo del manuale"]) or "Manuel des Procédures"
+    pdf.set_font("Helvetica", "B", 14); pdf.set_x(10); pdf.multi_cell(0, 7, _pdf_safe(titolo), align="C")
+    pdf.set_font("Helvetica", "", 9); dat = _meta_get(man["meta"], ["date de la version", "version date", "data della versione"])
+    pdf.set_x(10); pdf.cell(0, 6, _pdf_safe(f"Version {manuale_versione()} - {dat}"), 0, 1, "C"); pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 10); pdf.set_x(10); pdf.cell(0, 7, _pdf_safe(get_testo("man_sommaire", lingua)), 0, 1, "L")
+    pdf.set_font("Helvetica", "", 9)
+    for s in man["sections"]:
+        if s["pref"] <= 2: continue
+        pdf.set_x(10); pdf.cell(0, 6, _pdf_safe("- " + s["id"]), 0, 1, "L")
+    for s in man["sections"]:
+        if s["pref"] == 0: continue
+        pdf.add_page(); pdf.set_font("Helvetica", "B", 11); pdf.set_x(10); pdf.cell(0, 7, _pdf_safe(s["id"]), 0, 1, "L")
+        for p in s["paras"]:
+            try:
+                pdf.set_font("Helvetica", "B", 9); pdf.set_x(10); pdf.multi_cell(0, 5, _pdf_safe(p["title"]))
+                pdf.set_font("Helvetica", "", 9); pdf.set_x(10); pdf.multi_cell(0, 5, _pdf_safe(p["text"])); pdf.ln(2)
+            except Exception: continue
+    out = pdf.output(dest="S")
+    return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
+def invia_telegram(testo):
+    tok = cfg_get("telegram_bot_token")
+    chat = cfg_get("telegram_chat_id")
+    if not tok or not chat: return False
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage", json={"chat_id": chat, "text": testo}, timeout=20)
+        return r.status_code == 200
+    except Exception: return False
+def pagina_documento(doc, lingua):
+    az = azienda_info()
+    st.title(_pdf_safe(az.get("nome", "")))
+    if doc == "reglement":
+        st.subheader("RÈGLEMENT INTÉRIEUR & RÈGLES GÉNÉRALES DE L'USINE")
+        for ln_ in _pdf_safe(testo_legale("reglement_interieur", reglement_testo(az))).split("\n"):
+            st.markdown(ln_)
+    else:
+        st.subheader("POLITIQUE DE CONFIDENTIALITÉ / CONSENTEMENT")
+        for ln_ in _pdf_safe(testo_legale("consentement_privacy", privacy_testo(az))).split("\n"):
+            st.markdown(ln_)
 def box_telefono(lingua, n, obbligatorio=False):
-    titolo = get_testo("telefono_" + str(n), lingua)
-    if obbligatorio:
-        titolo = titolo + " *"
-    st.markdown('<div class="phone-box"><h4>' + titolo + '</h4></div>', unsafe_allow_html=True)
-    key_tel = "s2_tel" + str(n)
-    key_sv = "servizi_tel" + str(n)
-    tel = st.text_input("Numero " + str(n),
-                        value=st.session_state.dati_form.get(key_tel, ""),
-                        key=key_tel, label_visibility="collapsed")
-    servizi_attivi = s_str(st.session_state.dati_form.get(key_sv, "")).split(",")
-    cb = st.columns(5)
-    sel = {}
-    nomi_sv = ("Wave", "Orange Money", "WhatsApp", "Telegram", "Signal")
-    for i, sv in enumerate(nomi_sv):
-        sel[sv] = cb[i].checkbox(sv, value=(sv in servizi_attivi), key="s2_sv" + str(n) + "_" + str(i))
-    servizi = ",".join([k for k, v in sel.items() if v])
-    return tel, servizi
+    st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
+    tel = st.text_input(f"Numero {n}", value=st.session_state.dati_form.get(f"telefono_{n}", ""), key=f"s2_tel{n}", label_visibility="collapsed")
+    servizi_attivi = s_str(st.session_state.dati_form.get(f"servizi_tel{n}", "")).split(",")
+    cb = st.columns(5); sel = {}
+    for i, sv in enumerate(("Wave", "Orange Money", "WhatsApp", "Telegram", "Signal")):
+        sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
+    return tel, ",".join([k for k, v in sel.items() if v])
 def step_1(lingua):
     st.subheader(get_testo("step_1", lingua))
     c1, c2 = st.columns(2)
@@ -805,91 +1064,36 @@ def pagina_candidatura(lingua):
         for k in list(st.session_state.keys()):
             if k.startswith("c_man_"): st.session_state.pop(k, None)
         st.session_state.cand_fp = None; st.rerun()
-# ------------------------- CERTIFICATO + MANUALE -------------------------
-def genera_cert_codice(codice):
-    seq = s_int(cfg_get("cert_seq", "0")) + 1
-    cfg_set("cert_seq", str(seq))
-    rnd = random.randint(100, 999)
-    return f"CERT-{codice}-{datetime.now().strftime('%Y%m%d')}-{seq:04d}-{rnd}", seq
-def leggi_manual_config(force=False):
-    key = "_manconf"
-    if not force and key in st.session_state: return st.session_state[key]
-    out = {"params": {}, "machines": []}
-    try: _, recs = leggi_foglio("MANUAL_CONFIG", force=force)
-    except Exception: recs = []
-    for r in recs:
-        t = s_str(r.get("type")).upper(); code = s_str(r.get("code"))
-        if not code: continue
-        if t == "PARAM" and s_str(r.get("statut")).lower() == "actif":
-            out["params"][code] = s_str(r.get("quantite"))
-        elif t == "MACHINE" and not code.upper().startswith("NEW"):
-            out["machines"].append(r)
-    st.session_state[key] = out
-    return out
-def _parc_machines(lingua, conf):
-    col = {"fr": "fr", "it": "it", "en": "en"}.get(lingua, "fr")
-    return "\n".join([f"- {s_str(m.get('code'))} x{s_str(m.get('quantite'))} ({s_str(m.get('statut'))}) : {s_str(m.get(col))}" for m in conf["machines"]])
-def _apply_placeholders(texto, lingua, conf):
-    texto = texto.replace("{{PARC_MACHINES}}", _parc_machines(lingua, conf))
-    for code, val in conf["params"].items():
-        texto = texto.replace("{{%s}}" % code, val)
-    return texto
-def _meta_get(meta, keys):
-    for k in keys:
-        for mk, mv in meta.items():
-            if k in mk: return mv
-    return ""
-def leggi_manuale(lingua, force=False):
-    sheet = {"fr": "MANUAL_FR", "en": "MANUAL_EN", "it": "MANUAL_IT"}.get(lingua, "MANUAL_FR")
-    ck = "_manual_" + lingua
-    if not force and ck in st.session_state: return st.session_state[ck]
-    conf = leggi_manual_config(force=force)
-    meta, sections, order = {}, {}, []
-    try: _, recs = leggi_foglio(sheet, force=force)
-    except Exception: recs = []
-    for r in recs:
-        sez, tit, tex = s_str(r.get("sezione")), s_str(r.get("titolo")), s_str(r.get("testo"))
-        if not sez: continue
-        pref = sez.split(".")[0].strip()
-        if pref == "00":
-            meta[_norm_acc(tit)] = tex; continue
-        if sez not in sections:
-            sections[sez] = {"id": sez, "pref": int(pref) if pref.isdigit() else 99, "paras": []}
-            order.append(sez)
-        sections[sez]["paras"].append({"title": tit, "text": _apply_placeholders(tex, lingua, conf)})
-    secs = sorted([sections[s] for s in order], key=lambda x: x["pref"])
-    out = {"meta": meta, "sections": secs}
-    if secs: st.session_state[ck] = out
-    return out
-def manuale_versione():
-    man = leggi_manuale("fr")
-    return cfg_get("manuale_versione") or _meta_get(man["meta"], ["version du manuel", "manual version", "versione del manuale"]) or "1"
-def genera_pdf_manuale(lingua):
-    man = leggi_manuale(lingua)
-    if not man["sections"]: raise ValueError("Manuale vuoto")
-    az = azienda_info()
-    pdf = FPDF(); pdf.set_auto_page_break(True, 15); pdf.set_margins(10, 10)
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 12); pdf.set_x(10); pdf.cell(0, 8, _pdf_safe(az.get("nome", "")), 0, 1, "C")
-    titolo = _meta_get(man["meta"], ["titre du manuel", "title of the manual", "titolo del manuale"]) or "Manuel des Procédures"
-    pdf.set_font("Helvetica", "B", 14); pdf.set_x(10); pdf.multi_cell(0, 7, _pdf_safe(titolo), align="C")
-    pdf.set_font("Helvetica", "", 9); dat = _meta_get(man["meta"], ["date de la version", "version date", "data della versione"])
-    pdf.set_x(10); pdf.cell(0, 6, _pdf_safe(f"Version {manuale_versione()} - {dat}"), 0, 1, "C"); pdf.ln(4)
-    pdf.set_font("Helvetica", "B", 10); pdf.set_x(10); pdf.cell(0, 7, _pdf_safe(get_testo("man_sommaire", lingua)), 0, 1, "L")
-    pdf.set_font("Helvetica", "", 9)
-    for s in man["sections"]:
-        if s["pref"] <= 2: continue
-        pdf.set_x(10); pdf.cell(0, 6, _pdf_safe("- " + s["id"]), 0, 1, "L")
-    for s in man["sections"]:
-        if s["pref"] == 0: continue
-        pdf.add_page(); pdf.set_font("Helvetica", "B", 11); pdf.set_x(10); pdf.cell(0, 7, _pdf_safe(s["id"]), 0, 1, "L")
-        for p in s["paras"]:
-            try:
-                pdf.set_font("Helvetica", "B", 9); pdf.set_x(10); pdf.multi_cell(0, 5, _pdf_safe(p["title"]))
-                pdf.set_font("Helvetica", "", 9); pdf.set_x(10); pdf.multi_cell(0, 5, _pdf_safe(p["text"])); pdf.ln(2)
-            except Exception: continue
-    out = pdf.output(dest="S")
-    return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
+def mostra_storico_mansioni(codice, lingua):
+    _, recs = leggi_foglio("STORICO_MANSIONI")
+    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
+    miei.sort(key=lambda r: data_ord(r.get("date_debut")) or (0, 0, 0), reverse=True)
+    return miei
+def mostra_storico_paghe(codice, lingua):
+    _, recs = leggi_foglio("SALARI")
+    miei = [r for r in recs if s_str(r.get("codice_lavoratore")).upper() == codice.upper()]
+    miei.sort(key=lambda r: data_ord(r.get("data_inizio_validita")) or (0, 0, 0), reverse=True)
+    return miei
+def mostra_sanzioni(codice, lingua):
+    _, recs = leggi_foglio("STORICO_SANZIONI")
+    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
+    miei.sort(key=lambda r: data_ord(r.get("date")) or (0, 0, 0), reverse=True)
+    return miei
+def mostra_performance(codice, lingua):
+    _, recs = leggi_foglio("PERFORMANCE_REVIEW")
+    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
+    miei.sort(key=lambda r: data_ord(r.get("date_review")) or (0, 0, 0), reverse=True)
+    return miei
+def bacheca_avvisi(lingua):
+    try: _, recs = leggi_foglio("AVVISI")
+    except Exception: return
+    recs = [r for r in recs if s_str(r.get("titolo")) or s_str(r.get("testo"))]
+    if not recs: return
+    st.markdown(get_testo("bacheca_title", lingua))
+    for r in list(reversed(recs))[:5]:
+        urg = s_str(r.get("urgente")).upper() == "SI"
+        if urg: st.error(f"⚠️ URGENTE — {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
+        else: st.info(f"📌 {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
 def pagina_manuale(lingua):
     st.title(get_testo("man_title", lingua))
     man = leggi_manuale(lingua)
@@ -927,49 +1131,6 @@ def pagina_manuale(lingua):
         with st.expander(s["id"], expanded=(sel != "*" or bool(nq))):
             for p in paras:
                 st.markdown(f"**{p['title']}**"); st.write(p["text"])
-def pagina_documento(doc, lingua):
-    az = azienda_info()
-    st.title(_pdf_safe(az.get("nome", "")))
-    if doc == "reglement":
-        st.subheader("RÈGLEMENT INTÉRIEUR & RÈGLES GÉNÉRALES DE L'USINE")
-        for ln_ in _pdf_safe(testo_legale("reglement_interieur", reglement_testo(az))).split("\n"):
-            st.markdown(ln_)
-    else:
-        st.subheader("POLITIQUE DE CONFIDENTIALITÉ / CONSENTEMENT")
-        for ln_ in _pdf_safe(testo_legale("consentement_privacy", privacy_testo(az))).split("\n"):
-            st.markdown(ln_)
-# ------------------------- HELPERS STORICI -------------------------
-def mostra_storico_mansioni(codice, lingua):
-    _, recs = leggi_foglio("STORICO_MANSIONI")
-    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
-    miei.sort(key=lambda r: data_ord(r.get("date_debut")) or (0, 0, 0), reverse=True)
-    return miei
-def mostra_storico_paghe(codice, lingua):
-    _, recs = leggi_foglio("SALARI")
-    miei = [r for r in recs if s_str(r.get("codice_lavoratore")).upper() == codice.upper()]
-    miei.sort(key=lambda r: data_ord(r.get("data_inizio_validita")) or (0, 0, 0), reverse=True)
-    return miei
-def mostra_sanzioni(codice, lingua):
-    _, recs = leggi_foglio("STORICO_SANZIONI")
-    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
-    miei.sort(key=lambda r: data_ord(r.get("date")) or (0, 0, 0), reverse=True)
-    return miei
-def mostra_performance(codice, lingua):
-    _, recs = leggi_foglio("PERFORMANCE_REVIEW")
-    miei = [r for r in recs if s_str(r.get("code_travailleur")).upper() == codice.upper()]
-    miei.sort(key=lambda r: data_ord(r.get("date_review")) or (0, 0, 0), reverse=True)
-    return miei
-def bacheca_avvisi(lingua):
-    try: _, recs = leggi_foglio("AVVISI")
-    except Exception: return
-    recs = [r for r in recs if s_str(r.get("titolo")) or s_str(r.get("testo"))]
-    if not recs: return
-    st.markdown(get_testo("bacheca_title", lingua))
-    for r in list(reversed(recs))[:5]:
-        urg = s_str(r.get("urgente")).upper() == "SI"
-        if urg: st.error(f"⚠️ URGENTE — {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-        else: st.info(f"📌 {s_str(r.get('titolo'))} — {s_str(r.get('data_avviso'))}\n\n{s_str(r.get('testo'))}")
-# ------------------------- SPAZIO LAVORATORE -------------------------
 def pagina_area_lavoratore(lingua):
     st.title(get_testo("i_miei_dati", lingua))
     st.success(f'{get_testo("benvenuto", lingua)} - {st.session_state.codice_operatore}')
@@ -1178,14 +1339,10 @@ def pagina_area_lavoratore(lingua):
         if st.session_state.get("link_personale"):
             st.caption(get_testo("copia_link_help", lingua)); st.code(st.session_state.link_personale, language=None)
     with c2:
-        if st.button(get_testo("ristampa_pdf", lingua), use_container_width=True, key="wl_ristampa_btn"):
-            st.session_state["wl_pdf_req"] = True
-        if st.session_state.get("wl_pdf_req"):
-            st.download_button(label="📥 PDF", data=genera_pdf_lavoratore(dict(mio), lingua), file_name=f"Proacier_{codice_mio}.pdf", mime="application/pdf", use_container_width=True, key="wl_ristampa_dl")
+        st.download_button(label=get_testo("ristampa_pdf", lingua), data=genera_pdf_lavoratore(dict(mio), lingua), file_name=f"Proacier_{codice_mio}.pdf", mime="application/pdf", use_container_width=True)
     st.markdown("---")
     if st.button(get_testo("logout", lingua), use_container_width=True):
         _do_logout(); st.rerun()
-# ------------------------- AVVISI ADMIN + TELEGRAM -------------------------
 def sezione_avvisi_admin(lingua):
     st.markdown("### " + get_testo("avv_title", lingua))
     with st.form("avv_form"):
@@ -1202,7 +1359,6 @@ def sezione_avvisi_admin(lingua):
                 ok, _ = salva_append("AVVISI", row)
                 if ok: st.success(get_testo("avv_done", lingua) + (" — Telegram ✅" if tg_ok else " — Telegram ❌"))
                 else: st.error("Erreur AVVISI")
-# ------------------------- DASHBOARD -------------------------
 def pagina_dashboard(lingua):
     st.title(get_testo("dashboard", lingua))
     env = st.session_state.get("ambiente", "produzione")
