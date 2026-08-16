@@ -545,9 +545,10 @@ def box_telefono(lingua, n, obbligatorio=False):
     st.markdown(f'<div class="phone-box"><h4>{get_testo("telefono_" + str(n), lingua)}{" *" if obbligatorio else ""}</h4></div>', unsafe_allow_html=True)
     tel = st.text_input(f"Numero {n}", value=st.session_state.dati_form.get(f"telefono_{n}", ""), key=f"s2_tel{n}", label_visibility="collapsed")
     servizi_attivi = s_str(st.session_state.dati_form.get(f"servizi_tel{n}", "")).split(",")
-    cb = st.columns(5); sel = {}
+    cb = st.columns(5)
+    sel = {}
     for i, sv in enumerate(("Wave", "Orange Money", "WhatsApp", "Telegram", "Signal")):
-        sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
+    sel[sv] = cb[i].checkbox(sv, value=sv in servizi_attivi, key=f"s2_sv{n}_{i}")
     return tel, ",".join([k for k, v in sel.items() if v])
 def step_1(lingua):
     st.subheader(get_testo("step_1", lingua))
