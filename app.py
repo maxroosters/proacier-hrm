@@ -1285,7 +1285,7 @@ def pagina_area_lavoratore(lingua):
                 cr, cf = st.columns(2)
                 old = esistenti[i - 1] if len(esistenti) >= i else {"res": "", "fig": 0}
                 res = cr.text_input(f'{get_testo("residenza_moglie", lingua)} {i}', value=old["res"], key=f"ar_res{i}")
-                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}'))
+                fig = int(cf.number_input(f'{get_testo("figli_moglie", lingua)} {i}', min_value=0, value=old["fig"], key=f"ar_fig{i}"))
                 somma_mogli += fig
             prev = st.session_state.get("prev_somma_mogli")
             if prev is None:
