@@ -670,7 +670,7 @@ def genera_pdf_lavoratore(d, lingua="fr"):
     pdf.set_font("Helvetica", "", 9)
     for ln_ in _pdf_safe(testo_legale("reglement_interieur", reglement_testo(az))).split("\n"):
         pdf.set_x(7); pdf.multi_cell(0, 4.6, ln_)
-    pdf.set_left_margin(13); pdf.set_right_margin(13)
+    pdf.set_left_margin(22); pdf.set_right_margin(22)
     pdf.add_page()
     pdf.set_draw_color(0, 110, 60); pdf.set_line_width(1.2); pdf.rect(7, 7, 196, 283)
     pdf.set_draw_color(0, 90, 160); pdf.set_line_width(0.4); pdf.rect(10, 10, 190, 277)
