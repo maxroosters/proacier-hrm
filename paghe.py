@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM – FASE 7 (Pagina 2): Présences & Paies [v08.03]
-✅ v08.03: _pdf_safe su tutti i testi PDF (fix FPDFUnicodeEncodingException)
+"""PROACIER HRM – FASE 7: Présences & Paies [v08.04]
+✅ v08.04: FICHE DE PAIE layout corretto (intestazione centrata, tabella ore, trattenute,
+   NET, historique, firme) – TUTTO tradotto via T6 – nome file "Fiche_de_paie_..." (FR)
+   – orari/giorni SEMPRE popolati (da PAGAMENTI o ricalcolo) – _pdf_safe su tutti i PDF
 ✅ v08.03: sezione_buste legge PAGAMENTI via leggi_foglio (fix "Aucune paie")
-✅ v08.03: icone tab singole (niente doppie)
-✅ v08.02: stato lavorativo, solde de tout compte, relevé externes
+✅ v08.02: STATO LAVORATIVO, SOLDE DE TOUT COMPTE, RELEVÉ HEURES esterni
 ✅ v08.01: paga fissa mensile senza punatura
 ✅ v08.00: trattenute legali Sénégal da CONFIG
-Richiede: Apps Script v6.1 + fpdf2 + xlrd
 """
-import re, math, random, calendar, csv, io
-import requests
+import re, math, random, calendar, csv, io, requests
 from datetime import datetime, date
 from fpdf import FPDF
 import streamlit as st
-VERSIONE_PAGHE = "08.03"
+VERSIONE_PAGHE = "08.04"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 LINGUE = {"fr": 0, "it": 1, "en": 2}
 MESI = {"fr": ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],
@@ -23,7 +22,7 @@ GIORNI_SETTIMANA = ["lunedi","martedi","mercoledi","giovedi","venerdi","sabato",
 T6 = {
  "titolo": ("🕒 Présences & Paies", "🕒 Presenze e Paghe", "🕒 Attendance & Payroll"),
  "import_title": ("Importation des pointages", "Importazione presenze", "Attendance import"),
- "import_hint": ("Collez le contenu « List of Logs » OU chargez le .XLS puis « Analyser le fichier chargé ».", "Incolla il « List of Logs » OPPURE carica il .XLS e usa « Analizza il file caricato ».", "Paste the “List of Logs” OR load the .XLS then “Analyse the loaded file”."),
+ "import_hint": ("Collez le contenu « List of Logs » OU chargez le .XLS puis « Analyser le fichier chargé ».", "Incolla il « List of Logs » OPPURE carica il .XLS e usa « Analizza il file caricato ».", "Paste the 'List of Logs' OR load the .XLS then 'Analyse the loaded file'."),
  "import_da_testo": ("Contenu du fichier", "Contenuto del file", "File content"),
  "import_up_label": ("Fichier .XLS à analyser", "File .XLS da analizzare", ".XLS file to analyse"),
  "import_mem_btn": ("Analyser le fichier chargé", "Analizza il file caricato", "Analyse the loaded file"),
@@ -36,11 +35,11 @@ T6 = {
  "import_workers": ("travailleurs détectés", "lavoratori rilevati", "workers detected"),
  "import_written": ("présences écrites", "presenze scritte", "attendances written"),
  "import_dup": ("déjà présentes (ignorées)", "già presenti (ignorate)", "already present (skipped)"),
- "import_unmapped": ("⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Non mappati (MAPPING_PRESENZE): ", "️ Unmapped (MAPPING_PRESENZE): "),
- "import_go_anomalies": ("Corrigez les DA_RIVEDERE dans « Anomalies ».", "Correggi i DA_RIVEDERE in « Anomalie ».", "Fix DA_RIVEDERE in “Anomalies”."),
+ "import_unmapped": ("⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Unmapped (MAPPING_PRESENZE): "),
+ "import_go_anomalies": ("Corrigez les DA_RIVEDERE dans « Anomalies ».", "Correggi i DA_RIVEDERE in « Anomalie ».", "Fix DA_RIVEDERE in 'Anomalies'."),
  "anom_title": ("Anomalies & absences", "Anomalie e assenze", "Anomalies & absences"),
  "anom_none": ("✅ Aucune anomalie.", "✅ Nessuna anomalia.", "✅ No anomalies."),
- "anom_hint": ("DA_RIVEDERE = pointage incomplet. Modifiez puis « Enregistrer tout ».", "DA_RIVEDERE = timbratura incompleta. Modifica poi « Salva tutto ».", "DA_RIVEDERE = incomplete punch. Edit then “Save all”."),
+ "anom_hint": ("DA_RIVEDERE = pointage incomplet. Modifiez puis « Enregistrer tout ».", "DA_RIVEDERE = timbratura incompleta. Modifica poi « Salva tutto ».", "DA_RIVEDERE = incomplete punch. Edit then 'Save all'."),
  "anom_uscita": ("Heure de sortie (HH:MM)", "Ora uscita (HH:MM)", "Clock-out (HH:MM)"),
  "anom_stato": ("Statut", "Stato", "Status"),
  "anom_note": ("Note", "Nota", "Note"),
@@ -67,9 +66,10 @@ T6 = {
  "col_codice": ("Code", "Codice", "Code"), "col_nome": ("Nom", "Nome", "Name"),
  "col_tipo": ("Type", "Tipo", "Type"), "col_base": ("Tarif", "Tariffa", "Rate"),
  "col_giorni": ("Jours", "Giorni", "Days"), "col_ore": ("Heures", "Ore", "Hours"),
- "col_stra": ("H. supp.", "Straord.", "OT hrs"), "col_rit": ("Retards (½h)", "Ritardi (½h)", "Delays (½h)"),
+ "col_stra": ("H. supp.", "Straord.", "OT hrs"), "col_rit": ("Retards (1/2h)", "Ritardi (1/2h)", "Delays (1/2h)"),
  "col_abs": ("Abs.", "Ass.", "Abs."), "col_lordo": ("Brut (FCFA)", "Lordo (FCFA)", "Gross (FCFA)"),
- "col_acc": ("Avances (FCFA)", "Acconti (FCFA)", "Advances (FCFA)"), "col_tratt": ("Retenues (FCFA)", "Trattenute (FCFA)", "Deductions (FCFA)"),
+ "col_acc": ("Avances (FCFA)", "Acconti (FCFA)", "Advances (FCFA)"),
+ "col_tratt": ("Retenues (FCFA)", "Trattenute (FCFA)", "Deductions (FCFA)"),
  "tot_tratt": ("Total retenues légales", "Totale trattenute legali", "Total statutory deductions"),
  "acc_title": ("Avances", "Acconti", "Advances"), "acc_new": ("Nouvelle avance", "Nuovo acconto", "New advance"),
  "acc_codice": ("Travailleur", "Lavoratore", "Worker"), "acc_tipo": ("Type d'avance", "Tipo acconto", "Advance type"),
@@ -87,13 +87,16 @@ T6 = {
  "acc_none": ("ℹ️ Aucune avance ouverte.", "ℹ️ Nessun acconto aperto.", "ℹ️ No open advances."),
  "acc_err": ("Sélectionnez un travailleur et un montant > 0", "Seleziona lavoratore e importo > 0", "Select a worker and amount > 0"),
  "acc_dedotto": ("sera déduit à la prochaine paie", "sarà dedotto alla prossima paga", "will be deducted at next payroll"),
- "buste_title": ("🖨️ Fiche de paie", "🖨️ Busta paga", "🖨️ Pay slip"),
+ "buste_title": ("FICHE DE PAIE", "BUSTA PAGA", "PAY SLIP"),
  "buste_worker": ("Travailleur", "Lavoratore", "Worker"),
  "buste_period": ("Période (quinzaine)", "Periodo (quindicina)", "Period (fortnight)"),
  "buste_gen": ("🖨️ Générer / imprimer la fiche", "🖨️ Genera / stampa busta", "🖨️ Generate / print slip"),
  "buste_none": ("ℹ️ Aucune paie enregistrée.", "ℹ️ Nessuna paga registrata.", "ℹ️ No payroll recorded."),
- "buste_hist": ("Historique des paies (ristampabile)", "Storico buste (ristampabile)", "Pay history (reprintable)"),
+ "buste_hist": ("Historique des paies (réimprimable)", "Storico buste (ristampabile)", "Pay history (reprintable)"),
  "buste_avances": ("Avances & remboursements", "Acconti e rimborsi", "Advances & repayments"),
+ "buste_net": ("NET", "NETTO", "NET"),
+ "sig_trav": ("Signature travailleur", "Firma lavoratore", "Worker signature"),
+ "sig_emp": ("Signature employeur", "Firma datore di lavoro", "Employer signature"),
  "tratt_title": ("RETENUES LÉGALES (SÉNÉGAL)", "TRATTENUTE LEGALI (SENEGAL)", "STATUTORY DEDUCTIONS (SENEGAL)"),
  "tratt_css": ("CSS – prévoyance (salarié)", "CSS – previdenza (lavoratore)", "CSS – pension (employee)"),
  "tratt_ipres": ("IPRES – retraite (salarié)", "IPRES – pensione (lavoratore)", "IPRES – pension (employee)"),
@@ -113,7 +116,7 @@ T6 = {
  "esterno_skip": ("externe — exclus (CONFIG paghe_esterni_attive=NO)", "esterno — escluso (CONFIG paghe_esterni_attive=NO)", "external — excluded (CONFIG paghe_esterni_attive=NO)"),
  "cessato_skip": ("travailleur cessé (ignoré)", "lavoratore cessato (ignorato)", "terminated worker (skipped)"),
  "solde_title": ("📤 Solde de tout compte", "📤 Saldo finale", "📤 Final settlement"),
- "solde_hint": ("Préavis, congés non pris, indemnité de licenciement; archive sans supprimer l'historique.", "Préavis, ferie non godute, indennità licenziamento; archivia senza eliminare lo storico.", "Notice, untaken leave, severance; archives without deleting history."),
+ "solde_hint": ("Préavis, congés non pris, indemnité de licenciement; archive le travailleur sans supprimer l'historique.", "Préavis, ferie non godute, indennità licenziamento; archivia senza eliminare lo storico.", "Notice, untaken leave, severance; archives without deleting history."),
  "solde_worker": ("Travailleur à clôturer", "Lavoratore da chiudere", "Worker to close"),
  "solde_motivo": ("Motif de départ", "Motivo uscita", "Reason for leaving"),
  "solde_dimissioni": ("Démission", "Dimissioni", "Resignation"),
@@ -303,7 +306,7 @@ def _extract_day_map(celle):
     nums = [(ci, int(cv.strip().strip('"'))) for ci, cv in enumerate(celle) if cv.strip().strip('"').isdigit() and 1 <= int(cv.strip().strip('"')) <= 31]
     return {ci: dv for ci, dv in nums} if len(nums) >= 15 else None
 def _cell_times(cv):
-    return [f"{int(mt.group(1)):02d}:{mt.group(2)}" for tok in re.split(r'[\s,;/]+', str(cv).strip())
+    return [f"{int(mt.group(1)):02d}:{mt.group(2)}" for tok in re.split(r'[\s,;/"]+', str(cv).strip())
             if (mt := TIME_RE.match(tok)) and int(mt.group(1)) < 24]
 def _is_header(r):
     j = "\t".join(r)
@@ -597,7 +600,9 @@ def conferma_paghe(A, ant):
                      "premi_produzione": str(round(premio)), "importo_netto": str(lordo - ded - tratt_tot + round(premio)),
                      "trattenute_css": str(tratt.get("css",0)), "trattenute_ipres": str(tratt.get("ipres",0)),
                      "trattenute_ipm": str(tratt.get("ipm",0)), "trattenute_ir": str(tratt.get("ir",0)),
-                     "trattenute_totale": str(tratt_tot),
+                     "trattenute_totale": str(tratt_tot), "giorni_lavorati": str(det.get("n_giorni", 0)),
+                     "ore_normali": f"{det.get('ore_tot', 0):.1f}", "ore_straordinarie": f"{det.get('ore_stra', 0):.1f}",
+                     "ritardi_mezzore": str(det.get("mezzore", 0)),
                      "data_pagamento": datetime.now().strftime("%d/%m/%Y"), "stato": "confermato", "timestamp": ts})
         for idx, upd, imp, _s in det["piani"]:
             if imp > 0: piani_totali.append((idx, upd))
@@ -630,9 +635,6 @@ def calcola_solde_de_tout_compte(A, code, dip, sal, cfg, motivo, data_fine_str, 
 def conferma_solde(A, code, stato_fin, data_fine_str):
     _, dips = A.leggi_foglio("DIPENDENTI", force=True)
     idx = next((i for i, r in enumerate(dips) if A.s_str(r.get("codice")).upper() == code.upper()), None)
-def conferma_solde(A, code, stato_fin, data_fine_str):
-    _, dips = A.leggi_foglio("DIPENDENTI", force=True)
-    idx = next((i for i, r in enumerate(dips) if A.s_str(r.get("codice")).upper() == code.upper()), None)
     if idx is None: return False, "dipendente non trovato"
     ok, _ = A.salva_update("DIPENDENTI", idx, {"stato_lavorativo": stato_fin, "data_fine_rapporto": data_fine_str})
     _, sals = A.leggi_foglio("SALARI", force=True)
@@ -658,7 +660,7 @@ def genera_releve_esterni(A, anno, mese):
         a = agg.setdefault(cod, {"giorni": 0, "ore": 0.0})
         a["giorni"] += 1; a["ore"] += to_float(A.s_str(p.get("ore_lavorate")))
     rows = [{"codice": c, "nome": f"{A.s_str(esterni[c].get('cognome'))} {A.s_str(esterni[c].get('nome'))}",
-             "societa": A.s_str(esterni[c].get("societa_formale")), "giorni": v["giorni"], "ore": round(v["ore"], 2)}
+             "societa": A.s_str(esterni[c].get("societa_formale")), "giorni": v["giorni"], "ore": round(v["ore"],2)}
             for c, v in sorted(agg.items())]
     out = io.StringIO(); w = csv.writer(out, delimiter=";")
     w.writerow(["codice", "nom_prenom", "societe_formelle", "jours", "heures", "mois", "annee"])
@@ -666,68 +668,82 @@ def genera_releve_esterni(A, anno, mese):
     return rows, out.getvalue()
 def genera_busta_paga(A, lingua, dip, det, pago, storico, acconti):
     az = A.azienda_info()
-    pdf = FPDF(); pdf.add_page()
+    pdf = FPDF(); pdf.set_auto_page_break(True, 15); pdf.add_page()
     try:
         lg = requests.get(LOGO_BASE + A.cfg_get("logo_azienda", "adtrading.png"), timeout=20)
-        if lg.status_code == 200 and lg.content: pdf.image(lg.content, x=10, y=8, w=30)
+        if lg.status_code == 200 and lg.content: pdf.image(lg.content, x=88, y=6, w=34)
     except Exception: pass
-    pdf.set_xy(60, 10); pdf.set_font("Helvetica", "B", 11); pdf.cell(0, 6, _pdf_safe(az.get("nome", "")), 0, 1, "R")
-    pdf.set_font("Helvetica", "", 7); pdf.set_xy(60, 17); pdf.multi_cell(130, 4, _pdf_safe(az.get("indirizzo", "")), align="R")
-    pdf.set_xy(60, 26); pdf.cell(0, 4, _pdf_safe(f"tel. {az.get('tel','')} - {az.get('email','')}"), 0, 1, "R")
-    pdf.set_xy(10, 40); pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, _pdf_safe(t6("buste_title", lingua).replace("🖨️", "").strip().upper()), 0, 1, "C")
-    pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, _pdf_safe(f"{t6('buste_worker', lingua)}: {A.s_str(dip.get('cognome'))} {A.s_str(dip.get('nome'))} - {A.s_str(dip.get('codice'))}"), 0, 1, "L")
-    pdf.cell(0, 6, _pdf_safe(f"{t6('buste_period', lingua)}: {A.s_str(pago.get('periodo_da'))} -> {A.s_str(pago.get('periodo_a'))}"), 0, 1, "L")
+    pdf.set_xy(10, 26); pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, _pdf_safe(az.get("nome", "")), 0, 1, "C")
+    pdf.set_font("Helvetica", "", 7.5)
+    pdf.multi_cell(0, 4, _pdf_safe(f"{az.get('indirizzo','')} - {az.get('fisc','')}"), align="C")
+    pdf.cell(0, 4, _pdf_safe(f"Tel : {az.get('tel','')} - E-mail : {az.get('email','')}"), 0, 1, "C")
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 8, _pdf_safe(t6("buste_title", lingua)), 0, 1, "C")
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_worker', lingua)} : {A.s_str(dip.get('cognome'))} {A.s_str(dip.get('nome'))} - {A.s_str(dip.get('codice'))}"), 0, 1, "L")
+    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_period', lingua)} : {A.s_str(pago.get('periodo_da'))} -> {A.s_str(pago.get('periodo_a'))}"), 0, 1, "L")
     if det and det.get("fissa"):
-        pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("fissa_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("fissa_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 10)
     if det and det.get("esterno"):
-        pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("esterno_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 9)
-    pdf.ln(2)
-    pdf.set_font("Helvetica", "B", 9)
-    for lab in ("col_giorni", "col_ore", "col_stra", "col_rit"): pdf.cell(47, 6, _pdf_safe(t6(lab, lingua)), 1, 0, "C")
-    pdf.ln()
-    pdf.set_font("Helvetica", "", 9)
-    pdf.cell(47, 6, str(det.get("n_giorni", 0)) if det else "-", 1, 0, "C")
-    pdf.cell(47, 6, f"{det.get('ore_tot',0):.1f}" if det else "-", 1, 0, "C")
-    pdf.cell(47, 6, f"{det.get('ore_stra',0):.1f}" if det else "-", 1, 0, "C")
-    pdf.cell(47, 6, str(det.get("mezzore", 0)) if det else "-", 1, 1, "C")
+        pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("esterno_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 10)
     pdf.ln(3)
-    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_lordo', lingua)}: {to_float(pago.get('importo_lordo')):,.0f} FCFA"), 0, 1, "L")
+    g = A.s_str(pago.get("giorni_lavorati")) or (str(det.get("n_giorni", 0)) if det else "0")
+    on = A.s_str(pago.get("ore_normali")) or (f"{det.get('ore_tot', 0):.1f}" if det else "0.0")
+    os = A.s_str(pago.get("ore_straordinarie")) or (f"{det.get('ore_stra', 0):.1f}" if det else "0.0")
+    rit = A.s_str(pago.get("ritardi_mezzore")) or (str(det.get("mezzore", 0)) if det else "0")
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(47, 6, _pdf_safe(t6("col_giorni", lingua)), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(t6("col_ore", lingua)), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(t6("col_stra", lingua)), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(t6("col_rit", lingua)), 1, 1, "C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(47, 6, _pdf_safe(g), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(on), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(os), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(rit), 1, 1, "C")
+    pdf.ln(3)
+    lordo = to_float(pago.get("importo_lordo"))
+    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_lordo', lingua)} : {lordo:,.0f} FCFA"), 0, 1, "L")
     tratt_vis = False
     if det and det.get("tratt") and det["tratt"].get("totale", 0) > 0:
         tratt = det["tratt"]; tratt_vis = True
         pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("tratt_title", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
-        for k, lab in (("css", "tratt_css"), ("ipres", "tratt_ipres"), ("ipm", "tratt_ipm"), ("ir", "tratt_ir")):
-            pdf.cell(0, 5, _pdf_safe(f"- {t6(lab, lingua)}: {tratt[k]:,.0f} FCFA"), 0, 1, "L")
+        for k, lab in (("css", "tratt_css"),("ipres", "tratt_ipres"),("ipm", "tratt_ipm"),("ir", "tratt_ir")):
+            pdf.cell(0, 5, _pdf_safe(f"- {t6(lab, lingua)} : {tratt[k]:,.0f} FCFA"), 0, 1, "L")
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(0, 6, _pdf_safe(f"{t6('tratt_tot', lingua)}: -{tratt['totale']:,.0f} FCFA"), 0, 1, "L")
-        pdf.set_font("Helvetica", "I", 7); pdf.multi_cell(0, 4, _pdf_safe(t6("tratt_note", lingua))); pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_acc', lingua)}: -{to_float(pago.get('acconti_dedotti')):,.0f} FCFA"), 0, 1, "L")
-    pdf.cell(0, 6, _pdf_safe(f"{t6('premi_title', lingua)}: +{to_float(pago.get('premi_produzione')):,.0f} FCFA"), 0, 1, "L")
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, _pdf_safe(f"NET: {to_float(pago.get('importo_netto')):,.0f} FCFA"), 0, 1, "L")
+        pdf.cell(0, 6, _pdf_safe(f"{t6('tratt_tot', lingua)} : -{tratt['totale']:,.0f} FCFA"), 0, 1, "L")
+        pdf.set_font("Helvetica", "I", 7); pdf.multi_cell(0, 4, _pdf_safe(t6("tratt_note", lingua))); pdf.set_font("Helvetica", "", 10)
+    acc = to_float(pago.get("acconti_dedotti"))
+    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_acc', lingua)} : -{acc:,.0f} FCFA"), 0, 1, "L")
+    premi = to_float(pago.get("premi_produzione"))
+    pdf.cell(0, 6, _pdf_safe(f"{t6('premi_title', lingua)} : +{premi:,.0f} FCFA"), 0, 1, "L")
+    netto = to_float(pago.get("importo_netto"))
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, _pdf_safe(f"{t6('buste_net', lingua)} : {netto:,.0f} FCFA"), 0, 1, "L")
     if tratt_vis and det:
         tratt = det["tratt"]; pdf.ln(2)
         pdf.set_font("Helvetica", "B", 8); pdf.cell(0, 5, _pdf_safe(t6("dat_title", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 7)
-        for k, lab in (("dat_css_af", "dat_css_af"), ("dat_css_at", "dat_css_at"), ("dat_ipres", "dat_ipres"), ("dat_ipm", "dat_ipm"), ("dat_fnp", "dat_fnp")):
-            pdf.cell(0, 4, _pdf_safe(f"- {t6(lab, lingua)}: {tratt[k]:,.0f} FCFA"), 0, 1, "L")
+        for k, lab in (("dat_css_af", "dat_css_af"),("dat_css_at", "dat_css_at"),("dat_ipres", "dat_ipres"),("dat_ipm", "dat_ipm"),("dat_fnp", "dat_fnp")):
+            pdf.cell(0, 4, _pdf_safe(f"- {t6(lab, lingua)} : {tratt[k]:,.0f} FCFA"), 0, 1, "L")
     if acconti:
         pdf.ln(2); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("buste_avances", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
         for a in acconti:
             mod = A.s_str(a.get("modalita_rimborso"))
             piano = f" - rate {A.s_str(a.get('rate_pagate')) or '0'}/{A.s_str(a.get('numero_rate')) or '-'}" if "rate" in mod.lower() else " - unica"
-            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(a.get('tipo_acconto')) or 'generico'}: {to_float(a.get('importo')):,.0f} FCFA{piano}"), 0, 1, "L")
+            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(a.get('tipo_acconto')) or 'generico'} : {to_float(a.get('importo')):,.0f} FCFA{piano}"), 0, 1, "L")
     if storico:
         pdf.ln(2); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("buste_hist", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
         for p in storico:
-            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(p.get('periodo_da'))} -> {A.s_str(p.get('periodo_a'))}: NET {to_float(p.get('importo_netto')):,.0f} FCFA"), 0, 1, "L")
+            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(p.get('periodo_da'))} -> {A.s_str(p.get('periodo_a'))} : {t6('buste_net', lingua)} {to_float(p.get('importo_netto')):,.0f} FCFA"), 0, 1, "L")
     pdf.ln(4); pdf.set_font("Helvetica", "", 9)
-    pdf.cell(95, 6, "Signature travailleur", 1, 0, "C"); pdf.cell(95, 6, "Signature employeur", 1, 1, "C")
+    pdf.cell(95, 6, _pdf_safe(t6("sig_trav", lingua)), 1, 0, "C"); pdf.cell(95, 6, _pdf_safe(t6("sig_emp", lingua)), 1, 1, "C")
     pdf.cell(95, 15, "", 0, 0); pdf.cell(95, 15, "", 0, 1)
     out = pdf.output(dest="S")
     return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
@@ -747,25 +763,28 @@ def sezione_buste(A, lingua):
     code = codmap[lab]
     dip = next((d for d in dips if A.s_str(d.get("codice")) == code), {})
     miei = [p for p in pays if A.s_str(p.get("codice_lavoratore")).upper() == code.upper()]
-    miei.sort(key=lambda p: data_ord(p.get("periodo_da")) or (0, 0, 0), reverse=True)
+    miei.sort(key=lambda p: data_ord(p.get("periodo_da")) or (0,0,0), reverse=True)
     if not miei: st.info(t6("buste_none", lingua)); return
     opts_p = [f"{A.s_str(p.get('periodo_da'))} -> {A.s_str(p.get('periodo_a'))}" for p in miei]
     sel = st.selectbox(t6("buste_period", lingua), opts_p, key="f6_buste_period")
     pago = miei[opts_p.index(sel)]
     d0 = parse_data(pago.get("periodo_da")); det = None
     if d0:
-        ant = calcola_anteprima(A, lingua, d0.year, d0.month, 1 if d0.day == 1 else 2)
-        det = next((x for x in ant["dets"] if x["code"].upper() == code.upper()), None)
+        try:
+            ant = calcola_anteprima(A, lingua, d0.year, d0.month, 1 if d0.day == 1 else 2)
+            det = next((x for x in ant["dets"] if x["code"].upper() == code.upper()), None)
+        except Exception: det = None
     acconti = [a for a in accs if A.s_str(a.get("codice_lavoratore")).upper() == code.upper() and A.s_str(a.get("stato")).lower() not in ("annullato",)]
     if st.button(t6("buste_gen", lingua), type="primary", use_container_width=True):
-        st.download_button("📥 PDF", data=genera_busta_paga(A, lingua, dip, det, pago, miei, acconti),
-                           file_name=f"Busta_{code}_{A.s_str(pago.get('periodo_da'))}.pdf", mime="application/pdf", use_container_width=True)
+        pdf_bytes = genera_busta_paga(A, lingua, dip, det, pago, miei, acconti)
+        fname = f"Fiche_de_paie_{code}_{A.s_str(pago.get('periodo_da')).replace('/', '-')}.pdf"
+        st.download_button("📥 PDF", data=pdf_bytes, file_name=fname, mime="application/pdf", use_container_width=True)
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua)); st.caption(t6("import_hint", lingua))
-    c1, c2 = st.columns([3, 1])
+    c1, c2 = st.columns([3,1])
     c1.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035, value=datetime.now().year, key="f6_imp_anno")
     nomi = MESI.get(lingua, MESI["fr"])
-    c2.selectbox(t6("paghe_mese", lingua), list(range(1, 13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_imp_mese")
+    c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_imp_mese")
     up = st.file_uploader(t6("import_up_label", lingua), type=["xls", "xlsx"])
     if up is not None and st.button("🔎 " + t6("import_mem_btn", lingua), use_container_width=True):
         try:
@@ -783,7 +802,7 @@ def sezione_import(A, lingua):
             else: st.session_state.f6_parsed = parsed; st.session_state.pop("f6_esito_import", None); st.rerun()
     parsed = st.session_state.get("f6_parsed")
     if parsed:
-        st.success(f"{t6('parsed_ok', lingua)} — {t6('import_period', lingua)}: {parsed['g1']:02d}/{parsed['mese']:02d}/{parsed['anno']} → {parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — {len(parsed['blocchi'])} {t6('import_workers', lingua)}")
+        st.success(f"{t6('parsed_ok', lingua)} — {t6('import_period', lingua)} : {parsed['g1']:02d}/{parsed['mese']:02d}/{parsed['anno']} -> {parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — {len(parsed['blocchi'])} {t6('import_workers', lingua)}")
         if st.button("💾 " + t6("import_write_btn", lingua), type="primary"):
             with st.spinner("..."):
                 esito = scrivi_presenze(A, parsed)
@@ -849,17 +868,17 @@ def render_anteprima(lingua, ant):
     with st.expander("🏆 " + t6("premi_title", lingua)):
         for det in ant["dets"]:
             st.number_input(f"{det['code']} — {det['nome']}", min_value=0, step=500, key=f"f6_premio_{det['code']}")
-    tl, td, tt = sum(d["lordo"] for d in ant["dets"]), sum(d["ded"] for d in ant["dets"]), sum(d.get("tratt_tot", 0) for d in ant["dets"])
+    tl, td, tt = sum(d["lordo"] for d in ant["dets"]), sum(d["ded"] for d in ant["dets"]), sum(d.get("tratt_tot",0) for d in ant["dets"])
     c1, c2, c3, c4 = st.columns(4)
     c1.metric(t6("tot_lordo", lingua), f"{tl:,.0f} FCFA"); c2.metric(t6("tot_tratt", lingua), f"{tt:,.0f} FCFA")
     c3.metric(t6("tot_acc", lingua), f"{td:,.0f} FCFA"); c4.metric(t6("tot_netto", lingua), f"{tl-tt-td:,.0f} FCFA")
     st.caption(t6("netto_hint", lingua))
 def sezione_paghe(A, lingua):
     st.subheader("💰 " + t6("paghe_title", lingua))
-    c1, c2, c3, c4 = st.columns([1, 1.4, 1.5, 1.4])
+    c1, c2, c3, c4 = st.columns([1,1.4,1.5,1.4])
     anno = c1.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035, value=datetime.now().year, key="f6_anno")
     nomi = MESI.get(lingua, MESI["fr"])
-    mese = c2.selectbox(t6("paghe_mese", lingua), list(range(1, 13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_mese")
+    mese = c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_mese")
     q = c3.radio(t6("paghe_quindicina", lingua), [t6("paghe_q1", lingua), t6("paghe_q2", lingua)], key="f6_q")
     quindicina = 1 if q == t6("paghe_q1", lingua) else 2
     if c4.button("🧮 " + t6("paghe_calc_btn", lingua), type="primary", use_container_width=True):
@@ -869,7 +888,7 @@ def sezione_paghe(A, lingua):
         st.rerun()
     ant = st.session_state.get("f6_ant")
     if ant:
-        st.markdown(f"{t6('paghe_periodo', lingua)}: {ant['pda']} → {ant['paa']}")
+        st.markdown(f"{t6('paghe_periodo', lingua)} : {ant['pda']} -> {ant['paa']}")
         if not ant["dets"]: st.info(t6("paghe_nulla", lingua)); return
         render_anteprima(lingua, ant)
         if st.button("✅ " + t6("paghe_confirm_btn", lingua), type="primary"):
@@ -889,10 +908,10 @@ def sezione_acconti(A, lingua):
     with st.form("f6_new_acc"):
         c1, c2 = st.columns(2)
         lab = c1.selectbox(t6("acc_codice", lingua), opzioni) if opzioni else None
-        tipo = c2.selectbox(t6("acc_tipo", lingua), ["generico", "tabasky", "scuola", "karem"], format_func=lambda x: t6("acc_" + x, lingua))
+        tipo = c2.selectbox(t6("acc_tipo", lingua), ["generico", "tabasky", "scuola", "karem"], format_func=lambda x: t6("acc_"+x, lingua))
         c3, c4 = st.columns(2)
         importo = c3.number_input(t6("acc_importo", lingua), min_value=0, step=1000, key="f6acc_imp")
-        mod = c4.selectbox(t6("acc_modalita", lingua), ["unica", "rate"], format_func=lambda x: t6("acc_" + x, lingua))
+        mod = c4.selectbox(t6("acc_modalita", lingua), ["unica", "rate"], format_func=lambda x: t6("acc_"+x, lingua))
         c5, c6 = st.columns(2)
         dr = c5.text_input(t6("acc_data_rich", lingua), value=datetime.now().strftime("%d/%m/%Y"), key="f6acc_dr")
         de = c6.text_input(t6("acc_data_ero", lingua), value=datetime.now().strftime("%d/%m/%Y"), key="f6acc_de")
@@ -924,7 +943,7 @@ def sezione_releve(A, lingua):
     c1, c2 = st.columns(2)
     anno = c1.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035, value=datetime.now().year, key="f7_rel_anno")
     nomi = MESI.get(lingua, MESI["fr"])
-    mese = c2.selectbox(t6("paghe_mese", lingua), list(range(1, 13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f7_rel_mese")
+    mese = c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f7_rel_mese")
     if st.button("🧮 " + t6("releve_gen_btn", lingua), type="primary"):
         rows, csvtxt = genera_releve_esterni(A, int(anno), int(mese))
         st.session_state.f7_rel = (rows, csvtxt, int(anno), int(mese))
@@ -956,7 +975,7 @@ def sezione_solde(A, lingua):
     cfg, _ = leggi_config(A)
     c1, c2 = st.columns(2)
     motivi = ["dimissioni", "licenziamento", "fine_prova", "altro"]
-    motivo = c1.selectbox(t6("solde_motivo", lingua), motivi, format_func=lambda x: t6("solde_" + x, lingua), key="f7_solde_m")
+    motivo = c1.selectbox(t6("solde_motivo", lingua), motivi, format_func=lambda x: t6("solde_"+x, lingua), key="f7_solde_m")
     data_fine = c2.text_input(t6("solde_data_fine", lingua), value=datetime.now().strftime("%d/%m/%Y"), key="f7_solde_d")
     prev_lav = st.checkbox(t6("solde_preavviso_lav", lingua), key="f7_solde_pl")
     cong = st.number_input(t6("solde_congedi_gg", lingua), min_value=0, value=0, key="f7_solde_cg")
