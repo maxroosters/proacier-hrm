@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""PROACIER HRM – FASE 7: Présences & Paies [v08.04]
-✅ v08.04: FICHE DE PAIE layout corretto (intestazione centrata, tabella ore, trattenute,
-   NET, historique, firme) – TUTTO tradotto via T6 – nome file "Fiche_de_paie_..." (FR)
-   – orari/giorni SEMPRE popolati (da PAGAMENTI o ricalcolo) – _pdf_safe su tutti i PDF
-✅ v08.03: sezione_buste legge PAGAMENTI via leggi_foglio (fix "Aucune paie")
+"""PROACIER HRM – FASE 7: Présences & Paies [v08.05]
+✅ v08.05: FICHE DE PAIE layout conforme PDF (intestazione a SINISTRA,
+tabella Jours/Heures/H.supp./Retards SEMPRE popolata da det o pago),
+radio quindicina con indici stabili, force=True ridotti
+✅ v08.04: FICHE DE PAIE layout corretto – TUTTO tradotto via T6
+✅ v08.03: sezione_buste legge PAGAMENTI via leggi_foglio
 ✅ v08.02: STATO LAVORATIVO, SOLDE DE TOUT COMPTE, RELEVÉ HEURES esterni
 ✅ v08.01: paga fissa mensile senza punatura
 ✅ v08.00: trattenute legali Sénégal da CONFIG
@@ -12,167 +13,191 @@ import re, math, random, calendar, csv, io, requests
 from datetime import datetime, date
 from fpdf import FPDF
 import streamlit as st
-VERSIONE_PAGHE = "08.04"
+
+VERSIONE_PAGHE = "08.05"
 LOGO_BASE = "https://raw.githubusercontent.com/maxroosters/proacier-hrm/main/"
 LINGUE = {"fr": 0, "it": 1, "en": 2}
-MESI = {"fr": ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],
- "it": ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"],
- "en": ["January","February","March","April","May","June","July","August","September","October","November","December"]}
-GIORNI_SETTIMANA = ["lunedi","martedi","mercoledi","giovedi","venerdi","sabato","domenica"]
+MESI = {"fr": ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+        "it": ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
+        "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]}
+GIORNI_SETTIMANA = ["lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica"]
+
 T6 = {
- "titolo": ("🕒 Présences & Paies", "🕒 Presenze e Paghe", "🕒 Attendance & Payroll"),
- "import_title": ("Importation des pointages", "Importazione presenze", "Attendance import"),
- "import_hint": ("Collez le contenu « List of Logs » OU chargez le .XLS puis « Analyser le fichier chargé ».", "Incolla il « List of Logs » OPPURE carica il .XLS e usa « Analizza il file caricato ».", "Paste the 'List of Logs' OR load the .XLS then 'Analyse the loaded file'."),
- "import_da_testo": ("Contenu du fichier", "Contenuto del file", "File content"),
- "import_up_label": ("Fichier .XLS à analyser", "File .XLS da analizzare", ".XLS file to analyse"),
- "import_mem_btn": ("Analyser le fichier chargé", "Analizza il file caricato", "Analyse the loaded file"),
- "import_parse_btn": ("Analyser le fichier", "Analizza il file", "Parse file"),
- "import_write_btn": ("Enregistrer dans PRESENZE", "Scrivi in PRESENZE", "Write to PRESENZE"),
- "import_empty": ("Collez d'abord le contenu du fichier", "Prima incolla il contenuto", "Paste the file content first"),
- "parsed_none": ("❌ Impossible de lire le fichier.", "❌ Impossibile leggere il file.", "❌ Cannot read the file."),
- "parsed_ok": ("✅ Fichier analysé", "✅ File analizzato", "✅ File parsed"),
- "import_period": ("Période", "Periodo", "Period"),
- "import_workers": ("travailleurs détectés", "lavoratori rilevati", "workers detected"),
- "import_written": ("présences écrites", "presenze scritte", "attendances written"),
- "import_dup": ("déjà présentes (ignorées)", "già presenti (ignorate)", "already present (skipped)"),
- "import_unmapped": ("⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Unmapped (MAPPING_PRESENZE): "),
- "import_go_anomalies": ("Corrigez les DA_RIVEDERE dans « Anomalies ».", "Correggi i DA_RIVEDERE in « Anomalie ».", "Fix DA_RIVEDERE in 'Anomalies'."),
- "anom_title": ("Anomalies & absences", "Anomalie e assenze", "Anomalies & absences"),
- "anom_none": ("✅ Aucune anomalie.", "✅ Nessuna anomalia.", "✅ No anomalies."),
- "anom_hint": ("DA_RIVEDERE = pointage incomplet. Modifiez puis « Enregistrer tout ».", "DA_RIVEDERE = timbratura incompleta. Modifica poi « Salva tutto ».", "DA_RIVEDERE = incomplete punch. Edit then 'Save all'."),
- "anom_uscita": ("Heure de sortie (HH:MM)", "Ora uscita (HH:MM)", "Clock-out (HH:MM)"),
- "anom_stato": ("Statut", "Stato", "Status"),
- "anom_note": ("Note", "Nota", "Note"),
- "anom_save_all": ("💾 Enregistrer toutes les corrections", "💾 Salva tutte le correzioni", "💾 Save all corrections"),
- "anom_fixed_n": ("corrections enregistrées", "correzioni salvate", "corrections saved"),
- "anom_need_out": ("Pour OK il faut une heure de sortie valide", "Per OK serve un'ora di uscita valida", "For OK a valid clock-out is needed"),
- "paghe_title": ("Calcul des paies (quinzaine)", "Calcolo paghe (quindicina)", "Payroll (fortnight)"),
- "paghe_anno": ("Année", "Anno", "Year"), "paghe_mese": ("Mois", "Mese", "Month"),
- "paghe_quindicina": ("Quinzaine", "Quindicina", "Fortnight"),
- "paghe_q1": ("1 → 15", "1 → 15", "1 → 15"), "paghe_q2": ("16 → fin du mois", "16 → fine mese", "16 → end of month"),
- "paghe_calc_btn": ("Calculer", "Calcola", "Calculate"),
- "paghe_periodo": ("Période de paie", "Periodo paga", "Pay period"),
- "paghe_nulla": ("ℹ️ Aucune activité ni salaire.", "ℹ️ Nessuna attività né salario.", "ℹ️ No activity or salary."),
- "paghe_no_salario": ("pas de salaire actif (ignoré)", "nessun salario attivo (ignorato)", "no active salary (skipped)"),
- "paghe_gia": ("déjà payé (ignoré)", "già pagato (ignorato)", "already paid (skipped)"),
- "paghe_confirm_btn": ("Confirmer et écrire dans PAGAMENTI", "Conferma e scrivi in PAGAMENTI", "Confirm and write to PAGAMENTI"),
- "paghe_done": ("✅ Paies confirmées : ", "✅ Paghe confermate: ", "✅ Payrolls confirmed: "),
- "dar_warn": ("ligne(s) DA_RIVEDERE exclue(s) — corrigez puis recalculez", "riga/e DA_RIVEDERE escluse — correggi poi ricalcola", "DA_RIVEDERE row(s) excluded — fix then recalc"),
- "premi_title": ("Prix de production (FCFA)", "Premi produzione (FCFA)", "Production bonuses (FCFA)"),
- "tot_lordo": ("Total brut", "Totale lordo", "Total gross"),
- "tot_acc": ("Total avances déduites", "Totale acconti dedotti", "Total advances deducted"),
- "tot_netto": ("Total net (sans prix)", "Totale netto (senza premi)", "Total net (without bonuses)"),
- "netto_hint": ("Le net final tient compte des prix saisis ci-dessus.", "Il netto finale tiene conto dei premi inseriti.", "Final net includes the bonuses entered."),
- "col_codice": ("Code", "Codice", "Code"), "col_nome": ("Nom", "Nome", "Name"),
- "col_tipo": ("Type", "Tipo", "Type"), "col_base": ("Tarif", "Tariffa", "Rate"),
- "col_giorni": ("Jours", "Giorni", "Days"), "col_ore": ("Heures", "Ore", "Hours"),
- "col_stra": ("H. supp.", "Straord.", "OT hrs"), "col_rit": ("Retards (1/2h)", "Ritardi (1/2h)", "Delays (1/2h)"),
- "col_abs": ("Abs.", "Ass.", "Abs."), "col_lordo": ("Brut (FCFA)", "Lordo (FCFA)", "Gross (FCFA)"),
- "col_acc": ("Avances (FCFA)", "Acconti (FCFA)", "Advances (FCFA)"),
- "col_tratt": ("Retenues (FCFA)", "Trattenute (FCFA)", "Deductions (FCFA)"),
- "tot_tratt": ("Total retenues légales", "Totale trattenute legali", "Total statutory deductions"),
- "acc_title": ("Avances", "Acconti", "Advances"), "acc_new": ("Nouvelle avance", "Nuovo acconto", "New advance"),
- "acc_codice": ("Travailleur", "Lavoratore", "Worker"), "acc_tipo": ("Type d'avance", "Tipo acconto", "Advance type"),
- "acc_generico": ("Générique", "Generico", "Generic"), "acc_tabasky": ("Tabaski", "Tabaski", "Tabaski"),
- "acc_scuola": ("École", "Scuola", "School"), "acc_karem": ("Karêm", "Karem", "Karem"),
- "acc_importo": ("Montant (FCFA)", "Importo (FCFA)", "Amount (FCFA)"),
- "acc_modalita": ("Remboursement", "Rimborso", "Repayment"),
- "acc_unica": ("Une seule fois", "Unica soluzione", "One-off"), "acc_rate": ("Par versements", "A rate", "Installments"),
- "acc_num_rate": ("Nombre de versements", "Numero rate", "Number of installments"),
- "acc_data_rich": ("Date demande (JJ/MM/AAAA)", "Data richiesta (GG/MM/AAAA)", "Request date (DD/MM/YYYY)"),
- "acc_data_ero": ("Date paiement (JJ/MM/AAAA)", "Data erogazione (GG/MM/AAAA)", "Payment date (DD/MM/YYYY)"),
- "acc_crea_btn": ("Créer l'avance", "Crea acconto", "Create advance"),
- "acc_created": ("✅ Avance enregistrée", "✅ Acconto registrato", "✅ Advance saved"),
- "acc_open_title": ("Avances ouvertes", "Acconti aperti", "Open advances"),
- "acc_none": ("ℹ️ Aucune avance ouverte.", "ℹ️ Nessun acconto aperto.", "ℹ️ No open advances."),
- "acc_err": ("Sélectionnez un travailleur et un montant > 0", "Seleziona lavoratore e importo > 0", "Select a worker and amount > 0"),
- "acc_dedotto": ("sera déduit à la prochaine paie", "sarà dedotto alla prossima paga", "will be deducted at next payroll"),
- "buste_title": ("FICHE DE PAIE", "BUSTA PAGA", "PAY SLIP"),
- "buste_worker": ("Travailleur", "Lavoratore", "Worker"),
- "buste_period": ("Période (quinzaine)", "Periodo (quindicina)", "Period (fortnight)"),
- "buste_gen": ("🖨️ Générer / imprimer la fiche", "🖨️ Genera / stampa busta", "🖨️ Generate / print slip"),
- "buste_none": ("ℹ️ Aucune paie enregistrée.", "ℹ️ Nessuna paga registrata.", "ℹ️ No payroll recorded."),
- "buste_hist": ("Historique des paies (réimprimable)", "Storico buste (ristampabile)", "Pay history (reprintable)"),
- "buste_avances": ("Avances & remboursements", "Acconti e rimborsi", "Advances & repayments"),
- "buste_net": ("NET", "NETTO", "NET"),
- "sig_trav": ("Signature travailleur", "Firma lavoratore", "Worker signature"),
- "sig_emp": ("Signature employeur", "Firma datore di lavoro", "Employer signature"),
- "tratt_title": ("RETENUES LÉGALES (SÉNÉGAL)", "TRATTENUTE LEGALI (SENEGAL)", "STATUTORY DEDUCTIONS (SENEGAL)"),
- "tratt_css": ("CSS – prévoyance (salarié)", "CSS – previdenza (lavoratore)", "CSS – pension (employee)"),
- "tratt_ipres": ("IPRES – retraite (salarié)", "IPRES – pensione (lavoratore)", "IPRES – pension (employee)"),
- "tratt_ipm": ("IPM – maladie (salarié)", "IPM – malattia (lavoratore)", "IPM – health (employee)"),
- "tratt_ir": ("IR / ITS – impôt sur le revenu", "IR / ITS – imposta sul reddito", "IR / ITS – income tax"),
- "tratt_tot": ("Total retenues légales", "Totale trattenute legali", "Total statutory deductions"),
- "tratt_off": ("Retenues légales désactivées (CONFIG).", "Trattenute legali disattivate (CONFIG).", "Statutory deductions disabled (CONFIG)."),
- "tratt_note": ("Taux & plafonds selon CONFIG – à faire valider par l'Inspection du Travail de Thiès.", "Aliquote e plafond da CONFIG – da far validare dall'Ispettorato di Thiès.", "Rates & ceilings from CONFIG – validate with Thiès Labour Inspection."),
- "dat_title": ("CHARGES PATRONALES (information)", "CONTRIBUTI DATORIALI (informativo)", "EMPLOYER CONTRIBUTIONS (info)"),
- "dat_css_af": ("CSS – allocations familiales", "CSS – assegni familiari", "CSS – family allowances"),
- "dat_css_at": ("CSS – accidents / maladies prof.", "CSS – infortuni / malattie prof.", "CSS – occupational accidents"),
- "dat_ipres": ("IPRES (part patronale)", "IPRES (quota datore)", "IPRES (employer share)"),
- "dat_ipm": ("IPM (part patronale)", "IPM (quota datore)", "IPM (employer share)"),
- "dat_fnp": ("FNP – formation professionnelle", "FNP – formazione professionale", "FNP – vocational training"),
- "fissa_badge": ("Mensuel fixe (sans pointage)", "Mensile fisso (senza punatura)", "Fixed monthly (no time clock)"),
- "esterno_badge": ("Journalier externe", "Giornaliero esterno", "External daily worker"),
- "esterno_skip": ("externe — exclus (CONFIG paghe_esterni_attive=NO)", "esterno — escluso (CONFIG paghe_esterni_attive=NO)", "external — excluded (CONFIG paghe_esterni_attive=NO)"),
- "cessato_skip": ("travailleur cessé (ignoré)", "lavoratore cessato (ignorato)", "terminated worker (skipped)"),
- "solde_title": ("📤 Solde de tout compte", "📤 Saldo finale", "📤 Final settlement"),
- "solde_hint": ("Préavis, congés non pris, indemnité de licenciement; archive le travailleur sans supprimer l'historique.", "Préavis, ferie non godute, indennità licenziamento; archivia senza eliminare lo storico.", "Notice, untaken leave, severance; archives without deleting history."),
- "solde_worker": ("Travailleur à clôturer", "Lavoratore da chiudere", "Worker to close"),
- "solde_motivo": ("Motif de départ", "Motivo uscita", "Reason for leaving"),
- "solde_dimissioni": ("Démission", "Dimissioni", "Resignation"),
- "solde_licenziamento": ("Licenciement", "Licenziamento", "Dismissal"),
- "solde_fine_prova": ("Fin de période d'essai", "Fine periodo di prova", "End of probation"),
- "solde_altro": ("Autre", "Altro", "Other"),
- "solde_data_fine": ("Date de fin (JJ/MM/AAAA)", "Data fine (GG/MM/AAAA)", "End date (DD/MM/YYYY)"),
- "solde_preavviso_lav": ("Préavis travaillé", "Preavviso lavorato", "Notice worked"),
- "solde_preavviso_ind": ("Indemnité de préavis (FCFA)", "Indennità preavviso (FCFA)", "Notice allowance (FCFA)"),
- "solde_congedi_gg": ("Jours de congé non pris", "Giorni ferie non godute", "Untaken leave days"),
- "solde_congedi_fcfa": ("Indemnité congés (FCFA)", "Indennità ferie (FCFA)", "Leave allowance (FCFA)"),
- "solde_indennita_fcfa": ("Indemnité de licenciement (FCFA)", "Indennità licenziamento (FCFA)", "Severance (FCFA)"),
- "solde_totale": ("TOTAL SOLDE (FCFA)", "TOTALE SALDO (FCFA)", "TOTAL SETTLEMENT (FCFA)"),
- "solde_calc_btn": ("Calculer le solde", "Calcola il saldo", "Calculate settlement"),
- "solde_confirm_btn": ("Confirmer et archiver", "Conferma e archivia", "Confirm and archive"),
- "solde_archived": ("✅ Archivé. Salaire clôturé. Historique préservé.", "✅ Archiviato. Salario chiuso. Storico preservato.", "✅ Archived. Salary closed. History preserved."),
- "solde_no_worker": ("Sélectionnez un travailleur actif.", "Seleziona un lavoratore attivo.", "Select an active worker."),
- "releve_title": ("📤 Relevé d'heures (externes)", "📤 Riepilogo ore (esterni)", "📤 Hours summary (externals)"),
- "releve_hint": ("Heures des travailleurs externes pour facturation à la société tierce.", "Ore dei lavoratori esterni per fatturazione alla società terza.", "Hours of external workers for third-party billing."),
- "releve_gen_btn": ("Générer le relevé", "Genera il riepilogo", "Generate summary"),
- "releve_no_ext": ("ℹ️ Aucun travailleur externe.", "ℹ️ Nessun lavoratore esterno.", "ℹ️ No external workers."),
- "releve_soc": ("Société tierce", "Società terza", "Third company"),
- "releve_csv_btn": ("📥 Télécharger CSV", "📥 Scarica CSV", "📥 Download CSV"),
+    "titolo": ("🕒 Présences & Paies", "🕒 Presenze e Paghe", "🕒 Attendance & Payroll"),
+    "import_title": ("Importation des pointages", "Importazione presenze", "Attendance import"),
+    "import_hint": ("Collez le contenu « List of Logs » OU chargez le .XLS puis « Analyser le fichier chargé ».", "Incolla il « List of Logs » OPPURE carica il .XLS e usa « Analizza il file caricato ».", "Paste the 'List of Logs' OR load the .XLS then 'Analyse the loaded file'."),
+    "import_da_testo": ("Contenu du fichier", "Contenuto del file", "File content"),
+    "import_up_label": ("Fichier .XLS à analyser", "File .XLS da analizzare", ".XLS file to analyse"),
+    "import_mem_btn": ("Analyser le fichier chargé", "Analizza il file caricato", "Analyse the loaded file"),
+    "import_parse_btn": ("Analyser le fichier", "Analizza il file", "Parse file"),
+    "import_write_btn": ("Enregistrer dans PRESENZE", "Scrivi in PRESENZE", "Write to PRESENZE"),
+    "import_empty": ("Collez d'abord le contenu du fichier", "Prima incolla il contenuto", "Paste the file content first"),
+    "parsed_none": ("❌ Impossible de lire le fichier.", "❌ Impossibile leggere il file.", "❌ Cannot read the file."),
+    "parsed_ok": ("✅ Fichier analysé", "✅ File analizzato", "✅ File parsed"),
+    "import_period": ("Période", "Periodo", "Period"),
+    "import_workers": ("travailleurs détectés", "lavoratori rilevati", "workers detected"),
+    "import_written": ("présences écrites", "presenze scritte", "attendances written"),
+    "import_dup": ("déjà présentes (ignorées)", "già presenti (ignorate)", "already present (skipped)"),
+    "import_unmapped": ("⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Non mappati (MAPPING_PRESENZE): ", "⚠️ Unmapped (MAPPING_PRESENZE): "),
+    "import_go_anomalies": ("Corrigez les DA_RIVEDERE dans « Anomalies ».", "Correggi i DA_RIVEDERE in « Anomalie ».", "Fix DA_RIVEDERE in 'Anomalies'."),
+    "anom_title": ("Anomalies & absences", "Anomalie e assenze", "Anomalies & absences"),
+    "anom_none": ("✅ Aucune anomalie.", "✅ Nessuna anomalia.", "✅ No anomalies."),
+    "anom_hint": ("DA_RIVEDERE = pointage incomplet. Modifiez puis « Enregistrer tout ».", "DA_RIVEDERE = timbratura incompleta. Modifica poi « Salva tutto ».", "DA_RIVEDERE = incomplete punch. Edit then 'Save all'."),
+    "anom_uscita": ("Heure de sortie (HH:MM)", "Ora uscita (HH:MM)", "Clock-out (HH:MM)"),
+    "anom_stato": ("Statut", "Stato", "Status"),
+    "anom_note": ("Note", "Nota", "Note"),
+    "anom_save_all": ("💾 Enregistrer toutes les corrections", "💾 Salva tutte le correzioni", "💾 Save all corrections"),
+    "anom_fixed_n": ("corrections enregistrées", "correzioni salvate", "corrections saved"),
+    "anom_need_out": ("Pour OK il faut une heure de sortie valide", "Per OK serve un'ora di uscita valida", "For OK a valid clock-out is needed"),
+    "paghe_title": ("Calcul des paies (quinzaine)", "Calcolo paghe (quindicina)", "Payroll (fortnight)"),
+    "paghe_anno": ("Année", "Anno", "Year"),
+    "paghe_mese": ("Mois", "Mese", "Month"),
+    "paghe_quindicina": ("Quinzaine", "Quindicina", "Fortnight"),
+    "paghe_q1": ("1 → 15", "1 → 15", "1 → 15"),
+    "paghe_q2": ("16 → fin du mois", "16 → fine mese", "16 → end of month"),
+    "paghe_calc_btn": ("Calculer", "Calcola", "Calculate"),
+    "paghe_periodo": ("Période de paie", "Periodo paga", "Pay period"),
+    "paghe_nulla": ("ℹ️ Aucune activité ni salaire.", "ℹ️ Nessuna attività né salario.", "ℹ️ No activity or salary."),
+    "paghe_no_salario": ("pas de salaire actif (ignoré)", "nessun salario attivo (ignorato)", "no active salary (skipped)"),
+    "paghe_gia": ("déjà payé (ignoré)", "già pagato (ignorato)", "already paid (skipped)"),
+    "paghe_confirm_btn": ("Confirmer et écrire dans PAGAMENTI", "Conferma e scrivi in PAGAMENTI", "Confirm and write to PAGAMENTI"),
+    "paghe_done": ("✅ Paies confirmées : ", "✅ Paghe confermate: ", "✅ Payrolls confirmed: "),
+    "dar_warn": ("ligne(s) DA_RIVEDERE exclue(s) — corrigez puis recalculez", "riga/e DA_RIVEDERE escluse — correggi poi ricalcola", "DA_RIVEDERE row(s) excluded — fix then recalc"),
+    "premi_title": ("Prix de production (FCFA)", "Premi produzione (FCFA)", "Production bonuses (FCFA)"),
+    "tot_lordo": ("Total brut", "Totale lordo", "Total gross"),
+    "tot_acc": ("Total avances déduites", "Totale acconti dedotti", "Total advances deducted"),
+    "tot_netto": ("Total net (sans prix)", "Totale netto (senza premi)", "Total net (without bonuses)"),
+    "netto_hint": ("Le net final tient compte des prix saisis ci-dessus.", "Il netto finale tiene conto dei premi inseriti.", "Final net includes the bonuses entered."),
+    "col_codice": ("Code", "Codice", "Code"),
+    "col_nome": ("Nom", "Nome", "Name"),
+    "col_tipo": ("Type", "Tipo", "Type"),
+    "col_base": ("Tarif", "Tariffa", "Rate"),
+    "col_giorni": ("Jours", "Giorni", "Days"),
+    "col_ore": ("Heures", "Ore", "Hours"),
+    "col_stra": ("H. supp.", "Straord.", "OT hrs"),
+    "col_rit": ("Retards (1/2h)", "Ritardi (1/2h)", "Delays (1/2h)"),
+    "col_abs": ("Abs.", "Ass.", "Abs."),
+    "col_lordo": ("Brut (FCFA)", "Lordo (FCFA)", "Gross (FCFA)"),
+    "col_acc": ("Avances (FCFA)", "Acconti (FCFA)", "Advances (FCFA)"),
+    "col_tratt": ("Retenues (FCFA)", "Trattenute (FCFA)", "Deductions (FCFA)"),
+    "tot_tratt": ("Total retenues légales", "Totale trattenute legali", "Total statutory deductions"),
+    "acc_title": ("Avances", "Acconti", "Advances"),
+    "acc_new": ("Nouvelle avance", "Nuovo acconto", "New advance"),
+    "acc_codice": ("Travailleur", "Lavoratore", "Worker"),
+    "acc_tipo": ("Type d'avance", "Tipo acconto", "Advance type"),
+    "acc_generico": ("Générique", "Generico", "Generic"),
+    "acc_tabasky": ("Tabaski", "Tabaski", "Tabaski"),
+    "acc_scuola": ("École", "Scuola", "School"),
+    "acc_karem": ("Karêm", "Karem", "Karem"),
+    "acc_importo": ("Montant (FCFA)", "Importo (FCFA)", "Amount (FCFA)"),
+    "acc_modalita": ("Remboursement", "Rimborso", "Repayment"),
+    "acc_unica": ("Une seule fois", "Unica soluzione", "One-off"),
+    "acc_rate": ("Par versements", "A rate", "Installments"),
+    "acc_num_rate": ("Nombre de versements", "Numero rate", "Number of installments"),
+    "acc_data_rich": ("Date demande (JJ/MM/AAAA)", "Data richiesta (GG/MM/AAAA)", "Request date (DD/MM/YYYY)"),
+    "acc_data_ero": ("Date paiement (JJ/MM/AAAA)", "Data erogazione (GG/MM/AAAA)", "Payment date (DD/MM/YYYY)"),
+    "acc_crea_btn": ("Créer l'avance", "Crea acconto", "Create advance"),
+    "acc_created": ("✅ Avance enregistrée", "✅ Acconto registrato", "✅ Advance saved"),
+    "acc_open_title": ("Avances ouvertes", "Acconti aperti", "Open advances"),
+    "acc_none": ("ℹ️ Aucune avance ouverte.", "ℹ️ Nessun acconto aperto.", "ℹ️ No open advances."),
+    "acc_err": ("Sélectionnez un travailleur et un montant > 0", "Seleziona lavoratore e importo > 0", "Select a worker and amount > 0"),
+    "acc_dedotto": ("sera déduit à la prochaine paie", "sarà dedotto alla prossima paga", "will be deducted at next payroll"),
+    "buste_title": ("FICHE DE PAIE", "BUSTA PAGA", "PAY SLIP"),
+    "buste_worker": ("Travailleur", "Lavoratore", "Worker"),
+    "buste_period": ("Période (quinzaine)", "Periodo (quindicina)", "Period (fortnight)"),
+    "buste_gen": ("🖨️ Générer / imprimer la fiche", "🖨️ Genera / stampa busta", "🖨️ Generate / print slip"),
+    "buste_none": ("ℹ️ Aucune paie enregistrée.", "ℹ️ Nessuna paga registrata.", "ℹ️ No payroll recorded."),
+    "buste_hist": ("Historique des paies (réimprimable)", "Storico buste (ristampabile)", "Pay history (reprintable)"),
+    "buste_avances": ("Avances & remboursements", "Acconti e rimborsi", "Advances & repayments"),
+    "buste_net": ("NET", "NETTO", "NET"),
+    "sig_trav": ("Signature travailleur", "Firma lavoratore", "Worker signature"),
+    "sig_emp": ("Signature employeur", "Firma datore di lavoro", "Employer signature"),
+    "tratt_title": ("RETENUES LÉGALES (SÉNÉGAL)", "TRATTENUTE LEGALI (SENEGAL)", "STATUTORY DEDUCTIONS (SENEGAL)"),
+    "tratt_css": ("CSS – prévoyance (salarié)", "CSS – previdenza (lavoratore)", "CSS – pension (employee)"),
+    "tratt_ipres": ("IPRES – retraite (salarié)", "IPRES – pensione (lavoratore)", "IPRES – pension (employee)"),
+    "tratt_ipm": ("IPM – maladie (salarié)", "IPM – malattia (lavoratore)", "IPM – health (employee)"),
+    "tratt_ir": ("IR / ITS – impôt sur le revenu", "IR / ITS – imposta sul reddito", "IR / ITS – income tax"),
+    "tratt_tot": ("Total retenues légales", "Totale trattenute legali", "Total statutory deductions"),
+    "tratt_off": ("Retenues légales désactivées (CONFIG).", "Trattenute legali disattivate (CONFIG).", "Statutory deductions disabled (CONFIG)."),
+    "tratt_note": ("Taux & plafonds selon CONFIG – à faire valider par l'Inspection du Travail de Thiès.", "Aliquote e plafond da CONFIG – da far validare dall'Ispettorato di Thiès.", "Rates & ceilings from CONFIG – validate with Thiès Labour Inspection."),
+    "dat_title": ("CHARGES PATRONALES (information)", "CONTRIBUTI DATORIALI (informativo)", "EMPLOYER CONTRIBUTIONS (info)"),
+    "dat_css_af": ("CSS – allocations familiales", "CSS – assegni familiari", "CSS – family allowances"),
+    "dat_css_at": ("CSS – accidents / maladies prof.", "CSS – infortuni / malattie prof.", "CSS – occupational accidents"),
+    "dat_ipres": ("IPRES (part patronale)", "IPRES (quota datore)", "IPRES (employer share)"),
+    "dat_ipm": ("IPM (part patronale)", "IPM (quota datore)", "IPM (employer share)"),
+    "dat_fnp": ("FNP – formation professionnelle", "FNP – formazione professionale", "FNP – vocational training"),
+    "fissa_badge": ("Mensuel fixe (sans pointage)", "Mensile fisso (senza punatura)", "Fixed monthly (no time clock)"),
+    "esterno_badge": ("Journalier externe", "Giornaliero esterno", "External daily worker"),
+    "esterno_skip": ("externe — exclus (CONFIG paghe_esterni_attive=NO)", "esterno — escluso (CONFIG paghe_esterni_attive=NO)", "external — excluded (CONFIG paghe_esterni_attive=NO)"),
+    "cessato_skip": ("travailleur cessé (ignoré)", "lavoratore cessato (ignorato)", "terminated worker (skipped)"),
+    "solde_title": ("📤 Solde de tout compte", "📤 Saldo finale", "📤 Final settlement"),
+    "solde_hint": ("Préavis, congés non pris, indemnité de licenciement; archive le travailleur sans supprimer l'historique.", "Préavis, ferie non godute, indennità licenziamento; archivia senza eliminare lo storico.", "Notice, untaken leave, severance; archives without deleting history."),
+    "solde_worker": ("Travailleur à clôturer", "Lavoratore da chiudere", "Worker to close"),
+    "solde_motivo": ("Motif de départ", "Motivo uscita", "Reason for leaving"),
+    "solde_dimissioni": ("Démission", "Dimissioni", "Resignation"),
+    "solde_licenziamento": ("Licenciement", "Licenziamento", "Dismissal"),
+    "solde_fine_prova": ("Fin de période d'essai", "Fine periodo di prova", "End of probation"),
+    "solde_altro": ("Autre", "Altro", "Other"),
+    "solde_data_fine": ("Date de fin (JJ/MM/AAAA)", "Data fine (GG/MM/AAAA)", "End date (DD/MM/YYYY)"),
+    "solde_preavviso_lav": ("Préavis travaillé", "Preavviso lavorato", "Notice worked"),
+    "solde_preavviso_ind": ("Indemnité de préavis (FCFA)", "Indennità preavviso (FCFA)", "Notice allowance (FCFA)"),
+    "solde_congedi_gg": ("Jours de congé non pris", "Giorni ferie non godute", "Untaken leave days"),
+    "solde_congedi_fcfa": ("Indemnité congés (FCFA)", "Indennità ferie (FCFA)", "Leave allowance (FCFA)"),
+    "solde_indennita_fcfa": ("Indemnité de licenciement (FCFA)", "Indennità licenziamento (FCFA)", "Severance (FCFA)"),
+    "solde_totale": ("TOTAL SOLDE (FCFA)", "TOTALE SALDO (FCFA)", "TOTAL SETTLEMENT (FCFA)"),
+    "solde_calc_btn": ("Calculer le solde", "Calcola il saldo", "Calculate settlement"),
+    "solde_confirm_btn": ("Confirmer et archiver", "Conferma e archivia", "Confirm and archive"),
+    "solde_archived": ("✅ Archivé. Salaire clôturé. Historique préservé.", "✅ Archiviato. Salario chiuso. Storico preservato.", "✅ Archived. Salary closed. History preserved."),
+    "solde_no_worker": ("Sélectionnez un travailleur actif.", "Seleziona un lavoratore attivo.", "Select an active worker."),
+    "releve_title": ("📤 Relevé d'heures (externes)", "📤 Riepilogo ore (esterni)", "📤 Hours summary (externals)"),
+    "releve_hint": ("Heures des travailleurs externes pour facturation à la société tierce.", "Ore dei lavoratori esterni per fatturazione alla società terza.", "Hours of external workers for third-party billing."),
+    "releve_gen_btn": ("Générer le relevé", "Genera il riepilogo", "Generate summary"),
+    "releve_no_ext": ("ℹ️ Aucun travailleur externe.", "ℹ️ Nessun lavoratore esterno.", "ℹ️ No external workers."),
+    "releve_soc": ("Société tierce", "Società terza", "Third company"),
+    "releve_csv_btn": ("📥 Télécharger CSV", "📥 Scarica CSV", "📥 Download CSV"),
 }
+
 def t6(k, lingua="fr"):
     v = T6.get(k)
     return k if not v else v[LINGUE.get(lingua, 0)]
+
 def s_str(v):
     if v is None: return ""
     s = str(v)
     return "" if s in ("nan", "None", "#ERROR!") else s.strip()
+
 def to_min(t):
     try:
         p = str(t).strip().split(":"); return int(p[0]) * 60 + int(p[1])
     except Exception: return None
+
 def to_float(s):
     try: return float(str(s).replace(",", ".").strip())
     except Exception: return 0.0
+
 def to_float_or_none(s):
     try: return float(str(s).replace(",", ".").strip())
     except Exception: return None
+
 def parse_data(s):
     m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})", s_str(s))
     if not m: return None
     d, mo, y = map(int, m.groups())
     try: return date(y, mo, d)
     except Exception: return None
+
 def data_ord(s):
     m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})", s_str(s))
     if not m: return None
     d, mo, y = map(int, m.groups())
     return (y, mo, d)
+
 def timbro_notte(t):
     m = to_min(t)
     return m is not None and (m < 260 or m >= 2360)
-_PDF_MAP = {"→": "->", "–": "-", "—": "-", "•": "-", "…": "...", "’": "'", "‘": "'", "“": '"', "”": '"', "≤": "<=", "≥": ">=", "€": "EUR", "Œ": "OE", "œ": "oe", "⚠": "!", "✅": "[OK]", "⭐": "*", "📈": "^", "⛔": "X", "➡": "->", "\xa0": " ", "★": "*", "☆": "*", "½": "1/2", "🖨": "", "📤": "", "📥": "", "🔍": "", "💰": "", "💸": "", "🧮": "", "🏆": "", "➕": "+", "🔎": "", "💾": "", "⚙": "", "🕒": "", "ℹ": "i", "": ""}
+
+_PDF_MAP = {"→": "->", "–": "-", "—": "-", "•": "-", "…": "...", "’": "'", "‘": "'", "“": '"', "”": '"', "≤": " <=", "≥": " >=", "€": "EUR", "Œ": "OE", "œ": "oe", "⚠": "!", "✅": "[OK]", "⭐": "*", "📈": "^", "⛔": "X", "➡": "->", "\xa0": " ", "★": "*", "☆": " ", "½": "1/2", "🖨": " ", "📤": " ", "📥": " ", "🔍": " ", "💰": " ", "💸": " ", "🧮": " ", "🏆": " ", "➕": "+", "🔎": " ", "💾": " ", "⚙": " ", "🕒": " ", "ℹ": "i", " ": " "}
+
 def _pdf_safe(s):
     out = []
     for ch in str(s or ""):
@@ -181,42 +206,46 @@ def _pdf_safe(s):
             ch.encode("latin-1"); out.append(ch)
         except Exception: out.append("?")
     return "".join(out)
+
 OPZ = {
- "tipo_visita": [("assunzione","Visite d'embauche","Visita di assunzione","Hiring visit"),("periodica","Visite périodique","Visita periodica","Periodic visit"),("straordinaria","Visite extraordinaire","Visita straordinaria","Extraordinary visit")],
- "idoneita": [("apte","Apte","Apto","Fit"),("restriction","Apte avec restriction","Apto con restrizioni","Fit with restrictions"),("inapte","Inapte","Inapto","Unfit")],
- "tipo_paga": [("giornaliero","Journalier","Giornaliero","Daily"),("orario","Horaire","Orario","Hourly"),("mensile","Mensuel","Mensile","Monthly")],
- "stato_lavorativo": [("prova","Période d'essai","Periodo di prova","Probation"),("assunto","Embauché","Assunto","Hired"),("esterno","Journalier externe","Giornaliero esterno","External daily"),("dimissionario","Démissionnaire","Dimissionario","Resigned"),("licenziato","Licencié","Licenziato","Dismissed")],
+    "tipo_visita": [("assunzione", "Visite d'embauche", "Visita di assunzione", "Hiring visit"), ("periodica", "Visite périodique", "Visita periodica", "Periodic visit"), ("straordinaria", "Visite extraordinaire", "Visita straordinaria", "Extraordinary visit")],
+    "idoneita": [("apte", "Apte", "Apto", "Fit"), ("restriction", "Apte avec restriction", "Apto con restrizioni", "Fit with restrictions"), ("inapte", "Inapte", "Inapto", "Unfit")],
+    "tipo_paga": [("giornaliero", "Journalier", "Giornaliero", "Daily"), ("orario", "Horaire", "Orario", "Hourly"), ("mensile", "Mensuel", "Mensile", "Monthly")],
+    "stato_lavorativo": [("prova", "Période d'essai", "Periodo di prova", "Probation"), ("assunto", "Embauché", "Assunto", "Hired"), ("esterno", "Journalier externe", "Giornaliero esterno", "External daily"), ("dimissionario", "Démissionnaire", "Dimissionario", "Resigned"), ("licenziato", "Licencié", "Licenziato", "Dismissed")],
 }
+
 def etichetta(tipo, valore, lingua="fr"):
     v = s_str(valore)
     if not v: return ""
     for o in OPZ.get(tipo, []):
         if v in o: return o[LINGUE.get(lingua, 0) + 1]
     return v
+
 DEFAULT_CONFIG = {
- "straordinario_1_percent": 25.0, "straordinario_2_percent": 50.0,
- "ore_normali_giorno": 8.0, "modalita_paga": "giornaliero",
- "ritardo_tolleranza_min": 15.0, "ritardo_metodo": "mezzora", "assenza_penale_percent": 0.0,
- "trattenute_legali_attive": "si",
- "css_lavoratore_percent": 5.6, "css_plafond_mensile": 285000.0,
- "ipres_t1_lav_percent": 2.8, "ipres_t1_plafond": 291600.0,
- "ipres_t2_lav_percent": 6.1, "ipres_t2_plafond": 583200.0,
- "ipres_t3_lav_percent": 10.2, "ipres_t3_plafond": 874800.0,
- "ipm_lavoratore_percent": 2.5, "ipm_plafond_mensile": 285000.0,
- "ir_frais_prof_percent": 20.0, "ir_frais_prof_plafond_mensile": 125000.0,
- "ir_bareme_mensile": "35000|0;66333|12.1;133333|20.4;216666|25.3;333333|30.3;566666|38.1;1000000000|42.7",
- "css_af_dat_percent": 5.0, "css_at_mp_dat_percent": 3.0, "fnp_dat_percent": 1.5,
- "paghe_esterni_attive": "no", "promemoria_prova_giorni_prima": 7,
- "indennita_licenziamento_mesi_per_anno": 0.0, "preavviso_mesi": 1.0,
+    "straordinario_1_percent": 25.0, "straordinario_2_percent": 50.0,
+    "ore_normali_giorno": 8.0, "modalita_paga": "giornaliero",
+    "ritardo_tolleranza_min": 15.0, "ritardo_metodo": "mezzora", "assenza_penale_percent": 0.0,
+    "trattenute_legali_attive": "si",
+    "css_lavoratore_percent": 5.6, "css_plafond_mensile": 285000.0,
+    "ipres_t1_lav_percent": 2.8, "ipres_t1_plafond": 291600.0,
+    "ipres_t2_lav_percent": 6.1, "ipres_t2_plafond": 583200.0,
+    "ipres_t3_lav_percent": 10.2, "ipres_t3_plafond": 874800.0,
+    "ipm_lavoratore_percent": 2.5, "ipm_plafond_mensile": 285000.0,
+    "ir_frais_prof_percent": 20.0, "ir_frais_prof_plafond_mensile": 125000.0,
+    "ir_bareme_mensile": "35000|0;66333|12.1;133333|20.4;216666|25.3;333333|30.3;566666|38.1;1000000000|42.7",
+    "css_af_dat_percent": 5.0, "css_at_mp_dat_percent": 3.0, "fnp_dat_percent": 1.5,
+    "paghe_esterni_attive": "no", "promemoria_prova_giorni_prima": 7,
+    "indennita_licenziamento_mesi_per_anno": 0.0, "preavviso_mesi": 1.0,
 }
-FLOAT_KEYS = ("straordinario_1_percent","straordinario_2_percent","ore_normali_giorno","ritardo_tolleranza_min","assenza_penale_percent","css_lavoratore_percent","css_plafond_mensile","ipres_t1_lav_percent","ipres_t1_plafond","ipres_t2_lav_percent","ipres_t2_plafond","ipres_t3_lav_percent","ipres_t3_plafond","ipm_lavoratore_percent","ipm_plafond_mensile","ir_frais_prof_percent","ir_frais_prof_plafond_mensile","css_af_dat_percent","css_at_mp_dat_percent","fnp_dat_percent","indennita_licenziamento_mesi_per_anno","preavviso_mesi")
+FLOAT_KEYS = ("straordinario_1_percent", "straordinario_2_percent", "ore_normali_giorno", "ritardo_tolleranza_min", "assenza_penale_percent", "css_lavoratore_percent", "css_plafond_mensile", "ipres_t1_lav_percent", "ipres_t1_plafond", "ipres_t2_lav_percent", "ipres_t2_plafond", "ipres_t3_lav_percent", "ipres_t3_plafond", "ipm_lavoratore_percent", "ipm_plafond_mensile", "ir_frais_prof_percent", "ir_frais_prof_plafond_mensile", "css_af_dat_percent", "css_at_mp_dat_percent", "fnp_dat_percent", "indennita_licenziamento_mesi_per_anno", "preavviso_mesi")
+
 def leggi_config(A):
     cfg = dict(DEFAULT_CONFIG); festivi = {}
     riposo = {"sabato", "domenica"}; flottanti = set(); soglia_notte = 180
     try: _, recs = A.leggi_foglio("CONFIG")
     except Exception: recs = []
     for r in recs:
-        k = A.s_str(r.get("chiave")).strip().lower().replace(" ", "_")
+        k = A.s_str(r.get("chiave")).strip().lower().replace("  ", " ")
         v = A.s_str(r.get("valore")).strip()
         if not k: continue
         if k.startswith("festivo"):
@@ -239,12 +268,14 @@ def leggi_config(A):
     cfg["_riposo"], cfg["_flottanti"], cfg["_soglia_notte"] = riposo, flottanti, soglia_notte
     if not festivi: cfg["_festivi_default"] = True
     return cfg, festivi
+
 def _parse_bareme(s):
     out = []
     for tok in str(s).split(";"):
         if "|" in tok:
             a, b = tok.split("|", 1); out.append((to_float(a), to_float(b)))
     out.sort(key=lambda x: x[0]); return out
+
 def _ir_mensile(imp, bareme):
     if imp <= 0 or not bareme: return 0.0
     prev = 0.0; ir = 0.0
@@ -254,7 +285,8 @@ def _ir_mensile(imp, bareme):
         if base > 0: ir += base * rate / 100.0
         prev = lim
     return ir
-def _ipres_scaglioni(base, cfg, suff="lav"):
+
+def ipres_scaglioni(base, cfg, suff="lav"):
     t1 = cfg.get("ipres_t1_plafond", 291600.0)/2.0; t2 = cfg.get("ipres_t2_plafond", 583200.0)/2.0; t3 = cfg.get("ipres_t3_plafond", 874800.0)/2.0
     r1 = cfg.get(f"ipres_t1_{suff}_percent", 2.8); r2 = cfg.get(f"ipres_t2_{suff}_percent", 6.1); r3 = cfg.get(f"ipres_t3_{suff}_percent", 10.2)
     if base <= 0: return 0.0
@@ -262,14 +294,16 @@ def _ipres_scaglioni(base, cfg, suff="lav"):
     if base > t1: tot += (min(base, t2) - t1) * r2 / 100.0
     if base > t2: tot += (min(base, t3) - t2) * r3 / 100.0
     return tot
+
 def trattenute_attive(cfg): return str(cfg.get("trattenute_legali_attive", "si")).lower() in ("si", "sì", "oui", "yes", "1", "true")
 def paghe_esterni_attive(cfg): return str(cfg.get("paghe_esterni_attive", "no")).lower() in ("si", "sì", "oui", "yes", "1", "true")
+
 def calcola_trattenute_senegal(lordo, cfg):
     zero = {k: 0.0 for k in ("css", "ipres", "ipm", "ir", "totale", "dat_css_af", "dat_css_at", "dat_ipres", "dat_ipm", "dat_fnp")}
     if not trattenute_attive(cfg) or lordo <= 0: return zero
     L = float(lordo)
     css = min(L, cfg.get("css_plafond_mensile", 285000.0)/2.0) * cfg.get("css_lavoratore_percent", 5.6)/100.0
-    ipres = _ipres_scaglioni(L, cfg, "lav")
+    ipres = ipres_scaglioni(L, cfg, "lav")
     ipm = min(L, cfg.get("ipm_plafond_mensile", 285000.0)/2.0) * cfg.get("ipm_lavoratore_percent", 2.5)/100.0
     imp_ir = max(0.0, L - (css+ipres+ipm))
     frais = min(imp_ir * cfg.get("ir_frais_prof_percent", 20.0)/100.0, cfg.get("ir_frais_prof_plafond_mensile", 125000.0)/2.0)
@@ -278,9 +312,10 @@ def calcola_trattenute_senegal(lordo, cfg):
             "totale": round(css+ipres+ipm+ir),
             "dat_css_af": round(L * cfg.get("css_af_dat_percent", 5.0)/100.0),
             "dat_css_at": round(L * cfg.get("css_at_mp_dat_percent", 3.0)/100.0),
-            "dat_ipres": round(_ipres_scaglioni(L, cfg, "dat")),
+            "dat_ipres": round(ipres_scaglioni(L, cfg, "dat")),
             "dat_ipm": round(min(L, cfg.get("ipm_plafond_mensile", 285000.0)/2.0) * cfg.get("ipm_lavoratore_percent", 2.5)/100.0),
             "dat_fnp": round(L * cfg.get("fnp_dat_percent", 1.5)/100.0)}
+
 def _stato_lav(dip): return s_str(dip.get("stato_lavorativo")).lower() or "prova"
 def _stato_attivo(dip, cfg=None):
     if _stato_lav(dip) in ("dimissionario", "licenziato"): return False
@@ -288,6 +323,7 @@ def _stato_attivo(dip, cfg=None):
     return not (df and df <= date.today())
 def _flag_fissa(dip): return s_str(dip.get("paga_fissa")).upper() in ("SI", "SÌ", "OUI", "YES", "1", "TRUE", "VRAI")
 def _is_esterno(dip): return _stato_lav(dip) == "esterno"
+
 def mappa_turni(A, recs_turni):
     info = {}
     for r in recs_turni:
@@ -301,20 +337,25 @@ def mappa_turni(A, recs_turni):
     info.setdefault("T1", {"attr": False, "start": 480}); info.setdefault("T2", {"attr": True, "start": 960})
     info.setdefault("T3", {"attr": False, "start": 0}); info.setdefault("EQUIPE", {"attr": False, "start": 240})
     return info
+
 TIME_RE = re.compile(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$")
+
 def _extract_day_map(celle):
     nums = [(ci, int(cv.strip().strip('"'))) for ci, cv in enumerate(celle) if cv.strip().strip('"').isdigit() and 1 <= int(cv.strip().strip('"')) <= 31]
     return {ci: dv for ci, dv in nums} if len(nums) >= 15 else None
+
 def _cell_times(cv):
-    return [f"{int(mt.group(1)):02d}:{mt.group(2)}" for tok in re.split(r'[\s,;/"]+', str(cv).strip())
+    return [f"{int(mt.group(1)):02d}:{mt.group(2)}" for tok in re.split(r'[\s,;/"\']+', str(cv).strip())
             if (mt := TIME_RE.match(tok)) and int(mt.group(1)) < 24]
+
 def _is_header(r):
     j = "\t".join(r)
     return re.search(r"No\s*:", j, re.I) and re.search(r"Name\s*:", j, re.I)
+
 def _build_blocchi(rows, get_name):
     anno = mese = g1 = g2 = None
     for r in rows:
-        m = re.search(r"Period\s*:\s*(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\s*~\s*(\d{1,2})(?:[/\-.](\d{1,2}))?", "\t".join(r), re.I)
+        m = re.search(r"Period\s*:\s*(\d{4})\s*[/-](\d{1,2})\s*[/-](\d{1,2})\s*~\s*(\d{1,2})(?:\s*[/-](\d{1,2}))?", "\t".join(r), re.I)
         if m:
             anno, mese, g1 = int(m.group(1)), int(m.group(2)), int(m.group(3))
             g2 = int(m.group(5)) if m.group(5) else int(m.group(4)); break
@@ -337,6 +378,7 @@ def _build_blocchi(rows, get_name):
             blocchi.append({"nome": nome, "per_giorno": per_giorno}); i = j
         else: i += 1
     return {"anno": anno, "mese": mese, "g1": g1 or 1, "g2": g2 or 31, "blocchi": blocchi}
+
 def parse_list_of_logs(testo):
     rows = list(csv.reader(io.StringIO(testo.replace("\r", "")), delimiter="\t"))
     def get_name(r):
@@ -349,9 +391,10 @@ def parse_list_of_logs(testo):
             if m2:
                 rest = m2.group(1).strip().strip('"')
                 if rest: return rest
-            if ci+1 < len(r): return str(r[ci+1]).strip()
+                if ci+1 < len(r): return str(r[ci+1]).strip()
         return ""
     return _build_blocchi(rows, get_name)
+
 def parse_matrix(rows):
     def get_name(r):
         for ci, cv in enumerate(r):
@@ -359,13 +402,15 @@ def parse_matrix(rows):
             if m2:
                 rest = m2.group(1).strip().strip('"')
                 if rest: return rest
-            for k in range(ci+1, min(len(r), ci+4)):
-                if str(r[k]).strip(): return str(r[k]).strip()
+                for k in range(ci+1, min(len(r), ci+4)):
+                    if str(r[k]).strip(): return str(r[k]).strip()
         return ""
     return _build_blocchi(rows, get_name)
+
 def _norm_nome(s):
     s = re.sub(r"\s+", " ", str(s or "")).strip().upper()
     return re.split(r"\bDEPT\b", s)[0].strip()
+
 def resolve_code(nome, mapping, codici_dip, A):
     n = _norm_nome(nome)
     if not n: return None, ""
@@ -378,6 +423,7 @@ def resolve_code(nome, mapping, codici_dip, A):
     for c in codici_dip:
         if c and c in n: return c, A.s_str(nome)
     return None, A.s_str(nome)
+
 def coppie_giorno(per_giorno, attr, notte_ok, soglia_notte):
     esiti = []; pending = None
     for g in sorted(per_giorno.keys()):
@@ -403,12 +449,14 @@ def coppie_giorno(per_giorno, attr, notte_ok, soglia_notte):
         if len(rest) % 2 == 1: pending = (g, rest[-1])
     if pending is not None: esiti.append((pending[0], pending[1], "", "DA_RIVEDERE", "uscita mancante"))
     return esiti
+
 def tipo_giorno(anno, mese, g, festivi):
     try: d = date(anno, mese, g)
     except ValueError: return "feriale"
     if d.strftime("%d/%m/%Y") in festivi: return "festivo"
     if d.weekday() == 6: return "domenica"
     return "feriale"
+
 def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2, tinfo, festivi, riposo, flottante, soglia_notte):
     rows = []; attr = tinfo.get("attr", False); start = tinfo.get("start")
     notte_ok = (start is not None and start < 120) or flottante
@@ -434,6 +482,7 @@ def genera_righe_lavoratore(code, nome_macchina, per_giorno, anno, mese, g1, g2,
             rows.append({"codice_lavoratore": code, "nome_macchina": nome_macchina or code, "data": f"{g:02d}/{mese:02d}/{anno}",
                          "ora_ingresso": "", "ora_uscita": "", "ore_lavorate": "0.00", "tipo_giorno": tg, "stato": "ASSENTE", "note": ""})
     return rows
+
 def scrivi_presenze(A, parsed):
     _, mapping = A.leggi_foglio("MAPPING_PRESENZE")
     b = A.leggi_admin()
@@ -451,7 +500,7 @@ def scrivi_presenze(A, parsed):
         if not code: unmapped.add(_norm_nome(blk["nome"])); continue
         tc = turni_dip.get(code, "")
         tinfo = turni.get(tc, {"attr": False, "start": None})
-        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi, cfg.get("_riposo", {"sabato","domenica"}), tc in cfg.get("_flottanti", set()), cfg.get("_soglia_notte", 180)):
+        for r in genera_righe_lavoratore(code, nome_macchina, blk["per_giorno"], anno, mese, g1, g2, tinfo, festivi, cfg.get("_riposo", {"sabato", "domenica"}), tc in cfg.get("_flottanti", set()), cfg.get("_soglia_notte", 180)):
             key = (r["codice_lavoratore"], r["data"])
             if key in esistenti: dup += 1; continue
             esistenti.add(key); rows.append(r)
@@ -466,6 +515,7 @@ def scrivi_presenze(A, parsed):
     return {"ok": True, "scritte": len(rows), "okn": sum(1 for r in rows if r["stato"]=="OK"),
             "dar": sum(1 for r in rows if r["stato"]=="DA_RIVEDERE"), "abs": sum(1 for r in rows if r["stato"]=="ASSENTE"),
             "dup": dup, "unmapped": sorted(x for x in unmapped if x)}
+
 def xls_matrix(data):
     import xlrd
     wb = xlrd.open_workbook(file_contents=data)
@@ -482,6 +532,7 @@ def xls_matrix(data):
             else: cells.append("" if v is None else str(v))
         rows.append(cells)
     return rows
+
 def calcola_busta(pp_list, tipo_paga, base, cfg, turno_start):
     ore_norm = cfg.get("ore_normali_giorno", 8) or 8
     s1, s2 = cfg.get("straordinario_1_percent", 25), cfg.get("straordinario_2_percent", 50)
@@ -511,6 +562,7 @@ def calcola_busta(pp_list, tipo_paga, base, cfg, turno_start):
     return {"n_giorni": n_giorni, "n_assenze": n_assenze, "n_dar": n_dar, "ore_tot": round(ore_tot,2),
             "ore_stra": round(ore_stra,2), "mezzore": mezzore, "comp_base": comp_base, "comp_stra": comp_stra,
             "trat_rit": trat, "lordo": comp_base + comp_stra - trat}
+
 def pianifica_acconti(code, accs, A):
     ded, piani = 0.0, []
     for idx, a in enumerate(accs):
@@ -528,14 +580,16 @@ def pianifica_acconti(code, accs, A):
         else:
             ded += imp; piani.append((idx, {"stato": "chiuso"}, imp, a))
     return ded, piani
+
+# === FIX v21.8: rimossi force=True non necessari ===
 def calcola_anteprima(A, lingua, anno, mese, quindicina):
     cfg, festivi = leggi_config(A)
-    b = A.leggi_admin(force=True)
+    b = A.leggi_admin()
     dips, sals = b.get("DIPENDENTI", []), b.get("SALARI", [])
     turni = mappa_turni(A, b.get("TURNI", []))
-    _, pres = A.leggi_foglio("PRESENZE", force=True)
-    _, accs = A.leggi_foglio("ACCONTI", force=True)
-    _, pays = A.leggi_foglio("PAGAMENTI", force=True)
+    _, pres = A.leggi_foglio("PRESENZE")
+    _, accs = A.leggi_foglio("ACCONTI")
+    _, pays = A.leggi_foglio("PAGAMENTI")
     g_in = 1 if quindicina == 1 else 16
     g_fine = 15 if quindicina == 1 else calendar.monthrange(anno, mese)[1]
     da, a = date(anno, mese, g_in), date(anno, mese, g_fine)
@@ -587,6 +641,7 @@ def calcola_anteprima(A, lingua, anno, mese, quindicina):
         d.update(busta); dets.append(d)
     return {"pda": pda, "paa": paa, "dets": dets, "avvisi": avvisi, "dar_count": dar_count,
             "festivi_default": cfg.get("_festivi_default", False), "trattenute_attive": trattenute_attive(cfg)}
+
 def conferma_paghe(A, ant):
     rows, piani_totali = [], []
     ts = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -604,8 +659,8 @@ def conferma_paghe(A, ant):
                      "ore_normali": f"{det.get('ore_tot', 0):.1f}", "ore_straordinarie": f"{det.get('ore_stra', 0):.1f}",
                      "ritardi_mezzore": str(det.get("mezzore", 0)),
                      "data_pagamento": datetime.now().strftime("%d/%m/%Y"), "stato": "confermato", "timestamp": ts})
-        for idx, upd, imp, _s in det["piani"]:
-            if imp > 0: piani_totali.append((idx, upd))
+    for idx, upd, imp, _s in det["piani"]:
+        if imp > 0: piani_totali.append((idx, upd))
     if rows:
         if hasattr(A, "salva_append_many"): ok, msg = A.salva_append_many("PAGAMENTI", rows)
         else:
@@ -616,6 +671,7 @@ def conferma_paghe(A, ant):
         if not ok: return False, msg, 0
     for idx, upd in piani_totali: A.salva_update("ACCONTI", idx, upd)
     return True, "ok", len(rows)
+
 def calcola_solde_de_tout_compte(A, code, dip, sal, cfg, motivo, data_fine_str, preavviso_lavorato, giorni_congedo):
     data_fine = parse_data(data_fine_str) or date.today()
     data_inizio = parse_data(sal.get("data_inizio_validita")) or parse_data(dip.get("data_registrazione")) or data_fine
@@ -632,6 +688,7 @@ def calcola_solde_de_tout_compte(A, code, dip, sal, cfg, motivo, data_fine_str, 
     return {"code": code, "motivo": motivo, "data_fine": data_fine_str, "anzianita_anni": anz,
             "ind_preavviso": round(ind_preav), "ind_congedo": round(ind_cong), "ind_licenziamento": round(ind_lic),
             "totale": round(ind_preav + ind_cong + ind_lic)}
+
 def conferma_solde(A, code, stato_fin, data_fine_str):
     _, dips = A.leggi_foglio("DIPENDENTI", force=True)
     idx = next((i for i, r in enumerate(dips) if A.s_str(r.get("codice")).upper() == code.upper()), None)
@@ -646,11 +703,12 @@ def conferma_solde(A, code, stato_fin, data_fine_str):
         if A.s_str(m.get("code_travailleur")).upper() == code.upper() and not A.s_str(m.get("date_fin")):
             A.salva_update("STORICO_MANSIONI", i, {"date_fin": data_fine_str})
     return ok, "ok"
+
 def genera_releve_esterni(A, anno, mese):
     b = A.leggi_admin(force=True)
     esterni = {A.s_str(d.get("codice")).upper(): d for d in b.get("DIPENDENTI", []) if _is_esterno(d)}
     if not esterni: return [], ""
-    _, pres = A.leggi_foglio("PRESENZE", force=True)
+    _, pres = A.leggi_foglio("PRESENZE")
     agg = {}
     for p in pres:
         d = parse_data(A.s_str(p.get("data")))
@@ -666,34 +724,49 @@ def genera_releve_esterni(A, anno, mese):
     w.writerow(["codice", "nom_prenom", "societe_formelle", "jours", "heures", "mois", "annee"])
     for r in rows: w.writerow([r["codice"], r["nome"], r["societa"], r["giorni"], f"{r['ore']:.2f}", f"{mese:02d}", anno])
     return rows, out.getvalue()
+
+# === FIX v08.05: layout busta conforme PDF (intestazione a SINISTRA, tabella SEMPRE popolata) ===
 def genera_busta_paga(A, lingua, dip, det, pago, storico, acconti):
     az = A.azienda_info()
     pdf = FPDF(); pdf.set_auto_page_break(True, 15); pdf.add_page()
+    # --- Logo centrato in alto ---
     try:
         lg = requests.get(LOGO_BASE + A.cfg_get("logo_azienda", "adtrading.png"), timeout=20)
         if lg.status_code == 200 and lg.content: pdf.image(lg.content, x=88, y=6, w=34)
     except Exception: pass
-    pdf.set_xy(10, 26); pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(0, 6, _pdf_safe(az.get("nome", "")), 0, 1, "C")
+    # --- Intestazione azienda a SINISTRA (come PDF di esempio) ---
+    pdf.set_xy(10, 44)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(0, 4, _pdf_safe(az.get("nome", "")), 0, 1, "L")
     pdf.set_font("Helvetica", "", 7.5)
-    pdf.multi_cell(0, 4, _pdf_safe(f"{az.get('indirizzo','')} - {az.get('fisc','')}"), align="C")
-    pdf.cell(0, 4, _pdf_safe(f"Tel : {az.get('tel','')} - E-mail : {az.get('email','')}"), 0, 1, "C")
-    pdf.ln(6)
+    pdf.cell(0, 3.6, _pdf_safe(az.get("indirizzo", "")), 0, 1, "L")
+    pdf.cell(0, 3.6, _pdf_safe(az.get("fisc", "")), 0, 1, "L")
+    pdf.cell(0, 3.6, _pdf_safe(f"Tel: {az.get('tel','')} - E-mail: {az.get('email','')}"), 0, 1, "L")
+    pdf.ln(4)
+    # --- Titolo FICHE DE PAIE centrato ---
     pdf.set_font("Helvetica", "B", 14)
     pdf.cell(0, 8, _pdf_safe(t6("buste_title", lingua)), 0, 1, "C")
-    pdf.ln(4)
+    pdf.ln(3)
+    # --- Lavoratore e periodo a SINISTRA ---
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_worker', lingua)} : {A.s_str(dip.get('cognome'))} {A.s_str(dip.get('nome'))} - {A.s_str(dip.get('codice'))}"), 0, 1, "L")
-    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_period', lingua)} : {A.s_str(pago.get('periodo_da'))} -> {A.s_str(pago.get('periodo_a'))}"), 0, 1, "L")
+    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_worker', lingua)}: {A.s_str(dip.get('cognome'))} {A.s_str(dip.get('nome'))} - {A.s_str(dip.get('codice'))}"), 0, 1, "L")
+    pdf.cell(0, 7, _pdf_safe(f"{t6('buste_period', lingua)}: {A.s_str(pago.get('periodo_da'))} -> {A.s_str(pago.get('periodo_a'))}"), 0, 1, "L")
     if det and det.get("fissa"):
         pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("fissa_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 10)
     if det and det.get("esterno"):
         pdf.set_font("Helvetica", "I", 8); pdf.cell(0, 5, _pdf_safe(t6("esterno_badge", lingua)), 0, 1, "L"); pdf.set_font("Helvetica", "", 10)
-    pdf.ln(3)
-    g = A.s_str(pago.get("giorni_lavorati")) or (str(det.get("n_giorni", 0)) if det else "0")
-    on = A.s_str(pago.get("ore_normali")) or (f"{det.get('ore_tot', 0):.1f}" if det else "0.0")
-    os = A.s_str(pago.get("ore_straordinarie")) or (f"{det.get('ore_stra', 0):.1f}" if det else "0.0")
-    rit = A.s_str(pago.get("ritardi_mezzore")) or (str(det.get("mezzore", 0)) if det else "0")
+    pdf.ln(2)
+    # === FIX v08.05: tabella SEMPRE popolata (prima da det, fallback su pago) ===
+    if det:
+        g = str(det.get("n_giorni", 0))
+        on = f"{det.get('ore_tot', 0):.1f}"
+        os_ = f"{det.get('ore_stra', 0):.1f}"
+        rit = str(det.get("mezzore", 0))
+    else:
+        g = A.s_str(pago.get("giorni_lavorati")) or "0"
+        on = A.s_str(pago.get("ore_normali")) or "0.0"
+        os_ = A.s_str(pago.get("ore_straordinarie")) or "0.0"
+        rit = A.s_str(pago.get("ritardi_mezzore")) or "0"
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(47, 6, _pdf_safe(t6("col_giorni", lingua)), 1, 0, "C")
     pdf.cell(47, 6, _pdf_safe(t6("col_ore", lingua)), 1, 0, "C")
@@ -702,56 +775,58 @@ def genera_busta_paga(A, lingua, dip, det, pago, storico, acconti):
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(47, 6, _pdf_safe(g), 1, 0, "C")
     pdf.cell(47, 6, _pdf_safe(on), 1, 0, "C")
-    pdf.cell(47, 6, _pdf_safe(os), 1, 0, "C")
+    pdf.cell(47, 6, _pdf_safe(os_), 1, 0, "C")
     pdf.cell(47, 6, _pdf_safe(rit), 1, 1, "C")
     pdf.ln(3)
     lordo = to_float(pago.get("importo_lordo"))
-    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_lordo', lingua)} : {lordo:,.0f} FCFA"), 0, 1, "L")
+    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_lordo', lingua)}: {lordo:,.0f} FCFA"), 0, 1, "L")
     tratt_vis = False
     if det and det.get("tratt") and det["tratt"].get("totale", 0) > 0:
         tratt = det["tratt"]; tratt_vis = True
         pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("tratt_title", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
-        for k, lab in (("css", "tratt_css"),("ipres", "tratt_ipres"),("ipm", "tratt_ipm"),("ir", "tratt_ir")):
-            pdf.cell(0, 5, _pdf_safe(f"- {t6(lab, lingua)} : {tratt[k]:,.0f} FCFA"), 0, 1, "L")
+        for k, lab in (("css", "tratt_css"), ("ipres", "tratt_ipres"), ("ipm", "tratt_ipm"), ("ir", "tratt_ir")):
+            pdf.cell(0, 5, _pdf_safe(f"- {t6(lab, lingua)}: {tratt[k]:,.0f} FCFA"), 0, 1, "L")
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(0, 6, _pdf_safe(f"{t6('tratt_tot', lingua)} : -{tratt['totale']:,.0f} FCFA"), 0, 1, "L")
+        pdf.cell(0, 6, _pdf_safe(f"{t6('tratt_tot', lingua)}: -{tratt['totale']:,.0f} FCFA"), 0, 1, "L")
         pdf.set_font("Helvetica", "I", 7); pdf.multi_cell(0, 4, _pdf_safe(t6("tratt_note", lingua))); pdf.set_font("Helvetica", "", 10)
     acc = to_float(pago.get("acconti_dedotti"))
-    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_acc', lingua)} : -{acc:,.0f} FCFA"), 0, 1, "L")
+    pdf.cell(0, 6, _pdf_safe(f"{t6('tot_acc', lingua)}: -{acc:,.0f} FCFA"), 0, 1, "L")
     premi = to_float(pago.get("premi_produzione"))
-    pdf.cell(0, 6, _pdf_safe(f"{t6('premi_title', lingua)} : +{premi:,.0f} FCFA"), 0, 1, "L")
+    pdf.cell(0, 6, _pdf_safe(f"{t6('premi_title', lingua)}: +{premi:,.0f} FCFA"), 0, 1, "L")
     netto = to_float(pago.get("importo_netto"))
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, _pdf_safe(f"{t6('buste_net', lingua)} : {netto:,.0f} FCFA"), 0, 1, "L")
+    pdf.cell(0, 8, _pdf_safe(f"{t6('buste_net', lingua)}: {netto:,.0f} FCFA"), 0, 1, "L")
     if tratt_vis and det:
         tratt = det["tratt"]; pdf.ln(2)
         pdf.set_font("Helvetica", "B", 8); pdf.cell(0, 5, _pdf_safe(t6("dat_title", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 7)
-        for k, lab in (("dat_css_af", "dat_css_af"),("dat_css_at", "dat_css_at"),("dat_ipres", "dat_ipres"),("dat_ipm", "dat_ipm"),("dat_fnp", "dat_fnp")):
-            pdf.cell(0, 4, _pdf_safe(f"- {t6(lab, lingua)} : {tratt[k]:,.0f} FCFA"), 0, 1, "L")
+        for k, lab in (("dat_css_af", "dat_css_af"), ("dat_css_at", "dat_css_at"), ("dat_ipres", "dat_ipres"), ("dat_ipm", "dat_ipm"), ("dat_fnp", "dat_fnp")):
+            pdf.cell(0, 4, _pdf_safe(f"- {t6(lab, lingua)}: {tratt[k]:,.0f} FCFA"), 0, 1, "L")
     if acconti:
         pdf.ln(2); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("buste_avances", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
         for a in acconti:
             mod = A.s_str(a.get("modalita_rimborso"))
             piano = f" - rate {A.s_str(a.get('rate_pagate')) or '0'}/{A.s_str(a.get('numero_rate')) or '-'}" if "rate" in mod.lower() else " - unica"
-            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(a.get('tipo_acconto')) or 'generico'} : {to_float(a.get('importo')):,.0f} FCFA{piano}"), 0, 1, "L")
+            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(a.get('tipo_acconto')) or 'generico'}: {to_float(a.get('importo')):,.0f} FCFA{piano}"), 0, 1, "L")
     if storico:
         pdf.ln(2); pdf.set_font("Helvetica", "B", 9); pdf.cell(0, 6, _pdf_safe(t6("buste_hist", lingua)), 0, 1, "L")
         pdf.set_font("Helvetica", "", 8)
         for p in storico:
-            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(p.get('periodo_da'))} -> {A.s_str(p.get('periodo_a'))} : {t6('buste_net', lingua)} {to_float(p.get('importo_netto')):,.0f} FCFA"), 0, 1, "L")
+            pdf.cell(0, 5, _pdf_safe(f"- {A.s_str(p.get('periodo_da'))} -> {A.s_str(p.get('periodo_a'))}: {t6('buste_net', lingua)} {to_float(p.get('importo_netto')):,.0f} FCFA"), 0, 1, "L")
     pdf.ln(4); pdf.set_font("Helvetica", "", 9)
     pdf.cell(95, 6, _pdf_safe(t6("sig_trav", lingua)), 1, 0, "C"); pdf.cell(95, 6, _pdf_safe(t6("sig_emp", lingua)), 1, 1, "C")
     pdf.cell(95, 15, "", 0, 0); pdf.cell(95, 15, "", 0, 1)
     out = pdf.output(dest="S")
     return out.encode("latin-1", "ignore") if isinstance(out, str) else bytes(out)
+
+# === FIX v21.8: rimossi force=True su PAGAMENTI/ACCONTI/PRESENZE ===
 def sezione_buste(A, lingua):
     st.subheader(t6("buste_title", lingua))
     dips = A.leggi_admin().get("DIPENDENTI", [])
-    _, pays = A.leggi_foglio("PAGAMENTI", force=True)
-    _, accs = A.leggi_foglio("ACCONTI", force=True)
+    _, pays = A.leggi_foglio("PAGAMENTI")
+    _, accs = A.leggi_foglio("ACCONTI")
     opzioni, codmap = [], {}
     for d in dips:
         cod = A.s_str(d.get("codice"))
@@ -779,6 +854,7 @@ def sezione_buste(A, lingua):
         pdf_bytes = genera_busta_paga(A, lingua, dip, det, pago, miei, acconti)
         fname = f"Fiche_de_paie_{code}_{A.s_str(pago.get('periodo_da')).replace('/', '-')}.pdf"
         st.download_button("📥 PDF", data=pdf_bytes, file_name=fname, mime="application/pdf", use_container_width=True)
+
 def sezione_import(A, lingua):
     st.subheader("📥 " + t6("import_title", lingua)); st.caption(t6("import_hint", lingua))
     c1, c2 = st.columns([3,1])
@@ -802,7 +878,7 @@ def sezione_import(A, lingua):
             else: st.session_state.f6_parsed = parsed; st.session_state.pop("f6_esito_import", None); st.rerun()
     parsed = st.session_state.get("f6_parsed")
     if parsed:
-        st.success(f"{t6('parsed_ok', lingua)} — {t6('import_period', lingua)} : {parsed['g1']:02d}/{parsed['mese']:02d}/{parsed['anno']} -> {parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — {len(parsed['blocchi'])} {t6('import_workers', lingua)}")
+        st.success(f"{t6('parsed_ok', lingua)} — {t6('import_period', lingua)}: {parsed['g1']:02d}/{parsed['mese']:02d}/{parsed['anno']} -> {parsed['g2']:02d}/{parsed['mese']:02d}/{parsed['anno']} — {len(parsed['blocchi'])} {t6('import_workers', lingua)}")
         if st.button("💾 " + t6("import_write_btn", lingua), type="primary"):
             with st.spinner("..."):
                 esito = scrivi_presenze(A, parsed)
@@ -814,9 +890,10 @@ def sezione_import(A, lingua):
             if esito["dar"] > 0: st.info(t6("import_go_anomalies", lingua))
             if esito["unmapped"]: st.warning(t6("import_unmapped", lingua) + ", ".join(esito["unmapped"]))
         else: st.error("❌ " + str(esito.get("msg")))
+
 def sezione_anomalie(A, lingua):
     st.subheader("🔍 " + t6("anom_title", lingua))
-    _, pres = A.leggi_foglio("PRESENZE", force=True)
+    _, pres = A.leggi_foglio("PRESENZE")
     righe = [(i, p) for i, p in enumerate(pres) if A.s_str(p.get("stato")).upper() in ("DA_RIVEDERE", "ASSENTE")]
     if not righe: st.success(t6("anom_none", lingua)); return
     st.caption(t6("anom_hint", lingua))
@@ -848,6 +925,7 @@ def sezione_anomalie(A, lingua):
                 if ok: fatte += 1
         st.success(f"✅ {fatte} {t6('anom_fixed_n', lingua)}"); st.rerun()
     if len(righe) > 60: st.caption(f"… {len(righe)-60}+")
+
 def render_anteprima(lingua, ant):
     if ant.get("festivi_default"): st.warning("⚠️ Jours fériés par défaut — complétez CONFIG.")
     if ant["dar_count"] > 0: st.warning(f"⚠️ {ant['dar_count']} {t6('dar_warn', lingua)}")
@@ -873,14 +951,17 @@ def render_anteprima(lingua, ant):
     c1.metric(t6("tot_lordo", lingua), f"{tl:,.0f} FCFA"); c2.metric(t6("tot_tratt", lingua), f"{tt:,.0f} FCFA")
     c3.metric(t6("tot_acc", lingua), f"{td:,.0f} FCFA"); c4.metric(t6("tot_netto", lingua), f"{tl-tt-td:,.0f} FCFA")
     st.caption(t6("netto_hint", lingua))
+
+# === FIX v21.8: radio quindicina con indici stabili ===
 def sezione_paghe(A, lingua):
     st.subheader("💰 " + t6("paghe_title", lingua))
     c1, c2, c3, c4 = st.columns([1,1.4,1.5,1.4])
     anno = c1.number_input(t6("paghe_anno", lingua), min_value=2024, max_value=2035, value=datetime.now().year, key="f6_anno")
     nomi = MESI.get(lingua, MESI["fr"])
     mese = c2.selectbox(t6("paghe_mese", lingua), list(range(1,13)), format_func=lambda m: nomi[m-1], index=datetime.now().month-1, key="f6_mese")
-    q = c3.radio(t6("paghe_quindicina", lingua), [t6("paghe_q1", lingua), t6("paghe_q2", lingua)], key="f6_q")
-    quindicina = 1 if q == t6("paghe_q1", lingua) else 2
+    q_idx = c3.radio(t6("paghe_quindicina", lingua), [0, 1],
+                     format_func=lambda i: t6(f"paghe_q{i+1}", lingua), key="f6_q")
+    quindicina = 1 if q_idx == 0 else 2
     if c4.button("🧮 " + t6("paghe_calc_btn", lingua), type="primary", use_container_width=True):
         for k in list(st.session_state.keys()):
             if k.startswith("f6_premio_"): st.session_state.pop(k, None)
@@ -888,13 +969,14 @@ def sezione_paghe(A, lingua):
         st.rerun()
     ant = st.session_state.get("f6_ant")
     if ant:
-        st.markdown(f"{t6('paghe_periodo', lingua)} : {ant['pda']} -> {ant['paa']}")
+        st.markdown(f"{t6('paghe_periodo', lingua)}: {ant['pda']} -> {ant['paa']}")
         if not ant["dets"]: st.info(t6("paghe_nulla", lingua)); return
         render_anteprima(lingua, ant)
         if st.button("✅ " + t6("paghe_confirm_btn", lingua), type="primary"):
             ok, msg, n = conferma_paghe(A, ant)
             if ok: st.session_state.pop("f6_ant", None); st.success(t6("paghe_done", lingua) + str(n))
             else: st.error(msg)
+
 def sezione_acconti(A, lingua):
     st.subheader("💸 " + t6("acc_title", lingua))
     b = A.leggi_admin(); dips = b.get("DIPENDENTI", [])
@@ -929,15 +1011,16 @@ def sezione_acconti(A, lingua):
                 if ok: st.success(t6("acc_created", lingua) + " — " + t6("acc_dedotto", lingua)); st.rerun()
                 else: st.error(msg)
     st.markdown("---"); st.markdown(t6("acc_open_title", lingua))
-    _, accs = A.leggi_foglio("ACCONTI", force=True)
+    _, accs = A.leggi_foglio("ACCONTI")
     aperti = [a for a in accs if A.s_str(a.get("stato")).lower() not in ("chiuso", "annullato")]
     if aperti:
         st.dataframe([{t6("col_codice", lingua): A.s_str(a.get("codice_lavoratore")), t6("acc_tipo", lingua): A.s_str(a.get("tipo_acconto")),
                        t6("acc_importo", lingua): A.s_str(a.get("importo")), t6("acc_modalita", lingua): A.s_str(a.get("modalita_rimborso")),
                        "Rate": f"{A.s_str(a.get('rate_pagate')) or '0'}/{A.s_str(a.get('numero_rate')) or '-'}",
                        "Rata": A.s_str(a.get("importo_rata")), t6("anom_stato", lingua): A.s_str(a.get("stato"))} for a in aperti],
-                     use_container_width=True, hide_index=True)
+                      use_container_width=True, hide_index=True)
     else: st.info(t6("acc_none", lingua))
+
 def sezione_releve(A, lingua):
     st.subheader(t6("releve_title", lingua)); st.caption(t6("releve_hint", lingua))
     c1, c2 = st.columns(2)
@@ -956,6 +1039,7 @@ def sezione_releve(A, lingua):
                        t6("col_ore", lingua): r["ore"]} for r in rows], use_container_width=True, hide_index=True)
         st.download_button(t6("releve_csv_btn", lingua), data=csvtxt.encode("utf-8-sig"),
                            file_name=f"Releve_externes_{ay}-{mo:02d}.csv", mime="text/csv", use_container_width=True)
+
 def sezione_solde(A, lingua):
     st.subheader(t6("solde_title", lingua)); st.caption(t6("solde_hint", lingua))
     b = A.leggi_admin()
@@ -994,6 +1078,7 @@ def sezione_solde(A, lingua):
             ok, msg = conferma_solde(A, code, stato_fin, data_fine)
             if ok: st.session_state.pop("f7_solde", None); st.success(t6("solde_archived", lingua)); st.rerun()
             else: st.error(msg)
+
 def pagina_fase7(lingua, app_module):
     A = app_module
     st.title(t6("titolo", lingua)); st.caption(VERSIONE_PAGHE)
@@ -1023,4 +1108,5 @@ def pagina_fase7(lingua, app_module):
     with tabs[4]: sezione_buste(A, lingua)
     with tabs[5]: sezione_releve(A, lingua)
     with tabs[6]: sezione_solde(A, lingua)
+
 pagina_fase6 = pagina_fase7
